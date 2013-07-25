@@ -1,4 +1,6 @@
-# Waql
+# WAQL
+
+The WAQL prject.
 
 ## Usage
 
