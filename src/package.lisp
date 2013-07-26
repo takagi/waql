@@ -37,9 +37,11 @@
            #:relation-member
            #:relation-count
            #:relation-adjoin
+           #:relation-adjoin-all
            ;; Extending :ITERATE library for relation
            #:for-tuple
            #:in-relation
            #:collect-relation
            ;; Querying
-           #:query))
+           #:query
+           #:<-))

@@ -87,6 +87,11 @@
     (setf (gethash item body) t)
     relation))
 
+(defun relation-adjoin-all (items relation)
+  (reduce #'relation-adjoin items
+          :initial-value relation
+          :from-end t))
+
 
 ;;;
 ;;; Extending :ITERATE library for relation
@@ -123,5 +128,36 @@
 ;;; Querying
 ;;;
 
-(defmacro query ()
-  nil)
+(defun query-qual (qual)
+  (cond
+    ((quantification-p qual) (query-quantification qual))
+    (t (error "invalid form: ~S" qual))))
+
+(defun quantification-p (qual)
+  (cl-pattern:match qual
+    (('<- . _) t)
+    (_ nil)))
+
+(defun quantification-vars (qual)
+  (cl-pattern:match qual
+    (('<- vars _) (unless (listp vars)
+                    (error "quantification variables must be list: ~S" vars))
+                  vars)
+    (_ (error "invalid form for quantification: ~S" qual))))
+
+(defun quantification-relation (qual)
+  (cl-pattern:match qual
+    (('<- _ rel) rel)
+    (_ (error "invalid form for quantification: ~S" qual))))
+
+(defun query-quantification (qual)
+  (let ((vars (quantification-vars qual))
+        (rel  (quantification-relation qual)))
+    `(for-tuple ,vars in-relation ,rel)))
+
+(defun query-exps (exps)
+  `(collect-relation (tuple ,@exps)))
+
+(defmacro query (exps &rest quals)
+  `(iterate:iter ,@(mapcar #'query-qual quals)
+                 ,(query-exps exps)))

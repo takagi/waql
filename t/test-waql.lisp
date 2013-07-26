@@ -118,6 +118,16 @@
   (ok (relation-member (tuple (user 2)) relation))
   (is (relation-count relation) 2))
 
+;;; test RELATION-ADJOIN-ALL function
+(let ((cl-test-more:*default-test-function* #'equalp)
+      (relation (relation-adjoin-all (list (tuple (user 1))
+                                           (tuple (user 2))
+                                           (tuple (user 2)))
+                                     (empty-relation))))
+  (ok (relation-member (tuple (user 1)) relation))
+  (ok (relation-member (tuple (user 2)) relation))
+  (is (relation-count relation) 2))
+
 ;;; error if try to adjoin other tuples having different attributes
 (let ((relation (empty-relation)))
   (relation-adjoin (tuple 1) relation)
@@ -134,8 +144,46 @@
 
 
 ;;;
+;;; test Querying - Compiler
+;;;
+
+;;; test QUANTIFICATION-P function
+(ok (waql::quantification-p '(<- (a b c) foo)))
+(ok (null (waql::quantification-p '(= 1 1))))
+
+;;; test QUANTIFICATION-VARS function
+(is (waql::quantification-vars '(<- (a b c) foo)) '(a b c))
+(is-error (waql::quantification-vars '(<- a foo)) simple-error)
+(is-error (waql::quantification-vars '(= 1 1)) simple-error)
+
+;;; test QUANTIFICATION-RELATION function
+(is (waql::quantification-relation '(<- (a b c) foo)) 'foo)
+(is-error (waql::quantification-relation '(= 1 1)) simple-error)
+
+;;; test QUERY macro
+(is-expand (query (u ae ac) (<- (u ae ac ce cv) uf))
+           (iterate:iter (for-tuple (u ae ac ce cv) in-relation uf)
+                         (collect-relation (tuple u ae ac))))
+
+
+;;;
 ;;; test Querying
 ;;;
+
+(defparameter +uf1+
+  (relation-adjoin-all (list
+                        (tuple (user 1) (action-event 1) (action 1)
+                               (conversion-event 1) (conversion 1))
+                        (tuple (user 1) (action-event 2) (action 2)
+                               (conversion-event 1) (conversion 1))
+                        (tuple (user 2) (action-event 3) (action 2)
+                               (conversion-event 2) (conversion 2)))
+                       (empty-relation)))
+
+(let ((cl-test-more:*default-test-function* #'equalp)
+      (expected (tuple (user 1) (action-event 1) (action 1))))
+  (ok (relation-member expected
+                       (query (u ae ac) (<- (u ae ac ce cv) +uf1+)))))
 
 
 (finalize)
