@@ -5,4 +5,33 @@
 
 (in-package :cl-user)
 (defpackage waql
-  (:use :cl))
+  (:use :cl)
+  (:export ;; User
+           #:user
+           #:user-id
+           #:user-p
+           ;; Action Event
+           #:action-event
+           #:action-event-id
+           #:action-event-p
+           ;; Action
+           #:action
+           #:action-id
+           #:action-p
+           ;; Tuple
+           #:tuple
+           #:with-tuple
+           #:tuple-p
+           ;; Relation
+           #:relation
+           #:empty-relation
+           #:relation->list
+           #:relation-member
+           #:relation-count
+           #:relation-adjoin
+           ;; Extending :ITERATE library for relation
+           #:for-tuple
+           #:in-relation
+           #:collect-relation
+           ;; Querying
+           #:query))

@@ -115,8 +115,8 @@
 (let ((relation (relation-adjoin (tuple 4 5 6)
                   (relation-adjoin (tuple 1 2 3)
                     (empty-relation)))))
-  (let ((relation2 (iter (for (x y z) in-relation relation)
-                         (collect-relation (tuple x y z)))))
+  (let ((relation2 (iterate:iter (for-tuple (x y z) in-relation relation)
+                                 (collect-relation (tuple x y z)))))
     (ok (relation-member (tuple 1 2 3) relation2))
     (ok (relation-member (tuple 4 5 6) relation2))))
 

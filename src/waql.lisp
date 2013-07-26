@@ -101,13 +101,16 @@
   :element-type 'tuple
   :element-doc-string "Tuples of a relation")
 
+(defmacro for-tuple (&rest args)
+  `(for ,@args))
+
 ;;; gatherer for relation
 
 (defmacro collect-relation (expr)
-  `(reducing ,expr
-          by #'(lambda (r i)
-                 (relation-adjoin i r))
-          initial-value (empty-relation)))
+  `(iterate:reducing ,expr
+                  by #'(lambda (r i)
+                         (relation-adjoin i r))
+       initial-value (empty-relation)))
 
 
 ;;;
