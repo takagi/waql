@@ -125,13 +125,35 @@
 
 
 ;;;
-;;; Querying
+;;; Querying - Compiler
 ;;;
 
-(defun query-qual (qual)
+(defmacro query (exps &rest quals)
+  (assert (quantification-p (car quals)))
+  (query-quals quals exps :outermost t))
+
+(defun query-quals (quals exps &key (outermost nil))
+  (if quals
+      (let ((qual (car quals))
+            (rest (cdr quals)))
+        (query-qual qual rest exps outermost))
+      (query-exps exps)))
+
+(defun query-qual (qual rest exps outermost)
   (cond
-    ((quantification-p qual) (query-quantification qual))
-    (t (error "invalid form: ~S" qual))))
+    ((quantification-p qual) (query-quantification qual rest exps outermost))
+    (t (query-predicate qual rest exps))))
+
+(defun query-exps (exps)
+  (check-type exps list)
+  `(iterate:in outermost
+     (collect-relation (tuple ,@exps))))
+
+
+;;;
+;;; Querying - Compiler - Quantification
+;;;
+
 
 (defun quantification-p (qual)
   (cl-pattern:match qual
@@ -150,14 +172,21 @@
     (('<- _ rel) rel)
     (_ (error "invalid form for quantification: ~S" qual))))
 
-(defun query-quantification (qual)
+(defun query-quantification (qual rest exps outermost)
   (let ((vars (quantification-vars qual))
         (rel  (quantification-relation qual)))
-    `(for-tuple ,vars in-relation ,rel)))
+    (if outermost
+        `(iterate:iter outermost
+                       (for-tuple ,vars in-relation ,rel)
+                       ,(query-quals rest exps))
+        `(iterate:iter (for-tuple ,vars in-relation ,rel)
+                       ,(query-quals rest exps)))))
 
-(defun query-exps (exps)
-  `(collect-relation (tuple ,@exps)))
 
-(defmacro query (exps &rest quals)
-  `(iterate:iter ,@(mapcar #'query-qual quals)
-                 ,(query-exps exps)))
+;;;
+;;; Querying - Compiler - Predicate
+;;;
+
+(defun query-predicate (pred rest exps)
+  `(when ,pred
+     ,(waql::query-quals rest exps)))
