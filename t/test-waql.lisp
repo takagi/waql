@@ -44,10 +44,22 @@
 ;;; test Conversion Event
 ;;;
 
+;;; tset CONVERSION-EVENT constructor
+(ok (conversion-event 1))
+
+;;; test CONVERSION-EVENT-ID accessor
+(is (conversion-event-id (conversion-event 1)) 1)
+
 
 ;;;
 ;;; test Conversion
 ;;;
+
+;;; test CONVERSION constructor
+(ok (conversion 1))
+
+;;; test CONVERSION-ID accessor
+(is (conversion-id (conversion 1)) 1)
 
 
 ;;;

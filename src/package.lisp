@@ -18,6 +18,14 @@
            #:action
            #:action-id
            #:action-p
+           ;; Conversion Event
+           #:conversion-event
+           #:conversion-event-id
+           #:conversion-event-p
+           ;; Conversion
+           #:conversion
+           #:conversion-id
+           #:conversion-p
            ;; Tuple
            #:tuple
            #:with-tuple

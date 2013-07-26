@@ -33,10 +33,16 @@
 ;;; Conversion Event
 ;;;
 
+(defstruct (conversion-event (:constructor conversion-event (id)))
+  (id nil :type fixnum :read-only t))
+
 
 ;;;
 ;;; Conversion
 ;;;
+
+(defstruct (conversion (:constructor conversion (id)))
+  (id nil :type fixnum :read-only t))
 
 
 ;;;
