@@ -121,6 +121,14 @@
 
 ;;; test RELATION-COUNT function
 
+;;; test PRINT-RELATION function
+(is (with-output-to-string (s)
+      (print-object (relation-adjoin (tuple 4 5 6)
+                      (relation-adjoin (tuple 1 2 3)
+                        (empty-relation)))
+                    s))
+    "#S(RELATION 2 #S(TUPLE 4 5 6) #S(TUPLE 1 2 3))")
+
 ;;; test RELATION-ADJOIN function
 (let ((cl-test-more:*default-test-function* #'equalp)
       (relation (empty-relation)))

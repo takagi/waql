@@ -70,7 +70,8 @@
 ;;;
 
 (defstruct (relation (:constructor empty-relation ())
-                     (:conc-name %relation-))
+                     (:conc-name %relation-)
+                     (:print-object print-relation))
   (body (make-hash-table :test #'equalp) :type hash-table :read-only t))
 
 (defun relation->list (relation)
@@ -84,6 +85,11 @@
 
 (defun relation-count (relation)
   (hash-table-count (%relation-body relation)))
+
+(defun print-relation (relation stream)
+  (format stream "#S(RELATION ~S ~{~S~^ ~})"
+                 (relation-count relation)
+                 (relation->list relation)))
 
 (defun relation-adjoin (item relation)
   (check-type item tuple)
