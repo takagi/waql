@@ -7,69 +7,21 @@
 
 (plan nil)
 
+
 ;;;
-;;; test User
+;;; User
 ;;;
 
-(diag "test User")
-
-;;; test USER constructor
-(ok (user 1))
-
-;;; test USER-ID accessor
-(is (user-id (user 1)) 1)
+(defstruct (user (:constructor user (id)))
+  (id nil :type fixnum :read-only t))
 
 
 ;;;
-;;; test Action Event
+;;; Event
 ;;;
 
-(diag "test Action Event")
-
-;;; test ACTION-EVENT constructor
-(ok (action-event 1))
-
-;;; test ACTION-EVENT-ID accessor
-(is (action-event-id (action-event 1)) 1)
-
-
-;;;
-;;; test Action
-;;;
-
-(diag "test Action")
-
-;;; test ACTION constructor
-(ok (action 1))
-
-;;; test ACTION-ID accessor
-(is (action-id (action 1)) 1)
-
-
-;;;
-;;; test Conversion Event
-;;;
-
-(diag "test Conversion Event")
-
-;;; tset CONVERSION-EVENT constructor
-(ok (conversion-event 1))
-
-;;; test CONVERSION-EVENT-ID accessor
-(is (conversion-event-id (conversion-event 1)) 1)
-
-
-;;;
-;;; test Conversion
-;;;
-
-(diag "test Conversion")
-
-;;; test CONVERSION constructor
-(ok (conversion 1))
-
-;;; test CONVERSION-ID accessor
-(is (conversion-id (conversion 1)) 1)
+(defstruct (event (:constructor event (id)))
+  (id nil :type fixnum :read-only t))
 
 
 ;;;
@@ -176,64 +128,41 @@
 
 (diag "test Querying")
 
-(defparameter +uf1+
-  (relation-adjoin-all (list
-                        (tuple (user 1) (action-event 1) (action 1)
-                               (conversion-event 1) (conversion 1))
-                        (tuple (user 1) (action-event 2) (action 2)
-                               (conversion-event 1) (conversion 1))
-                        (tuple (user 2) (action-event 3) (action 2)
-                               (conversion-event 2) (conversion 2)))
-                       (empty-relation)))
+(defparameter +r1+ (relation-adjoin-all (list (tuple (user 1) (event 1))
+                                              (tuple (user 1) (event 2))
+                                              (tuple (user 2) (event 3)))
+                                        (empty-relation)))
 
 ;;; test projection
 (let ((cl-test-more:*default-test-function* #'equalp)
-      (result (query (u ae ac) (<- (u ae ac ce cv) +uf1+))))
-  (ok (relation-member (tuple (user 1) (action-event 1) (action 1))
-                       result))
-  (is (relation-count result) 3))
+      (result (query (u) (<- (u ev) +r1+))))
+  (ok (relation-member (tuple (user 1)) result))
+  (is (relation-count result) 2))
 
 ;;; test selection
 (let ((cl-test-more:*default-test-function* #'equalp)
-      (result (query (u ae ac ce cv) (<- (u ae ac ce cv) +uf1+)
-                                     (= (user-id u) 1))))
-  (ok (relation-member (tuple (user 1) (action-event 1) (action 1)
-                              (conversion-event 1) (conversion 1))
-                       result))
-  (ok (null (relation-member (tuple (user 2) (action-event 3) (action 2)
-                                    (conversion-event 2) (conversion 2))
-                             result)))
+      (result (query (u ev) (<- (u ev) +r1+)
+                            (= (user-id u) 1))))
+  (ok (relation-member (tuple (user 1) (event 1)) result))
+  (ok (null (relation-member (tuple (user 2) (event 3)) result)))
   (is (relation-count result) 2))
 
 ;;; test Cartesian product
 (let ((cl-test-more:*default-test-function* #'equalp)
-      (result (query (u1 ae1 ac1 ce1 cv1 u2 ae2 ac2 ce2 cv2)
-                     (<- (u1 ae1 ac1 ce1 cv1) +uf1+)
-                     (<- (u2 ae2 ac2 ce2 cv2) +uf1+))))
-  (ok (relation-member (tuple (user 1) (action-event 1) (action 1)
-                              (conversion-event 1) (conversion 1)
-                              (user 1) (action-event 1) (action 1)
-                              (conversion-event 1) (conversion 1))
+      (result (query (u1 ev1 u2 ev2) (<- (u1 ev1) +r1+)
+                                     (<- (u2 ev2) +r1+))))
+  (ok (relation-member (tuple (user 1) (event 1) (user 2) (event 3))
                        result))
   (is (relation-count result) 9))
 
 ;;; test natural join
 (let ((cl-test-more:*default-test-function* #'equalp)
-      (r1 (relation-adjoin-all (list (tuple (user 1) (action 1))
-                                     (tuple (user 2) (action 2)))
-                               (empty-relation)))
-      (r2 (relation-adjoin-all (list (tuple (user 1) (conversion 1))
-                                     (tuple (user 1) (conversion 2)))
-                               (empty-relation))))
-  (let ((result (query (u1 ac cv)
-                       (<- (u1 ac) r1)
-                       (<- (u2 cv) r2)
-                       (= (user-id u1) (user-id u2)))))
-    (ok (relation-member (tuple (user 1) (action 1) (conversion 1))
-                         result))
-    (ok (relation-member (tuple (user 1) (action 1) (conversion 2))
-                         result))
-    (is (relation-count result) 2)))
+      (result (query (u1 ev1 ev2) (<- (u1 ev1) +r1+)
+                                  (<- (u2 ev2) +r1+)
+                                  (= (user-id u1) (user-id u2))
+                                  (< (event-id ev1) (event-id ev2)))))
+  (ok (relation-member (tuple (user 1) (event 1) (event 2)) result))
+  (is (relation-count result) 1))
 
 
 ;;;
@@ -243,33 +172,30 @@
 (diag "test Querying - Compiler")
 
 ;;; test QUERY macro for projection
-(is-expand (query (u ae ac) (<- (u ae ac ce cv) uf))
+(is-expand (query (u) (<- (u ev) +r1+))
            (iterate:iter waql::outermost
-             (for-tuple (u ae ac ce cv) in-relation uf)
+             (for-tuple (u ev) in-relation +r1+)
                (iterate:in waql::outermost
-                (collect-relation (tuple u ae ac)))))
+                 (collect-relation (tuple u)))))
 
 ;;; test QUERY macro for selection
-(is-expand (query (u ae ac) (<- (u ae ac ce cv) uf)
-                            (= (user-id u) 1))
+(is-expand (query (u ev) (<- (u ev) +r1+)
+                         (= (user-id u) 1))
            (iterate:iter waql::outermost
-             (for-tuple (u ae ac ce cv) in-relation uf)
+             (for-tuple (u ev) in-relation +r1+)
                (when (= (user-id u) 1)
                  (iterate:in waql::outermost
-                   (collect-relation (tuple u ae ac))))))
+                   (collect-relation (tuple u ev))))))
 
 ;;; test QUERY macro for Cartesian product
-(is-expand (query (u1 ae1 ac1 ce1 cv1 u2 ae2 ac2 ce2 cv2)
-                  (<- (u1 ae1 ac1 ce1 cv1) +uf1+)
-                  (<- (u2 ae2 ac2 ce2 cv2) +uf1+))
+(is-expand (query (u1 ev1 u2 ev2) (<- (u1 ev1) +r1+)
+                                  (<- (u2 ev2) +r1+))
            (iterate:iter waql::outermost
-             (for-tuple (u1 ae1 ac1 ce1 cv1) in-relation +uf1+)
-               (iterate:iter (for-tuple (u2 ae2 ac2 ce2 cv2)
-                                        in-relation +uf1+)
+             (for-tuple (u1 ev1) in-relation +r1+)
+               (iterate:iter (for-tuple (u2 ev2) in-relation +r1+)
                  (iterate:in waql::outermost
                    (collect-relation
-                     (tuple u1 ae1 ac1 ce1 cv1
-                            u2 ae2 ac2 ce2 cv2))))))
+                     (tuple u1 ev1 u2 ev2))))))
 
 ;;; test QUERY-QUALS function
 (is (waql::query-quals '((<- (a b c) foo)) '(a b c) :outermost t)
