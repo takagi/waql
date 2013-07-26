@@ -91,6 +91,11 @@
 (ok (tuple-p (tuple 1 2 3)))
 (ok (null (tuple-p 1)))
 
+;;; test PRINT-TUPLE function
+(is (with-output-to-string (s)
+      (print-object (tuple 1 2 3) s))
+    "#S(TUPLE 1 2 3)")
+
 ;;; test EQUALP function for tuple
 (ok (equalp (tuple 1 2 3) (tuple 1 2 3)))
 (is (equalp (tuple 1 2 3) (tuple 4 5 6)) nil)

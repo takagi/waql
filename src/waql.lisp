@@ -50,7 +50,8 @@
 ;;;
 
 (defstruct (tuple (:constructor %make-tuple)
-                  (:conc-name %tuple-))
+                  (:conc-name %tuple-)
+                  (:print-object print-tuple))
   (elements nil :type list :read-only t))
 
 (defun tuple (&rest args)
@@ -59,6 +60,9 @@
 (defmacro with-tuple (vars tuple &body body)
   `(destructuring-bind ,vars (%tuple-elements ,tuple)
      ,@body))
+
+(defun print-tuple (tuple stream)
+  (format stream "#S(TUPLE ~{~S~^ ~})" (%tuple-elements tuple)))
 
 
 ;;;
