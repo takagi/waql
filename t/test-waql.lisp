@@ -182,11 +182,15 @@
 
 ;;; test selection
 (let ((cl-test-more:*default-test-function* #'equalp)
-      (result (query (u) (<- (u ae ac ce cv) +uf1+)
-                         (= (user-id u) 1))))
-  (ok (relation-member (tuple (user 1)) result))
-  (ok (null (relation-member (tuple (user 2)) result)))
-  (is (relation-count result) 1))
+      (result (query (u ae ac ce cv) (<- (u ae ac ce cv) +uf1+)
+                                     (= (user-id u) 1))))
+  (ok (relation-member (tuple (user 1) (action-event 1) (action 1)
+                              (conversion-event 1) (conversion 1))
+                       result))
+  (ok (null (relation-member (tuple (user 2) (action-event 3) (action 2)
+                                    (conversion-event 2) (conversion 2))
+                             result)))
+  (is (relation-count result) 2))
 
 ;;; test Cartesian product
 (let ((cl-test-more:*default-test-function* #'equalp)
