@@ -14,10 +14,10 @@
 
 
 ;;;
-;;; Action Event
+;;; Event
 ;;;
 
-(defstruct (action-event (:constructor action-event (id)))
+(defstruct (event (:constructor event (id)))
   (id nil :type fixnum :read-only t))
 
 
@@ -26,14 +26,6 @@
 ;;;
 
 (defstruct (action (:constructor action (id)))
-  (id nil :type fixnum :read-only t))
-
-
-;;;
-;;; Conversion Event
-;;;
-
-(defstruct (conversion-event (:constructor conversion-event (id)))
   (id nil :type fixnum :read-only t))
 
 
