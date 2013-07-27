@@ -23,7 +23,7 @@
      ,@body))
 
 (defun print-tuple (tuple stream)
-  (format stream "#S(TUPLE ~{~S~^ ~})" (%tuple-elements tuple)))
+  (format stream "#S~W" `(tuple ,@(%tuple-elements tuple))))
 
 
 ;;;
@@ -48,9 +48,8 @@
   (hash-table-count (%relation-body relation)))
 
 (defun print-relation (relation stream)
-  (format stream "#S(RELATION ~S ~{~S~^ ~})"
-                 (relation-count relation)
-                 (relation->list relation)))
+  (format stream "#S~W" `(relation ,(relation-count relation)
+                                   ,@(relation->list relation))))
 
 (defun relation-adjoin (item relation)
   (check-type item tuple)
