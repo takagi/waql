@@ -95,37 +95,187 @@
 
 
 ;;;
-;;; Querying - Compiler
+;;; Evaluating waql
 ;;;
 
-(defmacro query (exps &rest quals)
-  (query-quals quals exps :outermost t))
+(defmacro eval-waql (expr)
+  (compile-expression
+    (solve-pattern-match expr)))
 
-(defun query-quals (quals exps &key (outermost nil))
+
+;;;
+;;; Solving pattern match
+;;;
+
+(defun solve-pattern-match (expr)
+  (cond
+;;     ((literal-p expr) expr)
+;;     ((symbol-p expr) expr)
+;;     ((tuple-p expr) expr)
+    ((query-p expr) (solve-pattern-match-query expr))
+    ((function-p expr) (solve-pattern-match-function expr))
+;;     (t (error "invalid expression: ~S" expr))))
+    (t expr)))
+
+(defun solve-pattern-match-query (expr)
+  (let ((quals (query-quals expr))
+        (exprs (query-exprs expr)))
+    (solve-pattern-match-quals quals exprs)))
+
+(defun solve-pattern-match-quals (quals exprs)
+  (if quals
+      (let ((qual (car quals))
+            (rest (cdr quals)))
+        (solve-pattern-match-qual qual rest exprs))
+      (solve-pattern-match-exprs exprs)))
+
+(defun solve-pattern-match-qual (qual rest exprs)
+  (cond
+    ((quantification-p qual)
+     (solve-pattern-match-quantification qual rest exprs))
+    (t (solve-pattern-match-predicate qual rest exprs))))
+
+;; 戻り値はなに？
+(defun solve-pattern-match-quantification (qual rest exprs)
+  (let ((vars (quantification-vars qual))
+        (rel  (quantification-relation qual)))
+    (let ((qual1 ...)
+          (rest1 (solve-pattern-match-quals rest))
+          (exprs1 (...)))
+      `(query ,exprs1 ,(cons qual1 rest1)))))
+
+
+;;;
+;;; Pattern matching environment
+;;;
+
+(defstruct (patenv (:constructor %make-patenv)
+                   (:conc-name %patenv-))
+  (variables nil :type list :read-only t)) ; alist { var -> counter }
+
+(defun empty-patenv ()
+  (%make-patenv))
+
+(defun patenv-add (var patenv)
+  (unless (null (patenv-lookup var patenv))
+    (error "variable ~S already exists" var))
+  (let ((vars (%patenv-variables patenv)))
+    (%make-patenv :variables (acons var 1 vars))))
+
+(defun patenv-inc (var patenv)
+  ;; TODO: 書き直す
+  (cl-pattern:match (%patenv-variables patenv)
+    (((var1 . cnt) . rest) (if (eq var1 var)
+                               (%make-patenv :variables
+                                             (acons var1 (1+ cnt) rest))
+                               (%make-patenv :variables
+                                             (acons var1 cnt (%patenv-variables (patenv-inc var (%make-patenv :variables rest)))))))
+    (_ (error "variable ~S does not exist" var))))
+
+(defun patenv-lookup (var patenv)
+  (assoc var (%patenv-variables patenv)))
+
+
+;;;
+;;; Pattern matcher
+;;;
+
+(defstruct (pattern-matcher (:constructor %make-pattern-matcher)
+                            (:conc-name %pattern-matcher-))
+  (vars   nil :type list   :read-only t)
+  (patenv nil :type patenv :read-only t)
+  (preds  nil :type list   :read-only t))
+
+(defun make-pattern-matcher (patenv)
+  (%make-pattern-matcher :patenv patenv))
+
+(defun pattern-match (var matcher)
+  ;; 書き直す。ワーカーラッパー変換
+  (let ((vars   (%pattern-matcher-vars matcher))
+        (patenv (%pattern-matcher-patenv matcher))
+        (preds  (%pattern-matcher-preds matcher)))
+    (anaphora:aif (patenv-lookup var patenv)
+      (let ((var1 (symbolicate-with-count var (cdr anaphora:it))))
+        (let ((vars1   (cons var1 vars))
+              (patenv1 (patenv-inc var patenv))
+              (preds1  (cons `(= ,var ,var1) preds)))
+          (%make-pattern-matcher :vars vars1 :patenv patenv1 :preds preds1)))
+      (let ((vars1  (cons var vars))
+            (patenv1 (patenv-add var patenv))
+            (preds1  preds))
+        (%make-pattern-matcher :vars vars1 :patenv patenv1 :preds preds1)))))
+
+(defun symbolicate-with-count (var cnt)
+  (let ((strs (mapcar #'princ-to-string (list var cnt))))
+    (intern (apply #'concatenate 'string strs)
+            (symbol-package var))))
+
+
+
+;;;
+;;; Compiler
+;;;
+
+(defun compile-expression (expr)
+  (cond
+;;     ((literal-p expr) (compile-literal nil))
+;;     ((symbol-p expr) (compile-symbol nil))
+;;     ((tuple-p expr) (compile-tuple nil))
+    ((query-p expr) (compile-query expr))
+    ((function-p expr) (compile-function expr))
+;;     (t (error "invalid expression: ~S" expr))))
+    (t expr)))
+
+
+;;;
+;;; Compiler - query
+;;;
+
+(defun query-p (expr)
+  (cl-pattern:match expr
+    (('query . _) t)
+    (_ nil)))
+
+(defun query-exprs (expr)
+  (cl-pattern:match expr
+    (('query exprs . _) exprs)
+    (_ (error "invalid expression: ~S" expr))))
+
+(defun query-quals (expr)
+  (cl-pattern:match expr
+    (('query _ . quals) quals)
+    (_ (error "invalid expression: ~S" expr))))
+
+(defun compile-query (expr)
+  (let ((quals (query-quals expr))
+        (exprs (query-exprs expr)))
+    (compile-query-quals quals exprs :outermost t)))
+
+(defun compile-query-quals (quals exprs &key outermost)
   (assert (or (null outermost)
               (and outermost
                    (quantification-p (car quals)))))
   (if quals
       (let ((qual (car quals))
             (rest (cdr quals)))
-        (query-qual qual rest exps outermost))
-      (query-exps exps)))
+        (compile-query-qual qual rest exprs outermost))
+      (compile-query-exprs exprs)))
 
-(defun query-qual (qual rest exps outermost)
+(defun compile-query-qual (qual rest exprs outermost)
   (cond
-    ((quantification-p qual) (query-quantification qual rest exps outermost))
-    (t (query-predicate qual rest exps))))
+    ((quantification-p qual)
+     (compile-quantification qual rest exprs outermost))
+    (t (compile-predicate qual rest exprs))))
 
-(defun query-exps (exps)
-  (check-type exps list)
-  `(iterate:in outermost
-     (collect-relation (tuple ,@exps))))
+(defun compile-query-exprs (exprs)
+  (let ((compiled-exprs (mapcar #'compile-expression exprs)))
+    `(iterate:in outermost
+       (collect-relation (tuple ,@compiled-exprs)))))
 
 
 ;;;
-;;; Querying - Compiler - Quantification
+;;; Compiler - query - quantification
 ;;;
-
 
 (defun quantification-p (qual)
   (cl-pattern:match qual
@@ -137,28 +287,47 @@
     (('<- vars _) (unless (listp vars)
                     (error "quantification variables must be list: ~S" vars))
                   vars)
-    (_ (error "invalid form for quantification: ~S" qual))))
+    (_ (error "invalid expression: ~S" qual))))
 
 (defun quantification-relation (qual)
   (cl-pattern:match qual
     (('<- _ rel) rel)
-    (_ (error "invalid form for quantification: ~S" qual))))
+    (_ (error "invalid expression: ~S" qual))))
 
-(defun query-quantification (qual rest exps outermost)
+(defun compile-quantification (qual rest exprs outermost)
   (let ((vars (quantification-vars qual))
         (rel  (quantification-relation qual)))
     (if outermost
-        `(iterate:iter outermost
-                       (for-tuple ,vars in-relation ,rel)
-                       ,(query-quals rest exps))
-        `(iterate:iter (for-tuple ,vars in-relation ,rel)
-                       ,(query-quals rest exps)))))
+        (alexandria:with-gensyms (var)
+          `(iterate:iter outermost
+                         (for-tuple ,var in-relation ,(compile-expression rel))
+                         (destructuring-bind ,vars ,var
+                           ,(compile-query-quals rest exprs))))
+        (alexandria:with-gensyms (var)
+          `(iterate:iter (for-tuple ,var in-relation ,(compile-expression rel))
+                         (destructuring-bind ,vars ,var
+                           ,(compile-query-quals rest exprs)))))))
 
 
 ;;;
-;;; Querying - Compiler - Predicate
+;;; Compiler - query - predicate
 ;;;
 
-(defun query-predicate (pred rest exps)
-  `(when ,pred
-     ,(waql::query-quals rest exps)))
+(defun compile-predicate (pred rest exprs)
+  `(when ,(compile-expression pred)
+     ,(compile-query-quals rest exprs)))
+
+
+;;;
+;;; Compiler - function
+;;;
+
+(defun function-p (expr)
+  (cl-pattern:match expr
+    (('= . _) t)
+    (_ nil)))
+
+(defun compile-function (expr)
+  (cl-pattern:match expr
+    (('= x y) `(equalp ,x ,y))
+    (_ (error "invalid expression: ~S" expr))))

@@ -278,4 +278,17 @@
        ,(waql::query-quals nil '(a b c))))
 
 
+;;;
+;;; test Pattern matcher
+;;;
+
+(pattern-match 'a
+  (pattern-match 'b
+    (pattern-match 'c
+      (pattern-match 'b
+        (pattern-match 'a
+          (make-pattern-matcher
+            (patenv-add 'a
+              (empty-patenv))))))))
+
 (finalize)
