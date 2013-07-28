@@ -99,10 +99,12 @@
 ;;;
 
 (defmacro query (exps &rest quals)
-  (assert (quantification-p (car quals)))
   (query-quals quals exps :outermost t))
 
 (defun query-quals (quals exps &key (outermost nil))
+  (assert (or (null outermost)
+              (and outermost
+                   (quantification-p (car quals)))))
   (if quals
       (let ((qual (car quals))
             (rest (cdr quals)))
