@@ -43,31 +43,28 @@
   ;; < User, Event, Action >
   ;; { < u, e, ac > | < u, e >  ∈ UE1
   ;;                , < e, ac > ∈ EA1 }
-  (query (u e ac) (<- (u e) +ue1+)
-                  (<- (e1 ac) +ea1+)
-                  (= (event-id e) (event-id e1))))
+  (eval-waql (query (u e ac) (<- (u e) +ue1+)
+                             (<- (e ac) +ea1+))))
 
 (defparameter +uce1+
   ;; < User, Event, Conversion >
   ;; { < u, e, cv > | < u, e >  ∈ UE1
   ;;                , < e, cv > ∈ EC1 }
-  (query (u e cv) (<- (u e) +ue1+)
-                  (<- (e1 cv) +ec1+)
-                  (= (event-id e) (event-id e1))))
+  (eval-waql (query (u e cv) (<- (u e) +ue1+)
+                             (<- (e cv) +ec1+))))
 
 (defparameter +uf1+
   ;; < User, Action Event, Action, Conversion Event, Conversion >
-  (query (u ae ac ce cv) (<- (u ae ac) +uae1+)
-                         (<- (u1 ce cv) +uce1+)
-                         (= (user-id u) (user-id u1))
-                         (< (event-id ae) (event-id ce))))
+  (eval-waql (query (u ae ac ce cv) (<- (u ae ac) +uae1+)
+                                    (<- (u ce cv) +uce1+)
+                                    (< (event-id ae) (event-id ce)))))
 
 (let ((cl-test-more:*default-test-function* #'equalp)
-      (result (query (u1 ae1 ac1 ce1 cv1 ae2 ac2 ce2 cv2)
-                     (<- (u1 ae1 ac1 ce1 cv1) +uf1+)
-                     (<- (u2 ae2 ac2 ce2 cv2) +uf1+)
-                     (= (user-id u1) (user-id u2))
-                     (< (event-id ae1) (event-id ae2)))))
+      (result (eval-waql (query (u ae1 ac1 ce1 cv1 ae2 ac2 ce2 cv2)
+                                (<- (u ae1 ac1 ce1 cv1) +uf1+)
+                                (<- (u ae2 ac2 ce2 cv2) +uf1+)
+                                (< (event-id ae1) (event-id ae2))
+                                ))))
   (ok (relation-member (tuple (user 1)
                               (event 1) (action 1) (event 3) (conversion 1)
                               (event 2) (action 2) (event 3) (conversion 1))
