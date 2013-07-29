@@ -121,6 +121,49 @@
 
 
 ;;;
+;;; test Evaluating WAQL
+;;;
+
+(defparameter +r1+
+  (relation-adjoin-all (list (tuple (user 1) (event 1))
+                             (tuple (user 1) (event 2))
+                             (tuple (user 2) (event 3)))
+                       (empty-relation)))
+
+;;; test projection
+(let ((cl-test-more:*default-test-function* #'equalp)
+      (result (eval-waql (query (u) (<- (u ev) +r1+)))))
+  (ok (relation-member (tuple (user 1)) result))
+  (is (relation-count result) 2))
+
+;;; test selection
+(let ((cl-test-more:*default-test-function* #'equalp)
+      (result (eval-waql (query (u ev) (<- (u ev) +r1+)
+                                       (= (user-id u) 1)))))
+  (ok (relation-member (tuple (user 1) (event 1)) result))
+  (ok (null (relation-member (tuple (user 2) (event 3)) result)))
+  (is (relation-count result) 2))
+
+;;; test Cartesian product
+(let ((cl-test-more:*default-test-function* #'equalp)
+      (result (eval-waql (query (u1 ev1 u2 ev2) (<- (u1 ev1) +r1+)
+                                                (<- (u2 ev2) +r1+)))))
+  (ok (relation-member (tuple (user 1) (event 1) (user 2) (event 3))
+                       result))
+  (is (relation-count result) 9))
+
+;;; test natural join
+(let ((cl-test-more:*default-test-function* #'equalp)
+      (result (eval-waql
+                (query (u1 ev1 ev2) (<- (u1 ev1) +r1+)
+                                    (<- (u2 ev2) +r1+)
+                                    (= (user-id u1) (user-id u2))
+                                    (< (event-id ev1) (event-id ev2))))))
+  (ok (relation-member (tuple (user 1) (event 1) (event 2)) result))
+  (is (relation-count result) 1))
+
+
+;;;
 ;;; test Solving pattern match
 ;;;
 ;;; original: (query (a b c d) (<- (a b c) r1)
@@ -260,117 +303,56 @@
       (is preds '((= a a1)
                   (= b b1))))))
 
+
 ;;;
-;;; test Querying
+;;; test Compiler
 ;;;
-
-(diag "test Querying")
-
-(defparameter +r1+ (relation-adjoin-all (list (tuple (user 1) (event 1))
-                                              (tuple (user 1) (event 2))
-                                              (tuple (user 2) (event 3)))
-                                        (empty-relation)))
-
-;;; test projection
-(let ((cl-test-more:*default-test-function* #'equalp)
-      (result (query (u) (<- (u ev) +r1+))))
-  (ok (relation-member (tuple (user 1)) result))
-  (is (relation-count result) 2))
-
-;;; test selection
-(let ((cl-test-more:*default-test-function* #'equalp)
-      (result (query (u ev) (<- (u ev) +r1+)
-                            (= (user-id u) 1))))
-  (ok (relation-member (tuple (user 1) (event 1)) result))
-  (ok (null (relation-member (tuple (user 2) (event 3)) result)))
-  (is (relation-count result) 2))
-
-;;; test Cartesian product
-(let ((cl-test-more:*default-test-function* #'equalp)
-      (result (query (u1 ev1 u2 ev2) (<- (u1 ev1) +r1+)
-                                     (<- (u2 ev2) +r1+))))
-  (ok (relation-member (tuple (user 1) (event 1) (user 2) (event 3))
-                       result))
-  (is (relation-count result) 9))
-
-;;; test natural join
-(let ((cl-test-more:*default-test-function* #'equalp)
-      (result (query (u1 ev1 ev2) (<- (u1 ev1) +r1+)
-                                  (<- (u2 ev2) +r1+)
-                                  (= (user-id u1) (user-id u2))
-                                  (< (event-id ev1) (event-id ev2)))))
-  (ok (relation-member (tuple (user 1) (event 1) (event 2)) result))
-  (is (relation-count result) 1))
 
 
 ;;;
-;;; test Querying - Compiler
+;;; test Compiler - query
 ;;;
 
-(diag "test Querying - Compiler")
+;;; test COMPILE-QUERY function
 
-;;; test QUERY macro for projection
-(is-expand (query (u) (<- (u ev) +r1+))
-           (iterate:iter waql::outermost
-             (for-tuple (u ev) in-relation +r1+)
-               (iterate:in waql::outermost
-                 (collect-relation (tuple u)))))
-
-;;; test QUERY macro for selection
-(is-expand (query (u ev) (<- (u ev) +r1+)
-                         (= (user-id u) 1))
-           (iterate:iter waql::outermost
-             (for-tuple (u ev) in-relation +r1+)
-               (when (= (user-id u) 1)
-                 (iterate:in waql::outermost
-                   (collect-relation (tuple u ev))))))
-
-;;; test QUERY macro for Cartesian product
-(is-expand (query (u1 ev1 u2 ev2) (<- (u1 ev1) +r1+)
-                                  (<- (u2 ev2) +r1+))
-           (iterate:iter waql::outermost
-             (for-tuple (u1 ev1) in-relation +r1+)
-               (iterate:iter (for-tuple (u2 ev2) in-relation +r1+)
-                 (iterate:in waql::outermost
-                   (collect-relation
-                     (tuple u1 ev1 u2 ev2))))))
-
-;;; test QUERY-QUALS function
-(is (waql::query-quals '((<- (a b c) foo)) '(a b c) :outermost t)
-    '(iterate:iter waql::outermost
-                   (for-tuple (a b c) in-relation foo)
-                   (iterate:in waql::outermost
-                       (collect-relation (tuple a b c)))))
-
-(is (waql::query-quals '((<- (a b c) foo)
-                         (<- (d e f) baz)
-                         (some-predicate)) '(a b c d e f) :outermost t)
+;;; test COMPILE-QUERY-QUALS function
+(is (waql::compile-query-quals '((<- (a b c) foo)) '(a b c) :outermost t)
     '(iterate:iter waql::outermost
        (for-tuple (a b c) in-relation foo)
+         (iterate:in waql::outermost
+           (collect-relation (tuple a b c)))))
+
+(is (waql::compile-query-quals '((<- (a b c) foo)
+                                 (<- (d e f) baz)
+                                 (= a d))
+                               '(a b c d e f) :outermost t)
+    `(iterate:iter waql::outermost
+       (for-tuple (a b c) in-relation foo)
          (iterate:iter (for-tuple (d e f) in-relation baz)
-           (when (some-predicate)
+           (when (equalp a d)
              (iterate:in waql::outermost
                (collect-relation (tuple a b c d e f)))))))
 
-;;; test QUERY-QUAL function
-(is (waql::query-qual '(<- (a b c) foo) nil '(a b c) t)
+;;; test COMPILE-QUERY-QUAL function
+(is (waql::compile-query-qual '(<- (a b c) foo) nil '(a b c) t)
     '(iterate:iter waql::outermost
-                   (for-tuple (a b c) in-relation foo)
-                   (iterate:in waql::outermost
-                       (collect-relation (tuple a b c)))))
+       (for-tuple (a b c) in-relation foo)
+         (iterate:in waql::outermost
+           (collect-relation (tuple a b c)))))
 
-;;; test QUERY-EXPS function
-(is (waql::query-exps '(a b c))
+;;; test COMPILE-QUERY-EXPRS function
+(is (waql::compile-query-exprs '(a b c))
     '(iterate:in waql::outermost
        (collect-relation (tuple a b c))))
-(is-error (waql::query-exps 'a) error)
+
+(is-error (waql::compile-query-exprs 'a) type-error)
 
 
 ;;;
-;;; test Querying - Compiler - Quantification
+;;; test Compiler - query - quantification
 ;;;
 
-(diag "test Querying - Compiler - Quantification")
+(diag "test Compiler - query - quantification")
 
 ;;; test MAKE-QUANTIFICATION constructor
 (let ((q (waql::make-quantification '(a b c) 'foo)))
@@ -390,36 +372,35 @@
 (is (waql::quantification-relation '(<- (a b c) foo)) 'foo)
 (is-error (waql::quantification-relation '(= 1 1)) simple-error)
 
-;;; test QUERY-QUANTIFICATION function
-(is (waql::query-quantification '(<- (a b c) foo) nil '(a b c) t)
+;;; test COMPILE-QUANTIFICATION function
+(is (waql::compile-quantification '(<- (a b c) foo) nil '(a b c) t)
     `(iterate:iter waql::outermost
-                   (for-tuple (a b c) in-relation foo)
-                   ,(waql::query-quals nil '(a b c))))
+       (for-tuple (a b c) in-relation foo)
+         ,(waql::compile-query-quals nil '(a b c))))
 
-(is (waql::query-quantification '(<- (a b c) foo) nil '(a b c) nil)
+(is (waql::compile-quantification '(<- (a b c) foo) nil '(a b c) nil)
     `(iterate:iter (for-tuple (a b c) in-relation foo)
-                   ,(waql::query-quals nil '(a b c))))
+       ,(waql::compile-query-quals nil '(a b c))))
 
-(is-error (waql::query-quantification '(<- a foo) nil '(a b c) t)
+(is-error (waql::compile-quantification '(<- a foo) nil '(a b c) t)
           simple-error)
 
 
 ;;;
-;;; test Querying - Compiler - Predicate
+;;; test Compiler - query - predicate
 ;;;
 
-(diag "test Querying - Compiler - Predicate")
+(diag "test Compiler - query - predicate")
 
-;;; test QUERY-PREDICATE function
+;;; test COMPILE-PREDICATE function
 
-(is (waql::query-predicate '(= (user-id u) 1) nil '(a b c))
-    `(when (= (user-id u) 1)
-       ,(waql::query-quals nil '(a b c))))
+(is (waql::compile-predicate '(= (user-id u) 1) nil '(a b c))
+    `(when (equalp (user-id u) 1)
+       ,(waql::compile-query-quals nil '(a b c))))
 
-(is (waql::query-predicate 'a nil '(a b c))
+(is (waql::compile-predicate 'a nil '(a b c))
     `(when a
-       ,(waql::query-quals nil '(a b c))))
-
+       ,(waql::compile-query-quals nil '(a b c))))
 
 
 (finalize)
