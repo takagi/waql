@@ -159,6 +159,36 @@
 
 
 ;;;
+;;; test Pattern matcher
+;;;
+
+;;; test MAKE-PATTERN-MATCHER constructor and PATTERN-MATCHER-RESULT selector
+(let ((patenv (waql::empty-patenv)))
+  (let ((matcher (waql::make-pattern-matcher patenv)))
+    (destructuring-bind (vars patenv1 preds)
+        (waql::pattern-matcher-result matcher)
+      (is vars nil)
+      (is (waql::patenv-lookup 'a patenv1) nil)
+      (is preds nil))))
+
+;;; test PATTERN-MATCHER-MATCH function
+(let ((patenv (waql::patenv-add 'b
+                (waql::patenv-add 'a (waql::empty-patenv)))))
+  (let ((matcher (waql::pattern-matcher-match 'c
+                   (waql::pattern-matcher-match 'b
+                     (waql::pattern-matcher-match 'a
+                       (waql::make-pattern-matcher patenv))))))
+    (destructuring-bind (vars patenv1 preds)
+        (waql::pattern-matcher-result matcher)
+      (is vars '(a1 b1 c))
+      (is (waql::patenv-lookup 'a patenv1) '(a . 2))
+      (is (waql::patenv-lookup 'b patenv1) '(b . 2))
+      (is (waql::patenv-lookup 'c patenv1) '(c . 1))
+      (is preds '((= a a1)
+                  (= b b1))))))
+
+
+;;;
 ;;; test Querying
 ;;;
 

@@ -198,21 +198,32 @@
 (defun make-pattern-matcher (patenv)
   (%make-pattern-matcher :patenv patenv))
 
-(defun pattern-match (var matcher)
-  ;; 書き直す。ワーカーラッパー変換
-  (let ((vars   (%pattern-matcher-vars matcher))
-        (patenv (%pattern-matcher-patenv matcher))
-        (preds  (%pattern-matcher-preds matcher)))
+(defmacro with-%pattern-matcher (((vars patenv preds) matcher) &body form)
+  (alexandria:with-gensyms (vars1 patenv1 preds1)
+    `(let ((,vars   (%pattern-matcher-vars ,matcher))
+           (,patenv (%pattern-matcher-patenv ,matcher))
+           (,preds  (%pattern-matcher-preds ,matcher)))
+       (multiple-value-bind (,vars1 ,patenv1 ,preds1) ,@form
+         (%make-pattern-matcher :vars   ,vars1
+                                :patenv ,patenv1
+                                :preds  ,preds1)))))
+
+(defun pattern-matcher-match (var matcher)
+  (with-%pattern-matcher ((vars patenv preds) matcher)
     (anaphora:aif (patenv-lookup var patenv)
       (let ((var1 (symbolicate-with-count var (cdr anaphora:it))))
         (let ((vars1   (cons var1 vars))
               (patenv1 (patenv-inc var patenv))
               (preds1  (cons `(= ,var ,var1) preds)))
-          (%make-pattern-matcher :vars vars1 :patenv patenv1 :preds preds1)))
-      (let ((vars1  (cons var vars))
-            (patenv1 (patenv-add var patenv))
-            (preds1  preds))
-        (%make-pattern-matcher :vars vars1 :patenv patenv1 :preds preds1)))))
+          (values vars1 patenv1 preds1)))
+      (let ((vars1   (cons var vars))
+            (patenv1 (patenv-add var patenv)))
+        (values vars1 patenv1 preds)))))
+
+(defun pattern-matcher-result (matcher)
+  (list (reverse (%pattern-matcher-vars matcher))
+        (%pattern-matcher-patenv matcher)
+        (reverse (%pattern-matcher-preds matcher))))
 
 (defun symbolicate-with-count (var cnt)
   (let ((strs (mapcar #'princ-to-string (list var cnt))))
