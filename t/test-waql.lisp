@@ -188,6 +188,15 @@
                         (<- (a1 d) r2)
                         (= a a1))))
 
+(let ((patenv (waql::empty-patenv)))
+  (is (waql::solve-pattern-match
+        '(query (a1 c) (<- (a b) r1)
+                       (<- (a1 c) (query (a c) (<- (b c) r2))))
+        patenv)
+      '(query (a1 c) (<- (a b) r1)
+                     (<- (a1 c) (query (a c) (<- (b1 c) r2)
+                                             (= b b1))))))
+
 ;;; test SOLVE-PATTERN-MATCH-QUERY function
 (let ((patenv (waql::empty-patenv)))
   (is (waql::solve-pattern-match-query '(query (a b c d) (<- (a b c) r1)
@@ -316,6 +325,21 @@
 ;;;
 
 (diag "test Compiler")
+
+(is (waql::compile-expression
+      '(query (a1 c) (<- (a b) r1)
+                     (<- (a1 c) (query (a c) (<- (b1 c) r2)
+                                             (= b b1)))))
+    '(iterate:iter waql::outermost
+       (for-tuple (a b) in-relation r1)
+         (iterate:iter (for-tuple (a1 c) in-relation
+                         (iterate:iter waql::outermost
+                           (for-tuple (b1 c) in-relation r2)
+                           (when (equalp b b1)
+                             (iterate:in waql::outermost
+                               (collect-relation (tuple a c))))))
+                       (iterate:in waql::outermost
+                         (collect-relation (tuple a1 c))))))
 
 
 ;;;

@@ -95,13 +95,23 @@
       (result (eval-waql (query (u ae1 ac1 ce1 cv1 ae2 ac2 ce2 cv2)
                                 (<- (u ae1 ac1 ce1 cv1) +uf1+)
                                 (<- (u ae2 ac2 ce2 cv2) +uf1+)
-                                (lisp (< (event-id ae1) (event-id ae2)))
-                                ))))
+                                (lisp (< (event-id ae1) (event-id ae2)))))))
   (ok (relation-member (tuple (user 1)
                               (event 1) (action 1) (event 3) (conversion 1)
                               (event 2) (action 2) (event 3) (conversion 1))
                        result))
   (is (relation-count result) 1))
+
+(let ((cl-test-more:*default-test-function* #'equalp)
+      (result (eval-waql
+                (query (u1 ac) (<- (u ev) +ue1+)
+                               (<- (u1 ac) (query (u ac)
+                                                  (<- (ev ac) +ea1+)))))))
+  (ok (relation-member (tuple (user 1) (action 1))
+                       result))
+  (ok (relation-member (tuple (user 2) (action 2))
+                       result))
+  (is (relation-count result) 3))
 
 
 (finalize)
