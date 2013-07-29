@@ -100,49 +100,77 @@
 
 (defmacro eval-waql (expr)
   (compile-expression
-    (solve-pattern-match expr)))
+    (solve-pattern-match expr (empty-patenv))))
 
 
 ;;;
 ;;; Solving pattern match
 ;;;
 
-(defun solve-pattern-match (expr)
+(defun solve-pattern-match (expr patenv)
   (cond
 ;;     ((literal-p expr) expr)
 ;;     ((symbol-p expr) expr)
 ;;     ((tuple-p expr) expr)
-    ((query-p expr) (solve-pattern-match-query expr))
-    ((function-p expr) (solve-pattern-match-function expr))
-;;     (t (error "invalid expression: ~S" expr))))
-    (t expr)))
+    ((query-p expr) (solve-pattern-match-query expr patenv))
+    ((function-p expr) (solve-pattern-match-function expr patenv))
+    (t (error "invalid expression: ~S" expr))))
 
-(defun solve-pattern-match-query (expr)
+(defun solve-pattern-match-query (expr patenv)
   (let ((quals (query-quals expr))
         (exprs (query-exprs expr)))
-    (solve-pattern-match-quals quals exprs)))
+    (destructuring-bind (quals1 exprs1)
+        (solve-pattern-match-quals quals exprs patenv)
+      (make-query exprs1 quals1))))
 
-(defun solve-pattern-match-quals (quals exprs)
+(defun solve-pattern-match-quals (quals exprs patenv)
   (if quals
       (let ((qual (car quals))
             (rest (cdr quals)))
-        (solve-pattern-match-qual qual rest exprs))
-      (solve-pattern-match-exprs exprs)))
+        (destructuring-bind (qual1 rest1 exprs1)
+            (solve-pattern-match-qual qual rest exprs patenv)
+          (list (cons qual1 rest1) exprs1)))
+      (let ((exprs1 (solve-pattern-match-exprs exprs patenv)))
+        (list nil exprs1))))
 
-(defun solve-pattern-match-qual (qual rest exprs)
+(defun solve-pattern-match-qual (qual rest exprs patenv)
   (cond
     ((quantification-p qual)
-     (solve-pattern-match-quantification qual rest exprs))
-    (t (solve-pattern-match-predicate qual rest exprs))))
+     (solve-pattern-match-quantification qual rest exprs patenv))
+    (t (solve-pattern-match-predicate qual rest exprs patenv))))
 
-;; 戻り値はなに？
-;; (defun solve-pattern-match-quantification (qual rest exprs)
-;;   (let ((vars (quantification-vars qual))
-;;         (rel  (quantification-relation qual)))
-;;     (let ((qual1 ...)
-;;           (rest1 (solve-pattern-match-quals rest))
-;;           (exprs1 (...)))
-;;       `(query ,exprs1 ,(cons qual1 rest1)))))
+(defun solve-pattern-match-exprs (exprs patenv)
+  (mapcar #'(lambda (expr)
+              (solve-pattern-match expr patenv))
+          exprs))
+
+(defun solve-pattern-match-quantification (qual rest exprs patenv)
+  (let ((vars (quantification-vars qual))
+        (rel  (quantification-relation qual)))
+    ;; do pattern matching recursively on rel
+    (let ((rel1 (solve-pattern-match rel patenv)))
+      ;; do main pattern matching in this quantification
+      (destructuring-bind (vars1 patenv1 preds)
+          (pattern-matcher-result
+            (pattern-matcher-match-all vars
+              (make-pattern-matcher patenv)))
+        ;; do pattern matching recursively on rest and exprs
+        (let ((qual1 (make-quantification vars1 rel1)))
+        (destructuring-bind (rest1 exprs1)
+            (solve-pattern-match-quals (append preds rest) exprs patenv1)
+          (list qual1 rest1 exprs1)))))))
+
+(defun solve-pattern-match-predicate (qual rest exprs patenv)
+  (let ((qual1 (solve-pattern-match qual patenv)))
+    (destructuring-bind (rest1 exprs1)
+        (solve-pattern-match-quals rest exprs patenv)
+      (list qual1 rest1 exprs1))))
+
+(defun solve-pattern-match-function (expr patenv)
+  (cl-pattern:match expr
+    (('= x y) `(= ,(solve-pattern-match x patenv)
+                  ,(solve-pattern-match y patenv)))
+    (_ (error "invalid expression: ~S" expr))))
 
 
 ;;;
@@ -220,6 +248,11 @@
             (patenv1 (patenv-add var patenv)))
         (values vars1 patenv1 preds)))))
 
+(defun pattern-matcher-match-all (vars matcher)
+  (reduce #'(lambda (matcher var)
+              (pattern-matcher-match var matcher))
+          vars :initial-value matcher))
+
 (defun pattern-matcher-result (matcher)
   (list (reverse (%pattern-matcher-vars matcher))
         (%pattern-matcher-patenv matcher)
@@ -229,7 +262,6 @@
   (let ((strs (mapcar #'princ-to-string (list var cnt))))
     (intern (apply #'concatenate 'string strs)
             (symbol-package var))))
-
 
 
 ;;;
@@ -243,13 +275,15 @@
 ;;     ((tuple-p expr) (compile-tuple nil))
     ((query-p expr) (compile-query expr))
     ((function-p expr) (compile-function expr))
-;;     (t (error "invalid expression: ~S" expr))))
-    (t expr)))
+    (t (error "invalid expression: ~S" expr))))
 
 
 ;;;
 ;;; Compiler - query
 ;;;
+
+(defun make-query (exprs quals)
+  `(query ,exprs ,@quals))
 
 (defun query-p (expr)
   (cl-pattern:match expr
@@ -296,6 +330,9 @@
 ;;;
 ;;; Compiler - query - quantification
 ;;;
+
+(defun make-quantification (vars rel)
+  `(<- ,vars ,rel))
 
 (defun quantification-p (qual)
   (cl-pattern:match qual

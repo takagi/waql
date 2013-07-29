@@ -123,6 +123,62 @@
 
 
 ;;;
+;;; test Solving pattern match
+;;;
+;;; query   : (query (a b c d) (<- (a b c) r1)
+;;;                            (<- (a d) r2))
+;;;
+;;; expected: (query (a b c d) (<- (a b c) r1)
+;;;                            (<- (a1 d) r2)
+;;;                            (= a a1))
+;;;
+
+;;; test SOLVE-PATTERN-MATCH function
+(let ((patenv (waql::empty-patenv)))
+  (is (waql::solve-pattern-match '(query (a b c d) (<- (a b c) r1)
+                                                   (<- (a d) r2))
+                                 patenv)
+      '(query (a b c d) (<- (a b c) r1)
+                        (<- (a1 d) r2)
+                        (= a a1))))
+
+;;; test SOLVE-PATTERN-MATCH-QUERY function
+(let ((patenv (waql::empty-patenv)))
+  (is (waql::solve-pattern-match-query '(query (a b c d) (<- (a b c) r1)
+                                                         (<- (a d) r2))
+                                       patenv)
+      '(query (a b c d) (<- (a b c) r1)
+                        (<- (a1 d) r2)
+                        (= a a1))))
+
+;;; test SOLVE-PATTERN-MATCH-QUALS function
+(let ((patenv (waql::empty-patenv)))
+  (is (waql::solve-pattern-match-quals
+        '((<- (a b c) r1) (<- (a d) r2)) '(a b c d)
+        patenv)
+      '(((<- (a b c) r1) (<- (a1 d) r2) (= a a1)) (a b c d))))
+
+;;; test SOLVE-PATTERN-MATCH-QUAL function
+(let ((patenv (waql::empty-patenv)))
+  (is (waql::solve-pattern-match-qual
+        '(<- (a b c) r1) '((<- (a d) r2)) '(a b c d)
+        patenv)
+    '((<- (a b c) r1) ((<- (a1 d) r2) (= a a1)) (a b c d))))
+
+;;; test SOLVE-PATTERN-MATCH-QUANTIFICATION function
+(let ((patenv (waql::empty-patenv)))
+  (is (waql::solve-pattern-match-quantification
+        '(<- (a b c) r1) '((<- (a d) r2)) '(a b c d)
+        patenv)
+      '((<- (a b c) r1) ((<- (a1 d) r2) (= a a1)) (a b c d))))
+
+(let ((patenv (waql::patenv-add 'a (waql::empty-patenv))))
+  (is (waql::solve-pattern-match-quantification '(<- (a d) r2) nil '(a b c d)
+                                                patenv)
+      '((<- (a1 d) r2) ((= a a1)) (a b c d))))
+
+
+;;;
 ;;; test Pattern matching environment
 ;;;
 
@@ -187,6 +243,19 @@
       (is preds '((= a a1)
                   (= b b1))))))
 
+;;; test PATTERN-MATCHER-MATCH-ALL function
+(let ((patenv (waql::patenv-add 'b
+                (waql::patenv-add 'a (waql::empty-patenv)))))
+  (let ((matcher (waql::pattern-matcher-match-all '(a b c)
+                   (waql::make-pattern-matcher patenv))))
+    (destructuring-bind (vars patenv1 preds)
+        (waql::pattern-matcher-result matcher)
+      (is vars '(a1 b1 c))
+      (is (waql::patenv-lookup 'a patenv1) '(a . 2))
+      (is (waql::patenv-lookup 'b patenv1) '(b . 2))
+      (is (waql::patenv-lookup 'c patenv1) '(c . 1))
+      (is preds '((= a a1)
+                  (= b b1))))))
 
 ;;;
 ;;; test Querying
@@ -300,6 +369,11 @@
 
 (diag "test Querying - Compiler - Quantification")
 
+;;; test MAKE-QUANTIFICATION constructor
+(let ((q (waql::make-quantification '(a b c) 'foo)))
+  (is (waql::quantification-vars q) '(a b c))
+  (is (waql::quantification-relation q) 'foo))
+
 ;;; test QUANTIFICATION-P function
 (ok (waql::quantification-p '(<- (a b c) foo)))
 (ok (null (waql::quantification-p '(= 1 1))))
@@ -344,17 +418,5 @@
        ,(waql::query-quals nil '(a b c))))
 
 
-;;;
-;;; test Pattern matcher
-;;;
-
-(pattern-match 'a
-  (pattern-match 'b
-    (pattern-match 'c
-      (pattern-match 'b
-        (pattern-match 'a
-          (make-pattern-matcher
-            (patenv-add 'a
-              (empty-patenv))))))))
 
 (finalize)
