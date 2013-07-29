@@ -123,6 +123,42 @@
 
 
 ;;;
+;;; test Pattern matching environment
+;;;
+
+;;; test EMPTY-PATENV constructor and PATENV-LOOKUP function
+(ok (null (waql::patenv-lookup 'a (waql::empty-patenv))))
+
+;;; test PATENV-ADD function
+(let ((patenv (waql::patenv-add 'b
+                (waql::patenv-add 'a (waql::empty-patenv)))))
+  (is (waql::patenv-lookup 'a patenv) '(a . 1))
+  (is (waql::patenv-lookup 'b patenv) '(b . 1)))
+
+;;; error if trying to add duplicated symbol
+(let ((patenv (waql::patenv-add 'a (waql::empty-patenv))))
+  (is-error (waql::patenv-add 'a patenv) simple-error))
+
+;;; test PATENV-INC function
+(let ((patenv (waql::patenv-inc 'a
+                (waql::patenv-add 'b
+                  (waql::patenv-add 'a (waql::empty-patenv))))))
+  (is (waql::patenv-lookup 'a patenv) '(a . 2)))
+
+;;; error if trying to increment non-exist symbol
+(let ((patenv (waql::patenv-add 'a (waql::empty-patenv))))
+  (is-error (waql::patenv-inc 'b patenv) simple-error))
+
+;;; test PRINT-PATENV function
+(let ((patenv (waql::patenv-inc 'a
+                (waql::patenv-add 'b
+                  (waql::patenv-add 'a (waql::empty-patenv))))))
+  (is (with-output-to-string (s)
+        (print-object patenv s))
+      "#S(WAQL::PATENV (B . 1) (A . 2))"))
+
+
+;;;
 ;;; test Querying
 ;;;
 

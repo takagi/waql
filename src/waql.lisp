@@ -136,13 +136,13 @@
     (t (solve-pattern-match-predicate qual rest exprs))))
 
 ;; 戻り値はなに？
-(defun solve-pattern-match-quantification (qual rest exprs)
-  (let ((vars (quantification-vars qual))
-        (rel  (quantification-relation qual)))
-    (let ((qual1 ...)
-          (rest1 (solve-pattern-match-quals rest))
-          (exprs1 (...)))
-      `(query ,exprs1 ,(cons qual1 rest1)))))
+;; (defun solve-pattern-match-quantification (qual rest exprs)
+;;   (let ((vars (quantification-vars qual))
+;;         (rel  (quantification-relation qual)))
+;;     (let ((qual1 ...)
+;;           (rest1 (solve-pattern-match-quals rest))
+;;           (exprs1 (...)))
+;;       `(query ,exprs1 ,(cons qual1 rest1)))))
 
 
 ;;;
@@ -150,30 +150,39 @@
 ;;;
 
 (defstruct (patenv (:constructor %make-patenv)
-                   (:conc-name %patenv-))
+                   (:conc-name %patenv-)
+                   (:print-object print-patenv))
   (variables nil :type list :read-only t)) ; alist { var -> counter }
 
 (defun empty-patenv ()
   (%make-patenv))
 
+(defmacro with-%patenv-variables ((vars patenv) &body form)
+  `(let ((,vars (%patenv-variables ,patenv)))
+     (%make-patenv :variables ,@form)))
+
 (defun patenv-add (var patenv)
   (unless (null (patenv-lookup var patenv))
     (error "variable ~S already exists" var))
-  (let ((vars (%patenv-variables patenv)))
-    (%make-patenv :variables (acons var 1 vars))))
+  (with-%patenv-variables (vars patenv)
+    (acons var 1 vars)))
 
 (defun patenv-inc (var patenv)
-  ;; TODO: 書き直す
-  (cl-pattern:match (%patenv-variables patenv)
-    (((var1 . cnt) . rest) (if (eq var1 var)
-                               (%make-patenv :variables
-                                             (acons var1 (1+ cnt) rest))
-                               (%make-patenv :variables
-                                             (acons var1 cnt (%patenv-variables (patenv-inc var (%make-patenv :variables rest)))))))
-    (_ (error "variable ~S does not exist" var))))
+  (labels ((%patenv-inc (var vars)
+             (cl-pattern:match vars
+               (((var1 . cnt) . rest)
+                (if (eq var1 var)
+                    (acons var1 (1+ cnt) rest)
+                    (acons var1 cnt (%patenv-inc var rest))))
+               (_ (error "variable ~S does not exist" var)))))
+    (with-%patenv-variables (vars patenv)
+      (%patenv-inc var vars))))
 
 (defun patenv-lookup (var patenv)
   (assoc var (%patenv-variables patenv)))
+
+(defun print-patenv (patenv stream)
+  (format stream "#S~W" `(patenv ,@(%patenv-variables patenv))))
 
 
 ;;;
