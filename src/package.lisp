@@ -25,4 +25,5 @@
            ;; Querying
            #:eval-waql
            #:query
-           #:<-))
+           #:<-
+           #:lisp))

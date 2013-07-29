@@ -116,6 +116,7 @@
     ((symbol-p expr) expr)
 ;;     ((tuple-p expr) expr)
     ((query-p expr) (solve-pattern-match-query expr patenv))
+    ((lisp-form-p expr) (solve-pattern-match-lisp-form expr))
     ((function-p expr) (solve-pattern-match-function expr patenv))
     (t (error "invalid expression: ~S" expr))))
 
@@ -169,11 +170,13 @@
         (solve-pattern-match-quals rest exprs patenv)
       (list qual1 rest1 exprs1))))
 
+(defun solve-pattern-match-lisp-form (expr)
+  expr)
+
 (defun solve-pattern-match-function (expr patenv)
   (cl-pattern:match expr
     (('= x y) `(= ,(solve-pattern-match x patenv)
                   ,(solve-pattern-match y patenv)))
-    (('< _ _) expr)                     ; temporal tweek
     (_ (error "invalid expression: ~S" expr))))
 
 
@@ -278,6 +281,7 @@
     ((symbol-p expr) (compile-symbol expr))
 ;;     ((tuple-p expr) (compile-tuple nil))
     ((query-p expr) (compile-query expr))
+    ((lisp-form-p expr) (compile-lisp-form expr))
     ((function-p expr) (compile-function expr))
     (t (error "invalid expression: ~S" expr))))
 
@@ -388,17 +392,34 @@
 
 
 ;;;
+;;; Compiler - lisp form
+;;;
+
+(defun lisp-form-p (expr)
+  (cl-pattern:match expr
+    (('lisp _) t)
+    (_ nil)))
+
+(defun lisp-form (expr)
+  (cl-pattern:match expr
+    (('lisp form) form)
+    (_ (error "invalid expression: ~S" expr))))
+
+(defun compile-lisp-form (expr)
+  (lisp-form expr))
+
+
+;;;
 ;;; Compiler - function
 ;;;
 
 (defun function-p (expr)
   (cl-pattern:match expr
     (('= . _) t)
-    (('< . _) t)
     (_ nil)))
 
 (defun compile-function (expr)
   (cl-pattern:match expr
-    (('= x y) `(equalp ,x ,y))
-    (('< _ _) expr)                     ; temporal tweek
+    (('= x y) `(equalp ,(compile-expression x)
+                       ,(compile-expression y)))
     (_ (error "invalid expression: ~S" expr))))

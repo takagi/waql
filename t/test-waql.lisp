@@ -124,6 +124,8 @@
 ;;; test Evaluating WAQL
 ;;;
 
+(diag "test Evaluating WAQL")
+
 (defparameter +r1+
   (relation-adjoin-all (list (tuple (user 1) (event 1))
                              (tuple (user 1) (event 2))
@@ -139,7 +141,7 @@
 ;;; test selection
 (let ((cl-test-more:*default-test-function* #'equalp)
       (result (eval-waql (query (u ev) (<- (u ev) +r1+)
-                                       (= (user-id u) 1)))))
+                                       (lisp (= (user-id u) 1))))))
   (ok (relation-member (tuple (user 1) (event 1)) result))
   (ok (null (relation-member (tuple (user 2) (event 3)) result)))
   (is (relation-count result) 2))
@@ -157,8 +159,9 @@
       (result (eval-waql
                 (query (u1 ev1 ev2) (<- (u1 ev1) +r1+)
                                     (<- (u2 ev2) +r1+)
-                                    (= (user-id u1) (user-id u2))
-                                    (< (event-id ev1) (event-id ev2))))))
+                                    (= u1 u2)
+                                    (lisp (< (event-id ev1)
+                                             (event-id ev2)))))))
   (ok (relation-member (tuple (user 1) (event 1) (event 2)) result))
   (is (relation-count result) 1))
 
@@ -219,6 +222,10 @@
   (is (waql::solve-pattern-match-quantification '(<- (a d) r2) nil '(a b c d)
                                                 patenv)
       '((<- (a1 d) r2) ((= a a1)) (a b c d))))
+
+;;; test SOLVE-PATTERN-MATCH-LISP-FORM function
+(is (waql::solve-pattern-match-lisp-form '(lisp (= (user-id u) 1)))
+    '(lisp (= (user-id u) 1)))
 
 
 ;;;
@@ -308,10 +315,14 @@
 ;;; test Compiler
 ;;;
 
+(diag "test Compiler")
+
 
 ;;;
 ;;; test Compiler - query
 ;;;
+
+(diag "test Compiler - query")
 
 ;;; test COMPILE-QUERY function
 
@@ -393,14 +404,25 @@
 (diag "test Compiler - query - predicate")
 
 ;;; test COMPILE-PREDICATE function
-
-(is (waql::compile-predicate '(= (user-id u) 1) nil '(a b c))
-    `(when (equalp (user-id u) 1)
+(is (waql::compile-predicate '(= u u1) nil '(a b c))
+    `(when (equalp u u1)
        ,(waql::compile-query-quals nil '(a b c))))
 
 (is (waql::compile-predicate 'a nil '(a b c))
     `(when a
        ,(waql::compile-query-quals nil '(a b c))))
+
+
+;;;
+;;; test Compiler - lisp form
+;;;
+
+(diag "test Compiler - lisp form")
+
+;;; test compile-lisp-form
+(is (waql::compile-lisp-form '(lisp (= (user-id u) 1)))
+    '(= (user-id u) 1))
+
 
 
 (finalize)
