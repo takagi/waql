@@ -165,6 +165,14 @@
   (ok (relation-member (tuple (user 1) (event 1) (event 2)) result))
   (is (relation-count result) 1))
 
+;;; test count aggregation
+(let ((result (eval-waql
+                (query (u (count (query (ev1) (<- (u ev1) +r1+))))
+                       (<- (u ev) +r1+)))))
+  (ok (relation-member (tuple (user 1) 2) result))
+  (ok (relation-member (tuple (user 2) 1) result))
+  (is (relation-count result) 2))
+
 
 ;;;
 ;;; test Solving pattern match
@@ -196,6 +204,15 @@
       '(query (a1 c) (<- (a b) r1)
                      (<- (a1 c) (query (a c) (<- (b1 c) r2)
                                              (= b b1))))))
+;;; test recursive query and count aggregation
+(let ((patenv (waql::empty-patenv)))
+  (is (waql::solve-pattern-match
+        '(query (u (count (query (ev1) (<- (u ev1) +r1+))))
+                (<- (u ev) +r1+))
+        patenv)
+      '(query (u (count (query (ev1) (<- (u1 ev1) +r1+)
+                                     (= u u1))))
+              (<- (u ev) +r1+))))
 
 ;;; test SOLVE-PATTERN-MATCH-QUERY function
 (let ((patenv (waql::empty-patenv)))
@@ -235,6 +252,15 @@
 ;;; test SOLVE-PATTERN-MATCH-LISP-FORM function
 (is (waql::solve-pattern-match-lisp-form '(lisp (= (user-id u) 1)))
     '(lisp (= (user-id u) 1)))
+
+;;; test SOLVE-PATTERN-MATCH-FUNCTION function
+(let ((patenv (waql::empty-patenv)))
+  (is (waql::solve-pattern-match-function '(= u u1) patenv)
+      '(= u u1)))
+
+(let ((patenv (waql::empty-patenv)))
+  (is (waql::solve-pattern-match-function '(count r) patenv)
+      '(count r)))
 
 
 ;;;
@@ -443,10 +469,23 @@
 
 (diag "test Compiler - lisp form")
 
-;;; test compile-lisp-form
+;;; test COMPILE-LISP-FORM function
 (is (waql::compile-lisp-form '(lisp (= (user-id u) 1)))
     '(= (user-id u) 1))
 
+
+;;;
+;;; test Compiler - function application
+;;;
+
+(diag "test Compiler - function application")
+
+;;; test COMPILE-FUNCTION function
+(is (waql::compile-function '(= u u1))
+    '(equalp u u1))
+
+(is (waql::compile-function '(count r))
+    '(relation-count r))
 
 
 (finalize)

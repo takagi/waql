@@ -177,6 +177,7 @@
   (cl-pattern:match expr
     (('= x y) `(= ,(solve-pattern-match x patenv)
                   ,(solve-pattern-match y patenv)))
+    (('count x) `(count ,(solve-pattern-match x patenv)))
     (_ (error "invalid expression: ~S" expr))))
 
 
@@ -416,10 +417,12 @@
 (defun function-p (expr)
   (cl-pattern:match expr
     (('= . _) t)
+    (('count . _) t)
     (_ nil)))
 
 (defun compile-function (expr)
   (cl-pattern:match expr
     (('= x y) `(equalp ,(compile-expression x)
                        ,(compile-expression y)))
+    (('count x) `(relation-count ,(compile-expression x)))
     (_ (error "invalid expression: ~S" expr))))
