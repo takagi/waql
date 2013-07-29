@@ -103,7 +103,20 @@
 
 (defun compile-waql (expr)
   (compile-expression
-    (solve-pattern-match expr (empty-patenv))))
+    (funcall (alexandria:rcurry #'solve-pattern-match (empty-patenv))
+      (check-reserved-symbols expr))))
+
+
+;;;
+;;; Checking reserved symbols
+;;;
+
+(defun check-reserved-symbols (expr)
+  (labels ((check (x)
+             (unless (string/= "%" (subseq (princ-to-string x) 0 1))
+               (error "symbol beginning with \"%\" is reserved: ~S" x))
+             x))
+    (mapcar-tree #'check expr)))
 
 
 ;;;
@@ -246,15 +259,22 @@
 
 (defun pattern-matcher-match (var matcher)
   (with-%pattern-matcher ((vars patenv preds) matcher)
-    (anaphora:aif (patenv-lookup var patenv)
-      (let ((var1 (symbolicate-with-count var (cdr anaphora:it))))
-        (let ((vars1   (cons var1 vars))
-              (patenv1 (patenv-inc var patenv))
-              (preds1  (cons `(= ,var ,var1) preds)))
-          (values vars1 patenv1 preds1)))
-      (let ((vars1   (cons var vars))
-            (patenv1 (patenv-add var patenv)))
-        (values vars1 patenv1 preds)))))
+    (cl-pattern:match (patenv-lookup var patenv)
+      ((_ . count)
+       (let ((var1 (pattern-matcher-symbol var count)))
+         (let ((vars1   (cons var1 vars))
+               (patenv1 (patenv-inc var patenv))
+               (preds1  (cons `(= ,var ,var1) preds)))
+           (values vars1 patenv1 preds1))))
+      (_
+       (let ((vars1   (cons var vars))
+             (patenv1 (patenv-add var patenv)))
+         (values vars1 patenv1 preds))))))
+
+(defun pattern-matcher-symbol (var count)
+  (let ((strs (mapcar #'princ-to-string (list "%" var count))))
+    (intern (apply #'concatenate 'string strs)
+            (symbol-package var))))
 
 (defun pattern-matcher-match-all (vars matcher)
   (reduce #'(lambda (matcher var)
@@ -265,11 +285,6 @@
   (list (reverse (%pattern-matcher-vars matcher))
         (%pattern-matcher-patenv matcher)
         (reverse (%pattern-matcher-preds matcher))))
-
-(defun symbolicate-with-count (var cnt)
-  (let ((strs (mapcar #'princ-to-string (list var cnt))))
-    (intern (apply #'concatenate 'string strs)
-            (symbol-package var))))
 
 
 ;;;
@@ -295,6 +310,8 @@
   (symbolp expr))
 
 (defun compile-symbol (expr)
+  (unless (symbol-p expr)
+    (error "invalid expression ~S" expr))
   expr)
 
 
@@ -426,3 +443,16 @@
                        ,(compile-expression y)))
     (('count x) `(relation-count ,(compile-expression x)))
     (_ (error "invalid expression: ~S" expr))))
+
+
+;;;
+;;; Utilities
+;;;
+
+(defun mapcar-tree (function tree)
+  (labels ((rec (x)
+             (cond ((null x) nil)
+                   ((atom x) (funcall function x))
+                   (t (cons (rec (car x))
+                            (rec (cdr x)))))))
+    (rec tree)))
