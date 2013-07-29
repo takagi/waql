@@ -123,10 +123,10 @@
 ;;;
 ;;; test Solving pattern match
 ;;;
-;;; query   : (query (a b c d) (<- (a b c) r1)
+;;; original: (query (a b c d) (<- (a b c) r1)
 ;;;                            (<- (a d) r2))
 ;;;
-;;; expected: (query (a b c d) (<- (a b c) r1)
+;;; solved  : (query (a b c d) (<- (a b c) r1)
 ;;;                            (<- (a1 d) r2)
 ;;;                            (= a a1))
 ;;;
