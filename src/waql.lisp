@@ -99,6 +99,9 @@
 ;;;
 
 (defmacro eval-waql (expr)
+  (compile-waql expr))
+
+(defun compile-waql (expr)
   (compile-expression
     (solve-pattern-match expr (empty-patenv))))
 
