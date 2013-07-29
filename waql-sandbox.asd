@@ -17,6 +17,5 @@
                 :serial t
                 :components
                 ((:file "package")
-                 (:file "waql-sandbox")
-                 (:file "test-waql-sandbox"))))
+                 (:file "waql-sandbox"))))
   :perform (load-op :after (op c) (asdf:clear-system c)))
