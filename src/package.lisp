@@ -23,5 +23,6 @@
            #:in-relation
            #:collect-relation
            ;; Querying
+           #:eval-waql
            #:query
            #:<-))
