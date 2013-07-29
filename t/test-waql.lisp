@@ -131,6 +131,8 @@
 ;;;                            (= a a1))
 ;;;
 
+(diag "test Solving pattern match")
+
 ;;; test SOLVE-PATTERN-MATCH function
 (let ((patenv (waql::empty-patenv)))
   (is (waql::solve-pattern-match '(query (a b c d) (<- (a b c) r1)
@@ -180,6 +182,8 @@
 ;;; test Pattern matching environment
 ;;;
 
+(diag "test Pattern matching environment")
+
 ;;; test EMPTY-PATENV constructor and PATENV-LOOKUP function
 (ok (null (waql::patenv-lookup 'a (waql::empty-patenv))))
 
@@ -214,6 +218,8 @@
 ;;;
 ;;; test Pattern matcher
 ;;;
+
+(diag "test Pattern matcher")
 
 ;;; test MAKE-PATTERN-MATCHER constructor and PATTERN-MATCHER-RESULT selector
 (let ((patenv (waql::empty-patenv)))
