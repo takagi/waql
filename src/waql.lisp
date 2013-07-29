@@ -110,7 +110,7 @@
 (defun solve-pattern-match (expr patenv)
   (cond
 ;;     ((literal-p expr) expr)
-;;     ((symbol-p expr) expr)
+    ((symbol-p expr) expr)
 ;;     ((tuple-p expr) expr)
     ((query-p expr) (solve-pattern-match-query expr patenv))
     ((function-p expr) (solve-pattern-match-function expr patenv))
@@ -170,6 +170,7 @@
   (cl-pattern:match expr
     (('= x y) `(= ,(solve-pattern-match x patenv)
                   ,(solve-pattern-match y patenv)))
+    (('< _ _) expr)                     ; temporal tweek
     (_ (error "invalid expression: ~S" expr))))
 
 
@@ -271,11 +272,22 @@
 (defun compile-expression (expr)
   (cond
 ;;     ((literal-p expr) (compile-literal nil))
-;;     ((symbol-p expr) (compile-symbol nil))
+    ((symbol-p expr) (compile-symbol expr))
 ;;     ((tuple-p expr) (compile-tuple nil))
     ((query-p expr) (compile-query expr))
     ((function-p expr) (compile-function expr))
     (t (error "invalid expression: ~S" expr))))
+
+
+;;;
+;;; Compiler - symbol
+;;;
+
+(defun symbol-p (expr)
+  (symbolp expr))
+
+(defun compile-symbol (expr)
+  expr)
 
 
 ;;;
@@ -382,9 +394,11 @@
 (defun function-p (expr)
   (cl-pattern:match expr
     (('= . _) t)
+    (('< . _) t)
     (_ nil)))
 
 (defun compile-function (expr)
   (cl-pattern:match expr
     (('= x y) `(equalp ,x ,y))
+    (('< _ _) expr)                     ; temporal tweek
     (_ (error "invalid expression: ~S" expr))))
