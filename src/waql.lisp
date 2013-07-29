@@ -95,7 +95,7 @@
 
 
 ;;;
-;;; Evaluating waql
+;;; Evaluating WAQL
 ;;;
 
 (defmacro eval-waql (expr)
@@ -370,15 +370,12 @@
   (let ((vars (quantification-vars qual))
         (rel  (quantification-relation qual)))
     (if outermost
-        (alexandria:with-gensyms (var)
-          `(iterate:iter outermost
-                         (for-tuple ,var in-relation ,(compile-expression rel))
-                         (destructuring-bind ,vars ,var
-                           ,(compile-query-quals rest exprs))))
-        (alexandria:with-gensyms (var)
-          `(iterate:iter (for-tuple ,var in-relation ,(compile-expression rel))
-                         (destructuring-bind ,vars ,var
-                           ,(compile-query-quals rest exprs)))))))
+        `(iterate:iter outermost
+           (for-tuple ,vars in-relation ,(compile-expression rel))
+             ,(compile-query-quals rest exprs))
+        `(iterate:iter (for-tuple ,vars in-relation
+                                        ,(compile-expression rel))
+           ,(compile-query-quals rest exprs)))))
 
 
 ;;;
