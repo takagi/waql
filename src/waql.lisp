@@ -103,20 +103,7 @@
 
 (defun compile-waql (expr)
   (compile-expression
-    (funcall (alexandria:rcurry #'solve-pattern-match (empty-patenv))
-      (check-reserved-symbols expr))))
-
-
-;;;
-;;; Checking reserved symbols
-;;;
-
-(defun check-reserved-symbols (expr)
-  (labels ((check (x)
-             (unless (string/= "%" (subseq (princ-to-string x) 0 1))
-               (error "symbol beginning with \"%\" is reserved: ~S" x))
-             x))
-    (mapcar-tree #'check expr)))
+    (solve-pattern-match expr (empty-patenv))))
 
 
 ;;;
@@ -126,12 +113,17 @@
 (defun solve-pattern-match (expr patenv)
   (cond
     ((literal-p expr) expr)
-    ((symbol-p expr) expr)
+    ((symbol-p expr) (solve-pattern-match-symbol expr))
 ;;     ((tuple-p expr) expr)
     ((query-p expr) (solve-pattern-match-query expr patenv))
     ((lisp-form-p expr) (solve-pattern-match-lisp-form expr))
     ((function-p expr) (solve-pattern-match-function expr patenv))
     (t (error "invalid expression: ~S" expr))))
+
+(defun solve-pattern-match-symbol (expr)
+  (unless (null (percent-symbol-p expr))
+    (error "symbol beginning with \"%\" is reserved: ~S" expr))
+  expr)
 
 (defun solve-pattern-match-query (expr patenv)
   (let ((quals (query-quals expr))
@@ -164,6 +156,8 @@
 (defun solve-pattern-match-quantification (qual rest exprs patenv)
   (let ((vars (quantification-vars qual))
         (rel  (quantification-relation qual)))
+    (unless (notany #'percent-symbol-p vars)
+      (error "symbol beginning with \"%\" is reserved: ~S" vars))
     ;; do pattern matching recursively on rel
     (let ((rel1 (solve-pattern-match rel patenv)))
       ;; do main pattern matching in this quantification
@@ -174,8 +168,8 @@
         ;; do pattern matching recursively on rest and exprs
         (let ((qual1 (make-quantification vars1 rel1)))
         (destructuring-bind (rest1 exprs1)
-            (solve-pattern-match-quals (append preds rest) exprs patenv1)
-          (list qual1 rest1 exprs1)))))))
+            (solve-pattern-match-quals rest exprs patenv1)
+          (list qual1 (append preds rest1) exprs1)))))))
 
 (defun solve-pattern-match-predicate (qual rest exprs patenv)
   (let ((qual1 (solve-pattern-match qual patenv)))
@@ -464,10 +458,5 @@
 ;;; Utilities
 ;;;
 
-(defun mapcar-tree (function tree)
-  (labels ((rec (x)
-             (cond ((null x) nil)
-                   ((atom x) (funcall function x))
-                   (t (cons (rec (car x))
-                            (rec (cdr x)))))))
-    (rec tree)))
+(defun percent-symbol-p (symbol)
+  (string= "%" (subseq (princ-to-string symbol) 0 1)))

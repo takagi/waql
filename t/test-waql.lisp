@@ -175,16 +175,6 @@
 
 
 ;;;
-;;; test Checking reserved symbols
-;;;
-
-;;; test CHECK-RESERVED-SYMBOLS function
-(ok (waql::check-reserved-symbols '(query (u) (<- (u ev) +r1+))))
-(is-error (waql::check-reserved-symbols '(query (%u) (<- (u ev) +r1+)))
-          simple-error)
-
-
-;;;
 ;;; test Solving pattern match
 ;;;
 ;;; original: (query (a b c d) (<- (a b c) r1)
@@ -249,6 +239,10 @@
                                      (= a %a1))))
               (<- (a b) r1))))
 
+;;; test SOLVE-PATTERN-MATCH-SYMBOL function
+(is (waql::solve-pattern-match-symbol 'a) 'a)
+(is-error (waql::solve-pattern-match-symbol '%a) simple-error)
+
 ;;; test SOLVE-PATTERN-MATCH-QUERY function
 (let ((patenv (waql::empty-patenv)))
   (is (waql::solve-pattern-match-query '(query (a b c d) (<- (a b c) r1)
@@ -283,6 +277,11 @@
   (is (waql::solve-pattern-match-quantification '(<- (a d) r2) nil '(a b c d)
                                                 patenv)
       '((<- (%a1 d) r2) ((= a %a1)) (a b c d))))
+
+(let ((patenv (waql::empty-patenv)))
+  (is-error (waql::solve-pattern-match-quantification '(<- (%a) r1) nil nil
+                                                      patenv)
+            simple-error))
 
 ;;; test SOLVE-PATTERN-MATCH-LISP-FORM function
 (is (waql::solve-pattern-match-lisp-form '(lisp (= (user-id u) 1)))
@@ -549,6 +548,16 @@
 
 (is (waql::compile-function '(count r))
     '(relation-count r))
+
+
+;;;
+;;; test Utilities
+;;:
+
+(diag "test Utilities")
+
+(ok (waql::percent-symbol-p '%a))
+(ok (null (waql::percent-symbol-p 'a)))
 
 
 (finalize)
