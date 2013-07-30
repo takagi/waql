@@ -168,7 +168,7 @@
 ;;; test count aggregation
 (let ((result (eval-waql
                 (query (u (count (query (ev1) (<- (u ev1) +r1+))))
-                                              (<- (u ev) +r1+)))))
+                       (<- (u ev) +r1+)))))
   (ok (relation-member (tuple (user 1) 2) result))
   (ok (relation-member (tuple (user 2) 1) result))
   (is (relation-count result) 2))
@@ -206,24 +206,48 @@
                         (<- (%a1 d) r2)
                         (= a %a1))))
 
+;;; test pattern matching in join
 (let ((patenv (waql::empty-patenv)))
   (is (waql::solve-pattern-match
-        '(query (a1 c) (<- (a b) r1)
-                       (<- (a1 c) (query (a c) (<- (b c) r2))))
+        '(query (a b c1) (<- (a b) r1)
+                         (<- (a1 c1) (query (a c) (<- (a c) r2))))
         patenv)
-      '(query (a1 c) (<- (a b) r1)
-                     (<- (a1 c) (query (a c) (<- (%b1 c) r2)
-                                             (= b %b1))))))
+      '(query (a b c1) (<- (a b) r1)
+                       (<- (a1 c1) (query (a c) (<- (%a1 c) r2)
+                                                (= a %a1))))))
 
-;;; test recursive query and count aggregation
+;;; test pattern matching in selection
 (let ((patenv (waql::empty-patenv)))
   (is (waql::solve-pattern-match
-        '(query (u (count (query (ev1) (<- (u ev1) +r1+))))
-                (<- (u ev) +r1+))
+        '(query (a b c) (<- (a b) r1)
+                        (= (count (query (a c) (<- (a c) r2)))
+                           1))
         patenv)
-      '(query (u (count (query (ev1) (<- (%u1 ev1) +r1+)
-                                     (= u %u1))))
-              (<- (u ev) +r1+))))
+      '(query (a b c) (<- (a b) r1)
+                      (= (count (query (a c) (<- (%a1 c) r2)
+                                             (= a %a1)))
+                         1))))
+
+;;; test pattern matching in projection
+(let ((patenv (waql::empty-patenv)))
+  (is (waql::solve-pattern-match
+        '(query (a (count (query (a c) (<- (a c) r2))))
+                (<- (a b) r1))
+        patenv)
+      '(query (a (count (query (a c) (<- (%a1 c) r2)
+                                     (= a %a1))))
+              (<- (a b) r1))))
+
+
+;;; test count aggregation
+(let ((patenv (waql::empty-patenv)))
+  (is (waql::solve-pattern-match
+        '(query (a (count (query (a c) (<- (a c) r2))))
+                (<- (a b) r1))
+        patenv)
+      '(query (a (count (query (a c) (<- (%a1 c) r2)
+                                     (= a %a1))))
+              (<- (a b) r1))))
 
 ;;; test SOLVE-PATTERN-MATCH-QUERY function
 (let ((patenv (waql::empty-patenv)))
