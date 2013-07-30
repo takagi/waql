@@ -410,6 +410,17 @@
 
 
 ;;;
+;;; test Compiler - literal
+;;;
+
+(diag "test Compiler - literal")
+
+;;; test LITERAL-P function
+(ok (waql::literal-p 1))
+(ok (null (waql::literal-p 'a)))
+
+
+;;;
 ;;; test Compiler - symbol
 ;;;
 

@@ -125,7 +125,7 @@
 
 (defun solve-pattern-match (expr patenv)
   (cond
-;;     ((literal-p expr) expr)
+    ((literal-p expr) expr)
     ((symbol-p expr) expr)
 ;;     ((tuple-p expr) expr)
     ((query-p expr) (solve-pattern-match-query expr patenv))
@@ -295,13 +295,26 @@
 
 (defun compile-expression (expr)
   (cond
-;;     ((literal-p expr) (compile-literal nil))
+    ((literal-p expr) (compile-literal nil))
     ((symbol-p expr) (compile-symbol expr))
 ;;     ((tuple-p expr) (compile-tuple nil))
     ((query-p expr) (compile-query expr))
     ((lisp-form-p expr) (compile-lisp-form expr))
     ((function-p expr) (compile-function expr))
     (t (error "invalid expression: ~S" expr))))
+
+
+;;;
+;;; Compiler - literal
+;;;
+
+(defun literal-p (expr)
+  (typep expr 'fixnum))
+
+(defun compile-literal (expr)
+  (unless (literal-p expr)
+    (error "invalid expression: ~S" expr))
+  expr)
 
 
 ;;;
