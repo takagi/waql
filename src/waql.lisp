@@ -295,9 +295,9 @@
 
 (defun compile-expression (expr)
   (cond
-    ((literal-p expr) (compile-literal nil))
+    ((literal-p expr) (compile-literal expr))
     ((symbol-p expr) (compile-symbol expr))
-;;     ((tuple-p expr) (compile-tuple nil))
+;;     ((tuple-p expr) (compile-tuple expr))
     ((query-p expr) (compile-query expr))
     ((lisp-form-p expr) (compile-lisp-form expr))
     ((function-p expr) (compile-function expr))
