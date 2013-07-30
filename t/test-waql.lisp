@@ -178,6 +178,8 @@
 ;;; test Checking reserved symbols
 ;;;
 
+;;; test CHECK-RESERVED-SYMBOLS function
+(ok (waql::check-reserved-symbols '(query (u) (<- (u ev) +r1+))))
 (is-error (waql::check-reserved-symbols '(query (%u) (<- (u ev) +r1+)))
           simple-error)
 
@@ -222,10 +224,6 @@
       '(query (u (count (query (ev1) (<- (%u1 ev1) +r1+)
                                      (= u %u1))))
               (<- (u ev) +r1+))))
-
-;;; test SOLVE-PATTERN-PATCH-SYMBOL function
-(is (waql::solve-pattern-match-symbol 'a) 'a)
-(is-error (waql::solve-pattern-match-symbol '%a) simple-error)
 
 ;;; test SOLVE-PATTERN-MATCH-QUERY function
 (let ((patenv (waql::empty-patenv)))
