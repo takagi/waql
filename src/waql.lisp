@@ -313,7 +313,7 @@
 
 (defun compile-symbol (expr)
   (unless (symbol-p expr)
-    (error "invalid expression ~S" expr))
+    (error "invalid expression: ~S" expr))
   expr)
 
 
