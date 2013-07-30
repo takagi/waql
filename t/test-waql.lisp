@@ -342,6 +342,12 @@
       (is preds '((= a %a1)
                   (= b %b1))))))
 
+;;; test PATTERN-MATCHER-SYMBOL function
+(is (waql::pattern-matcher-symbol 'a 1) '%a1)
+(is-error (waql::pattern-matcher-symbol 1 1) simple-type-error)
+(is-error (waql::pattern-matcher-symbol 'a 'a) simple-type-error)
+
+
 ;;; test PATTERN-MATCHER-MATCH-ALL function
 (let ((patenv (waql::patenv-add 'b
                 (waql::patenv-add 'a (waql::empty-patenv)))))

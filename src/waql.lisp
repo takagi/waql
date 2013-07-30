@@ -272,6 +272,8 @@
          (values vars1 patenv1 preds))))))
 
 (defun pattern-matcher-symbol (var count)
+  (check-type var symbol)
+  (check-type count integer)
   (let ((strs (mapcar #'princ-to-string (list "%" var count))))
     (intern (apply #'concatenate 'string strs)
             (symbol-package var))))
