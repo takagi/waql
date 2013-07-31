@@ -459,4 +459,4 @@
 ;;;
 
 (defun percent-symbol-p (symbol)
-  (string= "%" (subseq (princ-to-string symbol) 0 1)))
+  (alexandria:starts-with #\% (princ-to-string symbol)))
