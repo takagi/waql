@@ -171,11 +171,11 @@
             (solve-pattern-match-quals rest exprs patenv1)
           (list qual1 (append preds rest1) exprs1)))))))
 
-(defun solve-pattern-match-predicate (qual rest exprs patenv)
-  (let ((qual1 (solve-pattern-match qual patenv)))
+(defun solve-pattern-match-predicate (pred rest exprs patenv)
+  (let ((pred1 (solve-pattern-match pred patenv)))
     (destructuring-bind (rest1 exprs1)
         (solve-pattern-match-quals rest exprs patenv)
-      (list qual1 rest1 exprs1))))
+      (list pred1 rest1 exprs1))))
 
 (defun solve-pattern-match-lisp-form (expr)
   expr)
