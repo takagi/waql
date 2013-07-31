@@ -458,38 +458,74 @@
 
 
 ;;;
-;;; test Types
+;;; test Type matching
 ;;;
 
-(diag "test Types")
+(diag "test Type matching")
 
-;;; test MATCH-TYPE function
+(ok (waql::match-types-p '(:user :user) '(:user :user)))
+(ok (null (waql::match-types-p '(:user :event) '(:user :user))))
+(ok (waql::match-types-p '((:relation :user)) '(:relation)))
+(ok (waql::match-types-p '((:relation :user)) '((:relation waql::_))))
+(ok (null (waql::match-types-p '((:relation :user :event))
+                               '((:relation waql::_)))))
+(ok (waql::match-types-p '((:relation :user :event))
+                         '((:relation :user :event))))
 
-;;; test MATCH-RELATION-TYPE function
-(ok (waql::match-relation-type '(:relation :user) '(:relation :user)))
-(ok (waql::match-relation-type '(:relation waql::_) '(:relation :user)))
-(ok (waql::match-relation-type :relation '(:relation :user)))
-(ok (waql::match-relation-type :relation '(:relation :user :event)))
-(ok (null (waql::match-relation-type '(:relation :user) :user)))
-(ok (null (waql::match-relation-type '(:relation :user)
-                                     '(:relation :event))))
-(ok (null (waql::match-relation-type '(:relation :user)
-                                     '(:relation :user :event))))
-(ok (null (waql::match-relation-type '(:relation waql::_)
-                                     '(:relation :user :event))))
 
-;;; test MATCH-TYPES function
+;;;
+;;; test Type patterns - relation type
+;;;
+
+(diag "test Type patterns - relation type")
+
+(ok (waql::relation-type-pattern-p :relation))
+(is-error (waql::relation-type-pattern-p '(:relation)) simple-error)
+(ok (waql::relation-type-pattern-p '(:relation :user)))
+(ok (waql::relation-type-pattern-p '(:relation :user :event)))
+(ok (waql::relation-type-pattern-p '(:relation waql::_)))
+(ok (waql::relation-type-pattern-p '(:relation waql::_ waql::_)))
+(is-error (waql::relation-type-pattern-p '(:relation waql::_ :user))
+          simple-error)
+(ok (null (waql::relation-type-pattern-p :user)))
+
+(ok (waql::relation-type-pattern-wildcard-p '(:relation waql::_ waql::_)))
+(ok (null (waql::relation-type-pattern-wildcard-p '(:relation :user))))
+
+
+;;;
+;;; test Types - scalar types
+;;;
+
+(diag "test Types - scalar types")
+
+(ok (waql::scalar-type-p :int))
+(ok (waql::scalar-type-p :user))
+(ok (waql::scalar-type-p :event))
+(ok (waql::scalar-type-p :action))
+(ok (waql::scalar-type-p :conversion))
+(ok (null (waql::scalar-type-p 1)))
+
+
+;;;
+;;; test Types - relation type
+;;;
+
+(diag "test Types - relation type")
+
+;;; test MAKE-RELATION-TYPE function
+(ok (waql::make-relation-type '(:user :event)))
+(is-error (waql::make-relation-type '((:relation :user :event)))
+          simple-error)
 
 ;;; test RELATION-TYPE-P function
-(is-error (waql::relation-type-p '(:relation)) simple-error)
-(is-error (waql::relation-type-p '(:relation waql::_ :user)) simple-error)
-
-;;; test RELATION-TYPE-WILDCARD-P function
-(ok (waql::relation-type-wildcard-p '(:relation waql::_)))
-(ok (waql::relation-type-wildcard-p '(:relation waql::_ waql::_)))
+(ok (waql::relation-type-p '(:relation :user :event)))
+(ok (null (waql::relation-type-p :user)))
 
 ;;; test RELATION-TYPE-ATTRS function
-
+(is (waql::relation-type-attrs (waql::make-relation-type '(:user :event)))
+    '(:user :event))
+(is-error (waql::relation-type-attrs '(:relation)) simple-error)
 
 
 ;;;

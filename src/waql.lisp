@@ -463,10 +463,10 @@
   (let ((candidates (getf +function-table+ operator)))
     (unless candidates
       (error "undefined function: ~S" operator))
-    (let ((func (assoc operand-types candidates :test #'match-types)))
+    (let ((func (assoc operand-types candidates :test #'match-types-p)))
       (unless func
-        (error "invalid argument types for function ~S : ~S" operator
-                                                             operand-types))
+        (error "invalid argument types for function ~S : ~S"
+               operator operand-types))
       (cdr func))))
 
 
@@ -510,57 +510,78 @@
 
 
 ;;;
-;;; Types
+;;; Type matching
 ;;;
 
-(defun match-type (type1 type2)
+(defun match-types-p (types pattern)
+  (every #'match-type-p types pattern))
+
+(defun match-type-p (type pattern)
   (cond
-    ((or (relation-type-p type1)
-         (relation-type-p type2)) (match-relation-type type1 type2))
-    (t (eq type1 type2))))
+    ((relation-type-pattern-p pattern) (match-relation-type-p type pattern))
+    (t (eq pattern type))))
 
-(defun match-relation-type (type1 type2)
-  (cond
-    ((not (relation-type-p type1)) nil)
-    ((not (relation-type-p type2)) nil)
-    ((eq type1 :relation) t)
-    ((eq type2 :relation) t)
-    ((relation-type-wildcard-p type1) (= (relation-type-dim type1)
-                                         (relation-type-dim type2)))
-    ((relation-type-wildcard-p type2) (= (relation-type-dim type1)
-                                         (relation-type-dim type2)))
-    (t (equal (relation-type-attrs type1)
-              (relation-type-attrs type2)))))
+(defun match-relation-type-p (type pattern)
+  (let ((attrs0 (relation-type-attrs type)))
+    (and (relation-type-p type)
+         (cl-pattern:match pattern
+           (:relation t)
+           ((:relation . attrs1)
+            (if (relation-type-pattern-wildcard-p pattern)
+                (= (length attrs0) (length attrs1))
+                (equal attrs0 attrs1)))))))
 
-(defun match-types (types1 types2)
-  (every #'match-type types1 types2))
 
-(defun make-relation-type (attr-types)
-  `(:relation ,@attr-types))
+;;;
+;;; Type patterns - relation type
+;;;
 
-(defun relation-type-p (type)
+(defun relation-type-pattern-p (pattern)
   (let ((wildcard-p (alexandria:curry #'eq '_)))
-    (cl-pattern:match type
+    (cl-pattern:match pattern
       (:relation t)
-      ((:relation) (error "relation must have more than one attributes"))
+      ((:relation)
+       (error "relation must have more than one attributes: ~S" pattern))
       ((:relation . attrs)
-       (unless (or (notany wildcard-p attrs)
-                   (every wildcard-p attrs))
-         (error "all places in relation type must be _: ~S" type))
-       t)
+       (cond
+         ((notany wildcard-p attrs) t)
+         ((every wildcard-p attrs) t)
+         (t (error "invalid relation: ~S" pattern))))
       (_ nil))))
 
-(defun relation-type-wildcard-p (type)
-  (and (relation-type-p type)
-       (eq (car (relation-type-attrs type)) '_)))
+(defun relation-type-pattern-wildcard-p (pattern)
+  (and (relation-type-pattern-p pattern)
+       (eq (second pattern) '_)))
 
-(defun relation-type-dim (type)
-  (length (relation-type-attrs type)))
+
+;;;
+;;; Types - scalar types
+;;;
+
+(defun scalar-type-p (type)
+  (and (member type '(:int :user :event :action :conversion))
+       t))
+
+
+;;;
+;;; Types - relation type
+;;;
+
+(defun make-relation-type (types)
+  (unless (every #'scalar-type-p types)
+    (error "currently, relation type can have attributes of scalar type only"))
+  `(:relation ,@types))
+
+(defun relation-type-p (type)
+  (cl-pattern:match type
+    ((:relation _ . _) t)
+    (_ nil)))
 
 (defun relation-type-attrs (type)
   (cl-pattern:match type
+    ((:relation) (error "invalid relation type: ~S" type))
     ((:relation . attr_types) attr_types)
-    (_ (error "invalid type: ~S" type))))
+    (_ (error "invalid relation type: ~S" type))))
 
 
 ;;;
