@@ -260,8 +260,15 @@
                                                 patenv)
       '((<- (%a1 d) r2) ((= a %a1)) (a b c d))))
 
+;;; error if trying to use variable starting with "%"
 (let ((patenv (waql::empty-patenv)))
   (is-error (waql::solve-pattern-match-quantification '(<- (%a) r1) nil nil
+                                                      patenv)
+            simple-error))
+
+;; error if trying to use duplicated variables
+(let ((patenv (waql::empty-patenv)))
+  (is-error (waql::solve-pattern-match-quantification '(<- (a a) r) nil nil
                                                       patenv)
             simple-error))
 

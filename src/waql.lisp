@@ -181,6 +181,8 @@
         (rel  (quantification-relation qual)))
     (unless (notany #'percent-symbol-p vars)
       (error "symbol beginning with \"%\" is reserved: ~S" vars))
+    (unless (equal vars (remove-duplicates vars))
+      (error "duplicated variables: ~S" vars))
     ;; do pattern matching recursively on rel
     (let ((rel1 (solve-pattern-match rel patenv)))
       ;; do main pattern matching in this quantification
