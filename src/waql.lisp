@@ -7,6 +7,25 @@
 
 
 ;;;
+;;; User
+;;;
+
+(defstruct (user (:constructor user (id)))
+  (id nil :type fixnum :read-only t))
+
+
+;;;
+;;; Event
+;;;
+
+(defstruct (event (:constructor event (id)))
+  (id nil :type fixnum :read-only t))
+
+(defun event< (event1 event2)
+  (< (event-id event1) (event-id event2)))
+
+
+;;;
 ;;; Tuple
 ;;;
 
@@ -103,12 +122,16 @@
 
 (defun compile-waql (expr)
   (compile-expression
-    (solve-pattern-match expr (empty-patenv))))
+    (specialize-function-top
+      (solve-pattern-match-top expr))))
 
 
 ;;;
 ;;; Solving pattern match
 ;;;
+
+(defun solve-pattern-match-top (expr)
+  (solve-pattern-match expr (empty-patenv)))
 
 (defun solve-pattern-match (expr patenv)
   (cond
@@ -182,9 +205,9 @@
 
 (defun solve-pattern-match-function (expr patenv)
   (cl-pattern:match expr
-    (('= x y) `(= ,(solve-pattern-match x patenv)
-                  ,(solve-pattern-match y patenv)))
-    (('count x) `(count ,(solve-pattern-match x patenv)))
+    ((op . args) `(,op ,@(mapcar #'(lambda (x)
+                                     (solve-pattern-match x patenv))
+                                 args)))
     (_ (error "invalid expression: ~S" expr))))
 
 
@@ -284,6 +307,266 @@
 
 
 ;;;
+;;; Function specializing
+;;;
+
+(defun specialize-function-top (expr)
+  (car (specialize-function expr (empty-typenv))))
+
+(defun specialize-function (expr typenv)
+  (cond
+    ((literal-p expr) (specialize-function-literal expr))
+    ((symbol-p expr) (specialize-function-symbol expr typenv))
+    ;; ((tuple-p expr) (specialize-function-tuple expr typenv))
+    ((query-p expr) (specialize-function-query expr typenv))
+    ((lisp-form-p expr) (specialize-function-lisp-form expr))
+    ((function-p expr) (specialize-function-function expr typenv))
+    (t (error "invalid expression: ~S" expr))))
+
+(defun specialize-function-literal (expr)
+  (unless (literal-p expr)
+    (error "invalid expression: ~S" expr))
+  (list expr :int))
+
+(defun specialize-function-symbol (expr typenv)
+  (unless (symbol-p expr)
+    (error "invalid expression: ~S" expr))
+  (let ((type (or (lookup-typenv expr typenv)
+                  (lookup-typenv expr *predefined-relation-typenv*)
+                  (error "unbound variable: ~S" expr))))
+    (list expr type)))
+
+(defun specialize-function-query (expr typenv)
+  (let ((quals (query-quals expr))
+        (exprs (query-exprs expr)))
+    (destructuring-bind (quals1 exprs1 type1)
+        (specialize-function-quals quals exprs typenv)
+      (list (make-query exprs1 quals1) type1))))
+
+
+(defun specialize-function-quals (quals exprs typenv)
+  (if quals
+      (let ((qual (car quals))
+            (rest (cdr quals)))
+        (destructuring-bind (qual1 rest1 exprs1 type1)
+            (specialize-function-qual qual rest exprs typenv)
+          (list (cons qual1 rest1) exprs1 type1)))
+      (destructuring-bind (exprs1 type1)
+          (specialize-function-exprs exprs typenv)
+        (list nil exprs1 type1))))
+
+
+(defun specialize-function-qual (qual rest exprs typenv)
+  (cond
+    ((quantification-p qual)
+     (specialize-function-quantification qual rest exprs typenv))
+    (t (specialize-function-predicate qual rest exprs typenv))))
+
+(defun specialize-function-exprs (exprs typenv)
+  (let ((specialized-expr-and-types
+         (mapcar #'(lambda (expr)
+                     (specialize-function expr typenv))
+                 exprs)))
+    (let ((exprs1 (mapcar #'car specialized-expr-and-types))
+          (attr-types (mapcar #'cadr specialized-expr-and-types)))
+      (list exprs1 (make-relation-type attr-types)))))
+
+
+;;;
+;;; Function specialization - query - quantification
+;;;
+
+(defun specialize-function-quantification (qual rest exprs typenv)
+  (let ((vars (quantification-vars qual))
+        (rel  (quantification-relation qual)))
+    (destructuring-bind (rel1 rel-type)
+        (specialize-function rel typenv)
+      (let ((attr-types (relation-type-attrs rel-type)))
+        (unless (= (length vars) (length attr-types))
+          (error "variables do not match to type of relation: ~S" qual))
+        (unless (notany #'(lambda (var)
+                            (lookup-typenv var typenv)) vars)
+          (error "variables ~S already exist in type environment" vars))
+        (let ((typenv1 (reduce #'(lambda (%typenv var-type)
+                                   (destructuring-bind (var . type) var-type
+                                     (add-typenv var type %typenv)))
+                               (mapcar #'cons vars attr-types)
+                               :initial-value typenv)))
+          (destructuring-bind (rest1 exprs1 type1)
+              (specialize-function-quals rest exprs typenv1)
+            (list (make-quantification vars rel1)
+                  rest1 exprs1 type1)))))))
+
+
+;;;
+;;; Function specialization - query - predicate
+;;;
+
+(defun specialize-function-predicate (pred rest exprs typenv)
+  (destructuring-bind (pred1 pred-type) (specialize-function pred typenv)
+    (unless (eq pred-type :bool)
+      (error "predicate must have :bool reutrn type: ~S" pred))
+    (destructuring-bind (rest1 exprs1 type1)
+        (specialize-function-quals rest exprs typenv)
+      (list pred1 rest1 exprs1 type1))))
+
+
+;;;
+;;; Function specialization - lisp form
+;;;
+
+(defun specialize-function-lisp-form (expr)
+  (unless (lisp-form-p expr)
+    (error "invalid expression: ~S" expr))
+  ;; lisp form has no information about its type in WAQL layer,
+  ;; so assume that returned type of lisp form always :bool
+  (list expr :bool))
+
+
+;;;
+;;; Function specialization - function
+;;;
+
+(defun specialize-function-function (expr typenv)
+  (let ((operator (function-operator expr))
+        (operands (function-operands expr)))
+    (let ((specialized-operand-and-types
+           (mapcar #'(lambda (operand)
+                       (specialize-function operand typenv))
+                   operands)))
+      (let ((operands1 (mapcar #'car specialized-operand-and-types))
+            (operand-types (mapcar #'cadr specialized-operand-and-types)))
+        (destructuring-bind (return-type operator1)
+            (lookup-generic-function operator operand-types)
+          (list (make-function operator1 operands1) return-type))))))
+
+
+;;;
+;;; Function table
+;;;
+
+(defparameter +function-table+
+  '(=       (((:user :user)   :bool user=)
+             ((:event :event) :bool event=)
+             ((:int  :int)    :bool =))
+    <       (((:event :event) :bool event<))
+    count   (((:relation)     :int  relation-count))
+    user-id (((:user)         :int  user-id))))
+
+(defparameter +generic-functions+
+  (let ((alist (alexandria:plist-alist +function-table+)))
+    (mapcar #'car alist)))
+
+(defparameter +specialized-functions+
+  (let ((alist (alexandria:plist-alist +function-table+)))
+    (loop for (_ . candidates) in alist
+       append (mapcar #'caddr candidates))))
+
+(defun lookup-generic-function (operator operand-types)
+  (let ((candidates (getf +function-table+ operator)))
+    (unless candidates
+      (error "undefined function: ~S" operator))
+    (let ((func (assoc operand-types candidates :test #'match-types)))
+      (unless func
+        (error "invalid argument types for function ~S : ~S" operator
+                                                             operand-types))
+      (cdr func))))
+
+
+;;;
+;;; Type environment
+;;;
+
+(defun empty-typenv ()
+  nil)
+
+(defun add-typenv (var type typenv)
+  (acons var type typenv))
+
+(defun lookup-typenv (var typenv)
+  (cdr (assoc var typenv)))
+
+(defun remove-typenv (var typenv)
+  (remove var typenv :key #'car))
+
+
+;;;
+;;; Predefined relation type environment
+;;;
+
+(defvar *predefined-relation-typenv* (empty-typenv))
+
+(defmacro defrelation (var attr-types &body body)
+  ;; currently does not check type of tuples
+  `(eval-when (:compile-toplevel :load-toplevel :execute)
+     (defparameter ,var
+       ,(if attr-types
+            `(relation-adjoin-all (list ,@body) (empty-relation))
+            `(progn
+               (unless (query-p ',(car body))
+                 (error "invalid form: ~S" ',(car body)))
+               (eval-waql ,(car body)))))
+     (setf *predefined-relation-typenv*
+           (add-typenv ',var '(:relation ,@attr-types)
+                       (remove-typenv ',var
+                                      *predefined-relation-typenv*)))))
+
+
+;;;
+;;; Types
+;;;
+
+(defun match-type (type1 type2)
+  (cond
+    ((or (relation-type-p type1)
+         (relation-type-p type2)) (match-relation-type type1 type2))
+    (t (eq type1 type2))))
+
+(defun match-relation-type (type1 type2)
+  (cond
+    ((not (relation-type-p type1)) nil)
+    ((not (relation-type-p type2)) nil)
+    ((eq type1 :relation) t)
+    ((eq type2 :relation) t)
+    ((relation-type-wildcard-p type1) (= (relation-type-dim type1)
+                                         (relation-type-dim type2)))
+    ((relation-type-wildcard-p type2) (= (relation-type-dim type1)
+                                         (relation-type-dim type2)))
+    (t (equal (relation-type-attrs type1)
+              (relation-type-attrs type2)))))
+
+(defun match-types (types1 types2)
+  (every #'match-type types1 types2))
+
+(defun make-relation-type (attr-types)
+  `(:relation ,@attr-types))
+
+(defun relation-type-p (type)
+  (let ((wildcard-p (alexandria:curry #'eq '_)))
+    (cl-pattern:match type
+      (:relation t)
+      ((:relation) (error "relation must have more than one attributes"))
+      ((:relation . attrs)
+       (unless (or (notany wildcard-p attrs)
+                   (every wildcard-p attrs))
+         (error "all places in relation type must be _: ~S" type))
+       t)
+      (_ nil))))
+
+(defun relation-type-wildcard-p (type)
+  (and (relation-type-p type)
+       (eq (car (relation-type-attrs type)) '_)))
+
+(defun relation-type-dim (type)
+  (length (relation-type-attrs type)))
+
+(defun relation-type-attrs (type)
+  (cl-pattern:match type
+    ((:relation . attr_types) attr_types)
+    (_ (error "invalid type: ~S" type))))
+
+
+;;;
 ;;; Compiler
 ;;;
 
@@ -294,7 +577,7 @@
 ;;     ((tuple-p expr) (compile-tuple expr))
     ((query-p expr) (compile-query expr))
     ((lisp-form-p expr) (compile-lisp-form expr))
-    ((function-p expr) (compile-function expr))
+    ((specialized-function-p expr) (compile-function expr))
     (t (error "invalid expression: ~S" expr))))
 
 
@@ -440,17 +723,38 @@
 ;;; Compiler - function
 ;;;
 
+(defun make-function (operator operands)
+  `(,operator ,@operands))
+
+(defun function-operator (expr)
+  (cl-pattern:match expr
+    ((operator . _) operator)
+    (_ (error "invalid expression: ~S" expr))))
+
+(defun function-operands (expr)
+  (cl-pattern:match expr
+    ((_ . operands) operands)
+    (_ (error "invalid expression: ~S" expr))))
+
 (defun function-p (expr)
   (cl-pattern:match expr
-    (('= . _) t)
-    (('count . _) t)
+    ((op . _) (and (member op +generic-functions+)
+                   t))
+    (_ nil)))
+
+(defun specialized-function-p (expr)
+  (cl-pattern:match expr
+    ((op . _) (and (member op +specialized-functions+)
+                   t))
     (_ nil)))
 
 (defun compile-function (expr)
   (cl-pattern:match expr
-    (('= x y) `(equalp ,(compile-expression x)
-                       ,(compile-expression y)))
-    (('count x) `(relation-count ,(compile-expression x)))
+    (('user= x y) `(equalp ,(compile-expression x)
+                           ,(compile-expression y)))
+    (('event= x y) `(equalp ,(compile-expression x)
+                            ,(compile-expression y)))
+    ((op . args) `(,op ,@(mapcar #'compile-expression args)))
     (_ (error "invalid expression: ~S" expr))))
 
 

@@ -9,22 +9,6 @@
 
 
 ;;;
-;;; User
-;;;
-
-(defstruct (user (:constructor user (id)))
-  (id nil :type fixnum :read-only t))
-
-
-;;;
-;;; Event
-;;;
-
-(defstruct (event (:constructor event (id)))
-  (id nil :type fixnum :read-only t))
-
-
-;;;
 ;;; test Tuple
 ;;;
 
@@ -126,11 +110,10 @@
 
 (diag "test Evaluating WAQL")
 
-(defparameter +r1+
-  (relation-adjoin-all (list (tuple (user 1) (event 1))
-                             (tuple (user 1) (event 2))
-                             (tuple (user 2) (event 3)))
-                       (empty-relation)))
+(defrelation +r1+ (:user :event)
+  (tuple (user 1) (event 1))
+  (tuple (user 1) (event 2))
+  (tuple (user 2) (event 3)))
 
 ;;; test projection
 (let ((cl-test-more:*default-test-function* #'equalp)
@@ -141,7 +124,7 @@
 ;;; test selection
 (let ((cl-test-more:*default-test-function* #'equalp)
       (result (eval-waql (query (u ev) (<- (u ev) +r1+)
-                                       (lisp (= (user-id u) 1))))))
+                                       (= (waql::user-id u) 1)))))
   (ok (relation-member (tuple (user 1) (event 1)) result))
   (ok (null (relation-member (tuple (user 2) (event 3)) result)))
   (is (relation-count result) 2))
@@ -160,8 +143,7 @@
                 (query (u1 ev1 ev2) (<- (u1 ev1) +r1+)
                                     (<- (u2 ev2) +r1+)
                                     (= u1 u2)
-                                    (lisp (< (event-id ev1)
-                                             (event-id ev2)))))))
+                                    (< ev1 ev2)))))
   (ok (relation-member (tuple (user 1) (event 1) (event 2)) result))
   (is (relation-count result) 1))
 
@@ -284,8 +266,8 @@
             simple-error))
 
 ;;; test SOLVE-PATTERN-MATCH-LISP-FORM function
-(is (waql::solve-pattern-match-lisp-form '(lisp (= (user-id u) 1)))
-    '(lisp (= (user-id u) 1)))
+(is (waql::solve-pattern-match-lisp-form '(lisp (= (waql::user-id u) 1)))
+    '(lisp (= (waql::user-id u) 1)))
 
 ;;; test SOLVE-PATTERN-MATCH-FUNCTION function
 (let ((patenv (waql::empty-patenv)))
@@ -387,6 +369,123 @@
 
 
 ;;;
+;;; test Function specializing
+;;;
+
+(diag "test Function specializing")
+
+;;; test SPECIALIZE-FUNCTION-LITERAL function
+(is (waql::specialize-function-literal 1) '(1 :int))
+(is-error (waql::specialize-function-literal 'a) simple-error)
+
+
+;;; test SPECIALIZE-FUNCTION-SYMBOL function
+(let ((typenv (waql::add-typenv 'a :user (waql::empty-typenv))))
+  (is (waql::specialize-function-symbol 'a typenv) '(a :user)))
+
+(let ((typenv (waql::empty-typenv)))
+  (is-error (waql::specialize-function-symbol 'a typenv) simple-error))
+
+(let ((typenv (waql::empty-typenv))
+      (waql::*predefined-relation-typenv*
+        (waql::add-typenv 'r '(:relation :user :event)
+          (waql::empty-typenv))))
+  (is (waql::specialize-function-symbol 'r typenv)
+      '(r (:relation :user :event))))
+
+
+;;; test SPECIALIZE-FUNCTION-QUERY function
+(let ((typenv (waql::empty-typenv))
+      (waql::*predefined-relation-typenv*
+        (waql::add-typenv 'r2 '(:relation :user :event)
+          (waql::add-typenv 'r1 '(:relation :user :event)
+            (waql::empty-typenv)))))
+  (is (waql::specialize-function-query '(query (a b c) (<- (a b) r1)
+                                                       (<- (%a1 c) r2)
+                                                       (= a %a1))
+                                       typenv)
+      '((query (a b c) (<- (a b) r1)
+                       (<- (%a1 c) r2)
+                       (waql::user= a %a1))
+        (:relation :user :event :event))))
+
+
+;;; test SPECIALIZE-FUNCTION-LISP-FORM function
+(is (waql::specialize-function-lisp-form '(lisp 'some-lisp-form))
+    '((lisp 'some-lisp-form) :bool))
+
+
+;;; test SPECIALIZE-FUNCTION-FUNCTION function
+(let ((patenv (waql::add-typenv '%a1 :user
+                (waql::add-typenv 'a :user
+                  (waql::empty-typenv)))))
+  (is (waql::specialize-function-function '(= a %a1) patenv)
+      '((waql::user= a %a1) :bool)))
+
+;;; test LOOKUP-GENERIC-FUNCTION function
+(is (waql::lookup-generic-function '= '(:user :user))
+    '(:bool waql::user=))
+
+(is-error (waql::lookup-generic-function 'foo nil) simple-error)
+
+
+;;;
+;;; test Type environment
+;;;
+
+(diag "test Type environment")
+
+(let ((typenv (waql::add-typenv 'b :event
+                (waql::add-typenv 'a :user
+                  (waql::empty-typenv)))))
+  (is (waql::lookup-typenv 'a typenv) :user)
+  (is (waql::lookup-typenv 'b typenv) :event)
+  (ok (null (waql::lookup-typenv 'c typenv)))
+  (let ((typenv1 (waql::add-typenv 'a :int typenv)))
+    (is (waql::lookup-typenv 'a typenv1) :int)))
+
+(let ((typenv (waql::remove-typenv 'a
+                (waql::add-typenv 'a :user
+                  (waql::empty-typenv)))))
+  (ok (null (waql::lookup-typenv 'a typenv))))
+
+
+;;;
+;;; test Types
+;;;
+
+(diag "test Types")
+
+;;; test MATCH-TYPE function
+
+;;; test MATCH-RELATION-TYPE function
+(ok (waql::match-relation-type '(:relation :user) '(:relation :user)))
+(ok (waql::match-relation-type '(:relation waql::_) '(:relation :user)))
+(ok (waql::match-relation-type :relation '(:relation :user)))
+(ok (waql::match-relation-type :relation '(:relation :user :event)))
+(ok (null (waql::match-relation-type '(:relation :user) :user)))
+(ok (null (waql::match-relation-type '(:relation :user)
+                                     '(:relation :event))))
+(ok (null (waql::match-relation-type '(:relation :user)
+                                     '(:relation :user :event))))
+(ok (null (waql::match-relation-type '(:relation waql::_)
+                                     '(:relation :user :event))))
+
+;;; test MATCH-TYPES function
+
+;;; test RELATION-TYPE-P function
+(is-error (waql::relation-type-p '(:relation)) simple-error)
+(is-error (waql::relation-type-p '(:relation waql::_ :user)) simple-error)
+
+;;; test RELATION-TYPE-WILDCARD-P function
+(ok (waql::relation-type-wildcard-p '(:relation waql::_)))
+(ok (waql::relation-type-wildcard-p '(:relation waql::_ waql::_)))
+
+;;; test RELATION-TYPE-ATTRS function
+
+
+
+;;;
 ;;; test Compiler
 ;;;
 
@@ -395,7 +494,7 @@
 (is (waql::compile-expression
       '(query (a1 c) (<- (a b) r1)
                      (<- (a1 c) (query (a c) (<- (b1 c) r2)
-                                             (= b b1)))))
+                                             (waql::user= b b1)))))
     '(iterate:iter waql::outermost
        (for-tuple (a b) in-relation r1)
          (iterate:iter (for-tuple (a1 c) in-relation
@@ -447,7 +546,7 @@
 
 (is (waql::compile-query-quals '((<- (a b c) foo)
                                  (<- (d e f) baz)
-                                 (= a d))
+                                 (waql::user= a d))
                                '(a b c d e f) :outermost t)
     `(iterate:iter waql::outermost
        (for-tuple (a b c) in-relation foo)
@@ -516,7 +615,7 @@
 (diag "test Compiler - query - predicate")
 
 ;;; test COMPILE-PREDICATE function
-(is (waql::compile-predicate '(= u u1) nil '(a b c))
+(is (waql::compile-predicate '(waql::user= u u1) nil '(a b c))
     `(when (equalp u u1)
        ,(waql::compile-query-quals nil '(a b c))))
 
@@ -532,8 +631,8 @@
 (diag "test Compiler - lisp form")
 
 ;;; test COMPILE-LISP-FORM function
-(is (waql::compile-lisp-form '(lisp (= (user-id u) 1)))
-    '(= (user-id u) 1))
+(is (waql::compile-lisp-form '(lisp (= (waql::user-id u) 1)))
+    '(= (waql::user-id u) 1))
 
 
 ;;;
@@ -543,10 +642,10 @@
 (diag "test Compiler - function application")
 
 ;;; test COMPILE-FUNCTION function
-(is (waql::compile-function '(= u u1))
+(is (waql::compile-function '(waql::user= u u1))
     '(equalp u u1))
 
-(is (waql::compile-function '(count r))
+(is (waql::compile-function '(relation-count r))
     '(relation-count r))
 
 

@@ -6,7 +6,12 @@
 (in-package :cl-user)
 (defpackage waql
   (:use :cl)
-  (:export ;; Tuple
+  (:export ;; User
+           #:user
+           ;; Event
+           #:event
+           #:event<
+           ;; Tuple
            #:tuple
            #:with-tuple
            #:tuple-p
@@ -26,4 +31,6 @@
            #:eval-waql
            #:query
            #:<-
-           #:lisp))
+           #:lisp
+           #:defrelation
+           ))
