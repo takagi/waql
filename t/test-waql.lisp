@@ -376,10 +376,10 @@
 
 
 ;;;
-;;; test Function specializing
+;;; test Function specialization
 ;;;
 
-(diag "test Function specializing")
+(diag "test Function specialization")
 
 ;;; test SPECIALIZE-FUNCTION-LITERAL function
 (is (waql::specialize-function-literal 1) '(1 :int))

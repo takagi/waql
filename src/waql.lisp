@@ -309,7 +309,7 @@
 
 
 ;;;
-;;; Function specializing
+;;; Function specialization
 ;;;
 
 (defun specialize-function-top (expr)
