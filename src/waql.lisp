@@ -459,11 +459,6 @@
   (let ((alist (alexandria:plist-alist +function-table+)))
     (mapcar #'car alist)))
 
-(defparameter +specialized-functions+
-  (let ((alist (alexandria:plist-alist +function-table+)))
-    (loop for (_ . candidates) in alist
-       append (mapcar #'caddr candidates))))
-
 (defun lookup-generic-function (operator operand-types)
   (let ((candidates (getf +function-table+ operator)))
     (unless candidates
@@ -743,6 +738,11 @@
     ((op . _) (and (member op +generic-functions+)
                    t))
     (_ nil)))
+
+(defparameter +specialized-functions+
+  (let ((alist (alexandria:plist-alist +function-table+)))
+    (loop for (_ . candidates) in alist
+       append (mapcar #'caddr candidates))))
 
 (defun specialized-function-p (expr)
   (cl-pattern:match expr
