@@ -177,7 +177,7 @@
         (rel  (quantification-relation qual)))
     (unless (notany #'percent-symbol-p vars)
       (error "symbol beginning with \"%\" is reserved: ~S" vars))
-    (unless (equal vars (remove-duplicates vars))
+    (unless (individual-variables-p vars)
       (error "duplicated variables: ~S" vars))
     ;; do pattern matching recursively on rel
     (let ((rel1 (solve-pattern-match rel patenv)))
@@ -191,6 +191,13 @@
         (destructuring-bind (rest1 exprs1)
             (solve-pattern-match-quals rest exprs patenv1)
           (list qual1 (append preds rest1) exprs1)))))))
+
+(defun individual-variables-p (vars)
+  (let ((vars1 (remove-if #'underscore-notation-p vars)))
+    (equal vars1 (remove-duplicates vars1))))
+
+(defun underscore-notation-p (var)
+  (string= "_" (princ-to-string var)))
 
 
 ;;;
@@ -279,19 +286,28 @@
                                 :patenv ,patenv1
                                 :preds  ,preds1)))))
 
+(defvar *underscore-count* 1)
+
 (defun pattern-matcher-match (var matcher)
   (with-%pattern-matcher ((vars patenv preds) matcher)
-    (cl-pattern:match (patenv-lookup var patenv)
-      ((_ . count)
-       (let ((var1 (pattern-matcher-symbol var count)))
-         (let ((vars1   (cons var1 vars))
-               (patenv1 (patenv-inc var patenv))
-               (preds1  (cons `(= ,var ,var1) preds)))
-           (values vars1 patenv1 preds1))))
-      (_
-       (let ((vars1   (cons var vars))
-             (patenv1 (patenv-add var patenv)))
-         (values vars1 patenv1 preds))))))
+    (cond
+      ((underscore-notation-p var)
+       (let ((var1 (pattern-matcher-symbol var *underscore-count*)))
+         (incf *underscore-count*)
+         (let ((vars1 (cons var1 vars)))
+           (values vars1 patenv preds))))
+      (t
+       (cl-pattern:match (patenv-lookup var patenv)
+         ((_ . count)
+          (let ((var1 (pattern-matcher-symbol var count)))
+            (let ((vars1   (cons var1 vars))
+                  (patenv1 (patenv-inc var patenv))
+                  (preds1  (cons `(= ,var ,var1) preds)))
+              (values vars1 patenv1 preds1))))
+         (_
+          (let ((vars1   (cons var vars))
+                (patenv1 (patenv-add var patenv)))
+            (values vars1 patenv1 preds))))))))
 
 (defun pattern-matcher-symbol (var count)
   (check-type var symbol)

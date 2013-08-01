@@ -156,6 +156,14 @@
   (ok (relation-member (tuple (user 2) 1) result))
   (is (relation-count result) 2))
 
+;;; test underscore notation
+(let ((result (eval-waql
+                (query (u) (<- (u _) +r1+)
+                           (<- (u _) +r1+)))))
+  (ok (relation-member (tuple (user 1)) result))
+  (ok (relation-member (tuple (user 2)) result))
+  (is (relation-count result) 2))
+
 
 ;;;
 ;;; test Solving pattern match
@@ -222,6 +230,17 @@
                                      (= a %a1))))
               (<- (a b) r1))))
 
+;;; test underscore notation
+(let ((waql::*underscore-count* 1)
+      (patenv (waql::empty-patenv)))
+  (is (waql::solve-pattern-match
+        '(query (a c) (<- (a _) r1)
+                      (<- (a c) r2))
+        patenv)
+      '(query (a c) (<- (a %_1) r1)
+                    (<- (%a1 c) r2)
+                    (= a %a1))))
+
 
 ;;;
 ;;; test Solving pattern match - Symbol
@@ -281,6 +300,12 @@
   (is (waql::solve-pattern-match-quantification '(<- (a d) r2) nil '(a b c d)
                                                 patenv)
       '((<- (%a1 d) r2) ((= a %a1)) (a b c d))))
+
+(let ((patenv (waql::empty-patenv))
+      (waql::*underscore-count* 1))
+  (is (waql::solve-pattern-match-quantification '(<- (_ _) r2) nil '(a b)
+                                                patenv)
+      '((<- (%_1 %_2) r2) nil (a b))))
 
 ;;; error if trying to use variable starting with "%"
 (let ((patenv (waql::empty-patenv)))
@@ -373,13 +398,16 @@
 ;;; test PATTERN-MATCHER-MATCH function
 (let ((patenv (waql::patenv-add 'b
                 (waql::patenv-add 'a (waql::empty-patenv)))))
-  (let ((matcher (waql::pattern-matcher-match 'c
-                   (waql::pattern-matcher-match 'b
-                     (waql::pattern-matcher-match 'a
-                       (waql::make-pattern-matcher patenv))))))
+  (let* ((waql::*underscore-count* 1)
+         (matcher (waql::pattern-matcher-match '_
+                    (waql::pattern-matcher-match '_
+                      (waql::pattern-matcher-match 'c
+                        (waql::pattern-matcher-match 'b
+                          (waql::pattern-matcher-match 'a
+                            (waql::make-pattern-matcher patenv))))))))
     (destructuring-bind (vars patenv1 preds)
         (waql::pattern-matcher-result matcher)
-      (is vars '(%a1 %b1 c))
+      (is vars '(%a1 %b1 c %_1 %_2))
       (is (waql::patenv-lookup 'a patenv1) '(a . 2))
       (is (waql::patenv-lookup 'b patenv1) '(b . 2))
       (is (waql::patenv-lookup 'c patenv1) '(c . 1))

@@ -86,15 +86,15 @@
 ;;; conversion per advertise by times
 (print
   (eval-waql (query ( ad
-                      (count (query (ae) (<- (_2 ae _3) +uf1+)
+                      (count (query (ae) (<- (_ ae _) +uf1+)
                                          (<- (ae ad) +ad+))))
-                    (<- (_1 ad) +ad+))))
+                    (<- (_ ad) +ad+))))
 
 ;;; conversion per advertise by UUs
 (print
   (eval-waql (query ( ad
-                      (count (query (u) (<- (u ae _2) +uf1+)
+                      (count (query (u) (<- (u ae _) +uf1+)
                                         (<- (ae ad) +ad+))))
-                    (<- (_1 ad) +ad+))))
+                    (<- (_ ad) +ad+))))
 
 (finalize)
