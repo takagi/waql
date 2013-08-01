@@ -221,9 +221,23 @@
                                      (= a %a1))))
               (<- (a b) r1))))
 
+
+;;;
+;;; test Solving pattern match - Symbol
+;;;
+
+(diag "test Solving pattern match - Symbol")
+
 ;;; test SOLVE-PATTERN-MATCH-SYMBOL function
 (is (waql::solve-pattern-match-symbol 'a) 'a)
 (is-error (waql::solve-pattern-match-symbol '%a) simple-error)
+
+
+;;;
+;;; test Solving pattern match - Query
+;;;
+
+(diag "test Solving pattern match - Query")
 
 ;;; test SOLVE-PATTERN-MATCH-QUERY function
 (let ((patenv (waql::empty-patenv)))
@@ -247,6 +261,13 @@
         '(<- (a b c) r1) '((<- (a d) r2)) '(a b c d)
         patenv)
     '((<- (a b c) r1) ((<- (%a1 d) r2) (= a %a1)) (a b c d))))
+
+
+;;;
+;;; test Solving pattern match - Query - Quantification
+;;;
+
+(diag "test Solving pattern match - Query - Quantification")
 
 ;;; test SOLVE-PATTERN-MATCH-QUANTIFICATION function
 (let ((patenv (waql::empty-patenv)))
@@ -272,9 +293,19 @@
                                                       patenv)
             simple-error))
 
-;;; test SOLVE-PATTERN-MATCH-LISP-FORM function
-(is (waql::solve-pattern-match-lisp-form '(lisp (= (waql::user-id u) 1)))
-    '(lisp (= (waql::user-id u) 1)))
+
+;;;
+;;; test Solving pattern match - Query - Predicate
+;;;
+
+(diag "test Solving pattern match - Query - Predicate")
+
+
+;;;
+;;; test Solving pattern match - Function application
+;;;
+
+(diag "test Solving pattern match - Function application")
 
 ;;; test SOLVE-PATTERN-MATCH-FUNCTION function
 (let ((patenv (waql::empty-patenv)))
@@ -287,10 +318,10 @@
 
 
 ;;;
-;;; test Pattern matching environment
+;;; test Solving pattern match - Pattern matching environment
 ;;;
 
-(diag "test Pattern matching environment")
+(diag "test Solving pattern match - Pattern matching environment")
 
 ;;; test EMPTY-PATENV constructor and PATENV-LOOKUP function
 (ok (null (waql::patenv-lookup 'a (waql::empty-patenv))))
@@ -324,10 +355,10 @@
 
 
 ;;;
-;;; test Pattern matcher
+;;; test Solving pattern match - Pattern matcher
 ;;;
 
-(diag "test Pattern matcher")
+(diag "test Solving pattern match - Pattern matcher")
 
 ;;; test MAKE-PATTERN-MATCHER constructor and PATTERN-MATCHER-RESULT selector
 (let ((patenv (waql::empty-patenv)))

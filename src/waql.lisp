@@ -139,14 +139,24 @@
     ((symbol-p expr) (solve-pattern-match-symbol expr))
 ;;     ((tuple-p expr) expr)
     ((query-p expr) (solve-pattern-match-query expr patenv))
-    ((lisp-form-p expr) (solve-pattern-match-lisp-form expr))
+    ((lisp-form-p expr) expr)
     ((function-p expr) (solve-pattern-match-function expr patenv))
     (t (error "invalid expression: ~S" expr))))
+
+
+;;;
+;;; Solving pattern match - Symbol
+;;;
 
 (defun solve-pattern-match-symbol (expr)
   (unless (null (percent-symbol-p expr))
     (error "symbol beginning with \"%\" is reserved: ~S" expr))
   expr)
+
+
+;;;
+;;; Solving pattern match - Query
+;;;
 
 (defun solve-pattern-match-query (expr patenv)
   (let ((quals (query-quals expr))
@@ -176,6 +186,11 @@
               (solve-pattern-match expr patenv))
           exprs))
 
+
+;;;
+;;; Solving pattern match - Query - Quantification
+;;;
+
 (defun solve-pattern-match-quantification (qual rest exprs patenv)
   (let ((vars (quantification-vars qual))
         (rel  (quantification-relation qual)))
@@ -196,14 +211,21 @@
             (solve-pattern-match-quals rest exprs patenv1)
           (list qual1 (append preds rest1) exprs1)))))))
 
+
+;;;
+;;; Solving pattern match - Query - Predicate
+;;;
+
 (defun solve-pattern-match-predicate (pred rest exprs patenv)
   (let ((pred1 (solve-pattern-match pred patenv)))
     (destructuring-bind (rest1 exprs1)
         (solve-pattern-match-quals rest exprs patenv)
       (list pred1 rest1 exprs1))))
 
-(defun solve-pattern-match-lisp-form (expr)
-  expr)
+
+;;;
+;;; Solving pattern match - Function application
+;;;
 
 (defun solve-pattern-match-function (expr patenv)
   (cl-pattern:match expr
@@ -214,7 +236,7 @@
 
 
 ;;;
-;;; Pattern matching environment
+;;; Solving pattern match - Pattern matching environment
 ;;;
 
 (defstruct (patenv (:constructor %make-patenv)
@@ -254,7 +276,7 @@
 
 
 ;;;
-;;; Pattern matcher
+;;; Solving pattern match - Pattern matcher
 ;;;
 
 (defstruct (pattern-matcher (:constructor %make-pattern-matcher)
