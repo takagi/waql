@@ -33,6 +33,7 @@
            #:collect-relation
            ;; Querying
            #:eval-waql
+           #:compile-waql
            #:query
            #:<-
            #:lisp
