@@ -466,8 +466,9 @@
 (defparameter +function-table+
   '(=       (((:user :user)   :bool user=)
              ((:event :event) :bool event=)
-             ((:int  :int)    :bool =))
-    <       (((:event :event) :bool event<))
+             ((:int :int)     :bool =))
+    <       (((:event :event) :bool event<)
+             ((:int :int)     :bool <))
     count   (((:relation)     :int  relation-count))
     user-id (((:user)         :int  user-id))))
 

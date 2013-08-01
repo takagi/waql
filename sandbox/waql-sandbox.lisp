@@ -10,36 +10,52 @@
 ;;; Relations
 ;;;
 
-(defrelation +ue1+ (:user :event)
-  (relation-adjoin-all (list (tuple (user 1) (event 1))
-                             (tuple (user 1) (event 2))
-                             (tuple (user 1) (event 3))
-                             (tuple (user 2) (event 4))
-                             (tuple (user 2) (event 5)))
+;;; User: < User >
+(defrelation +u+ (:int)
+  (relation-adjoin-all (list (tuple 1)
+                             (tuple 2))
                        (empty-relation)))
 
-(defrelation +ea1+ (:event :action)
-  (relation-adjoin-all (list (tuple (event 1) (action 1))
-                             (tuple (event 2) (action 2))
-                             (tuple (event 4) (action 2)))
+;;; Event: < Event, User >
+(defrelation +ev+ (:int :int)
+  (relation-adjoin-all (list (tuple 1 1)
+                             (tuple 2 1)
+                             (tuple 3 1)
+                             (tuple 4 2)
+                             (tuple 5 2))
                        (empty-relation)))
 
-(defrelation +ec1+ (:event :conversion)
-  (relation-adjoin-all (list (tuple (event 3) (conversion 1))
-                             (tuple (event 5) (conversion 1)))
+;;; Event Conversion: < Event, Conversion >
+(defrelation +cv+ (:int :int)
+  (relation-adjoin-all (list (tuple 3 1)
+                             (tuple 5 1))
                        (empty-relation)))
 
-(defrelation +uae1+ (:user :event :action)
-  (eval-waql (query (u e ac) (<- (u e) +ue1+)
-                             (<- (e ac) +ea1+))))
+;;; Event Advertise: < Event, Advertise >
+(defrelation +ad+ (:int :int)
+  (relation-adjoin-all (list (tuple 1 1)
+                             (tuple 2 2)
+                             (tuple 4 2))
+                       (empty-relation)))
 
-(defrelation +uce1+ (:user :event :conversion)
-  (eval-waql (query (u e cv) (<- (u e) +ue1+)
-                             (<- (e cv) +ec1+))))
+;;; Event Search: < Event, Search >
+(defrelation +sr+ (:int :int)
+  (empty-relation))
 
-(defrelation +uf1+ (:user :event :event)
-  (eval-waql (query (u ae ce) (<- (u ae ac) +uae1+)
-                              (<- (u ce cv) +uce1+)
+;;; < Event, User, Advertise >
+(defrelation +eua+ (:int :int :in)
+  (eval-waql (query (ev u ad) (<- (ev u) +ev+)
+                              (<- (ev ad) +ad+))))
+
+;;; < Event, User, Conversion >
+(defrelation +euc+ (:int :int :int)
+  (eval-waql (query (ev u cv) (<- (ev u) +ev+)
+                              (<- (ev cv) +cv+))))
+
+;;; < User, Advertise Event, Conversion Event >
+(defrelation +uf1+ (:int :int :int)
+  (eval-waql (query (u ae ce) (<- (ae u ad) +eua+)
+                              (<- (ce u cv) +euc+)
                               (< ae ce))))
 
 
@@ -51,42 +67,34 @@
 
 (plan nil)
 
-(let ((cl-test-more:*default-test-function* #'equalp)
-      (result (eval-waql (query (u ae1 ac1 ce1 cv1 ae2 ac2 ce2 cv2)
-                                (<- (u ae1 ce1) +uf1+)
-                                (<- (u ae2 ce2) +uf1+)
-                                (<- (ae1 ac1) +ea1+)
-                                (<- (ce1 cv1) +ec1+)
-                                (<- (ae2 ac2) +ea1+)
-                                (<- (ce2 cv2) +ec1+)
+(let ((result (eval-waql (query (u ae1 ae2 ce)
+                                (<- (u ae1 ce) +uf1+)
+                                (<- (u ae2 ce) +uf1+)
                                 (< ae1 ae2)))))
-  (ok (relation-member (tuple (user 1)
-                              (event 1) (action 1) (event 3) (conversion 1)
-                              (event 2) (action 2) (event 3) (conversion 1))
-                       result))
+  (ok (relation-member (tuple 1 1 2 3) result))
   (is (relation-count result) 1))
 
 ;;; test for recursive query
-(let ((cl-test-more:*default-test-function* #'equalp)
-      (result (eval-waql
-                (query (u1 ac) (<- (u ev) +ue1+)
-                               (<- (u1 ac) (query (u ac)
-                                                  (<- (ev ac) +ea1+)))))))
-  (ok (relation-member (tuple (user 1) (action 1))
-                       result))
-  (ok (relation-member (tuple (user 2) (action 2))
-                       result))
+(let ((result (eval-waql
+                (query (u1 ad) (<- (ev u) +ev+)
+                               (<- (u1 ad) (query (u ad)
+                                                  (<- (ev ad) +ad+)))))))
+  (ok (relation-member (tuple 1 1) result))
+  (ok (relation-member (tuple 2 2) result))
   (is (relation-count result) 3))
 
-;;; click counts per action
-;; (eval-waql (query ( ac
-;;                     (count (query (ae1) (<- (u1 ae1 ce1) +uf1+)
-;;                                         (<- (ae1 ac) +ea+))))
-;;                   (<- (_ ae _) +uf1+)
-;;                   (<- (ae ac) +ea+)))
+;;; conversion per advertise by times
+(print
+  (eval-waql (query ( ad
+                      (count (query (ae) (<- (_2 ae _3) +uf1+)
+                                         (<- (ae ad) +ad+))))
+                    (<- (_1 ad) +ad+))))
 
-
-;;; clisk UUs per action
-
+;;; conversion per advertise by UUs
+(print
+  (eval-waql (query ( ad
+                      (count (query (u) (<- (u ae _2) +uf1+)
+                                        (<- (ae ad) +ad+))))
+                    (<- (_1 ad) +ad+))))
 
 (finalize)
