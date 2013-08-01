@@ -21,6 +21,7 @@
                 :serial t
                 :components
                 ((:file "package")
+                 (:file "data")
                  (:file "waql"))))
   :description ""
   :long-description

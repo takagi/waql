@@ -7,25 +7,6 @@
 
 
 ;;;
-;;; User
-;;;
-
-(defstruct (user (:constructor user (id)))
-  (id nil :type fixnum :read-only t))
-
-
-;;;
-;;; Event
-;;;
-
-(defstruct (event (:constructor event (id)))
-  (id nil :type fixnum :read-only t))
-
-(defun event< (event1 event2)
-  (< (event-id event1) (event-id event2)))
-
-
-;;;
 ;;; Tuple
 ;;;
 
@@ -532,16 +513,11 @@
   ;; currently does not check type of tuples
   `(eval-when (:compile-toplevel :load-toplevel :execute)
      (defparameter ,var
-       ,(if attr-types
-            `(relation-adjoin-all (list ,@body) (empty-relation))
-            `(progn
-               (unless (query-p ',(car body))
-                 (error "invalid form: ~S" ',(car body)))
-               (eval-waql ,(car body)))))
+       ,@body)
      (setf *predefined-relation-typenv*
            (add-typenv ',var '(:relation ,@attr-types)
-                       (remove-typenv ',var
-                                      *predefined-relation-typenv*)))))
+             (remove-typenv ',var
+               *predefined-relation-typenv*)))))
 
 
 ;;;

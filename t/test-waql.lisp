@@ -111,9 +111,10 @@
 (diag "test Evaluating WAQL")
 
 (defrelation +r1+ (:user :event)
-  (tuple (user 1) (event 1))
-  (tuple (user 1) (event 2))
-  (tuple (user 2) (event 3)))
+  (relation-adjoin-all (list (tuple (user 1) (event 1))
+                             (tuple (user 1) (event 2))
+                             (tuple (user 2) (event 3)))
+                       (empty-relation)))
 
 ;;; test projection
 (let ((cl-test-more:*default-test-function* #'equalp)

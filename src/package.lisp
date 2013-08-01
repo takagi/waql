@@ -11,6 +11,10 @@
            ;; Event
            #:event
            #:event<
+           ;; Action
+           #:action
+           ;; Conversion
+           #:conversion
            ;; Tuple
            #:tuple
            #:with-tuple
