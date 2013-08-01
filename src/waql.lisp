@@ -522,36 +522,68 @@
     (t (eq pattern type))))
 
 (defun match-relation-type-p (type pattern)
-  (let ((attrs0 (relation-type-attrs type)))
-    (and (relation-type-p type)
-         (cl-pattern:match pattern
-           (:relation t)
-           ((:relation . attrs1)
-            (if (relation-type-pattern-wildcard-p pattern)
-                (= (length attrs0) (length attrs1))
-                (equal attrs0 attrs1)))))))
+  (and (relation-type-pattern-p pattern)
+       (relation-type-p type)
+       (cond
+         ((relation-type-pattern-general-p pattern) t)
+         ((relation-type-pattern-wildcard-p pattern)
+          (= (relation-type-pattern-dim pattern)
+             (relation-type-dim type)))
+         ((relation-type-pattern-strict-p pattern)
+          (equal (relation-type-pattern-attrs pattern)
+                 (relation-type-attrs type)))
+         (t (error "must not be reached")))))
 
 
 ;;;
-;;; Type patterns - relation type
+;;; Type patterns - Relation type pattern
 ;;;
 
 (defun relation-type-pattern-p (pattern)
-  (let ((wildcard-p (alexandria:curry #'eq '_)))
-    (cl-pattern:match pattern
-      (:relation t)
-      ((:relation)
-       (error "relation must have more than one attributes: ~S" pattern))
-      ((:relation . attrs)
-       (cond
-         ((notany wildcard-p attrs) t)
-         ((every wildcard-p attrs) t)
-         (t (error "invalid relation: ~S" pattern))))
-      (_ nil))))
+  (cl-pattern:match pattern
+    (:relation t)
+    ((:relation)
+     (error "invalid relation type pattern: ~S" pattern))
+    ((:relation '_ . attrs)
+     (or (every #'wildcard-p attrs)
+         (error "invalid relation type pattern: ~S" pattern)))
+    ((:relation . attrs)
+     (or (notany #'wildcard-p attrs)
+         (error "invalid relation type pattern: ~S" pattern)))
+    (_ nil)))
+
+(defun relation-type-pattern-general-p (pattern)
+  (and (relation-type-pattern-p pattern)
+       (cl-pattern:match pattern
+         (:relation t)
+         (_ nil))))
 
 (defun relation-type-pattern-wildcard-p (pattern)
   (and (relation-type-pattern-p pattern)
-       (eq (second pattern) '_)))
+       (cl-pattern:match pattern
+         ((:relation '_ . _) t)
+         (_ nil))))
+
+(defun relation-type-pattern-strict-p (pattern)
+  (and (relation-type-pattern-p pattern)
+       (cl-pattern:match pattern
+         ((:relation '_ . _) nil)
+         ((:relation . _) t)
+         (_ nil))))
+
+(defun wildcard-p (symbol)
+  (eq symbol '_))
+
+(defun relation-type-pattern-attrs (pattern)
+  (unless (relation-type-pattern-p pattern)
+    (error "pattern ~S is not relation type pattern" pattern))
+  (cl-pattern:match pattern
+    (:relation (error "relation type pattern of general does not have explicit attributes: ~S" pattern))
+    ((:relation . attrs) attrs)
+    (_ (error "must not be reached"))))
+
+(defun relation-type-pattern-dim (pattern)
+  (length (relation-type-pattern-attrs pattern)))
 
 
 ;;;
@@ -578,10 +610,12 @@
     (_ nil)))
 
 (defun relation-type-attrs (type)
-  (cl-pattern:match type
-    ((:relation) (error "invalid relation type: ~S" type))
-    ((:relation . attr_types) attr_types)
-    (_ (error "invalid relation type: ~S" type))))
+  (unless (relation-type-p type)
+    (error "invalid relation type: ~S"))
+  (cdr type))
+
+(defun relation-type-dim (type)
+  (length (relation-type-attrs type)))
 
 
 ;;;

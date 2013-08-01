@@ -463,41 +463,66 @@
 
 (diag "test Type matching")
 
-(ok (waql::match-types-p '(:user :user) '(:user :user)))
-(ok (null (waql::match-types-p '(:user :event) '(:user :user))))
-(ok (waql::match-types-p '((:relation :user)) '(:relation)))
-(ok (waql::match-types-p '((:relation :user)) '((:relation waql::_))))
-(ok (null (waql::match-types-p '((:relation :user :event))
-                               '((:relation waql::_)))))
-(ok (waql::match-types-p '((:relation :user :event))
-                         '((:relation :user :event))))
+(is (waql::match-types-p '(:user :user) '(:user :user)) t)
+(is (waql::match-types-p '(:user :event) '(:user :user)) nil)
+(is (waql::match-types-p '((:relation :user)) '(:relation)) t)
+(is (waql::match-types-p '((:relation :user)) '((:relation waql::_))) t)
+(is (waql::match-types-p '((:relation :user :event)) '((:relation waql::_)))
+    nil)
+(is (waql::match-types-p '((:relation :user :event))
+                         '((:relation :user :event)))
+    t)
 
 
 ;;;
-;;; test Type patterns - relation type
+;;; test Type patterns - Relation type pattern
 ;;;
 
-(diag "test Type patterns - relation type")
+(diag "test Type patterns - Relation type pattern")
 
-(ok (waql::relation-type-pattern-p :relation))
+;;; test RELATION-TYPE-PATTERN-P function
+(is (waql::relation-type-pattern-p :relation) t)
+(is (waql::relation-type-pattern-p '(:relation waql::_ waql::_)) t)
+(is (waql::relation-type-pattern-p '(:relation :user :event)) t)
+(is (waql::relation-type-pattern-p :user) nil)
 (is-error (waql::relation-type-pattern-p '(:relation)) simple-error)
-(ok (waql::relation-type-pattern-p '(:relation :user)))
-(ok (waql::relation-type-pattern-p '(:relation :user :event)))
-(ok (waql::relation-type-pattern-p '(:relation waql::_)))
-(ok (waql::relation-type-pattern-p '(:relation waql::_ waql::_)))
 (is-error (waql::relation-type-pattern-p '(:relation waql::_ :user))
           simple-error)
-(ok (null (waql::relation-type-pattern-p :user)))
 
-(ok (waql::relation-type-pattern-wildcard-p '(:relation waql::_ waql::_)))
-(ok (null (waql::relation-type-pattern-wildcard-p '(:relation :user))))
+;;; test RELATION-TYPE-PATTERN-GENERAL-P function
+(is (waql::relation-type-pattern-general-p :relation) t)
+(is (waql::relation-type-pattern-general-p '(:relation waql::_)) nil)
+(is (waql::relation-type-pattern-general-p '(:relation :user)) nil)
+(is (waql::relation-type-pattern-general-p :user) nil)
+
+;;; test RELATION-TYPE-PATTERN-WILDCARD-P function
+(is (waql::relation-type-pattern-wildcard-p '(:relation waql::_ waql::_)) t)
+(is (waql::relation-type-pattern-wildcard-p :relation) nil)
+(is (waql::relation-type-pattern-wildcard-p '(:relation :user)) nil)
+(is (waql::relation-type-pattern-wildcard-p :user) nil)
+(is-error (waql::relation-type-pattern-wildcard-p '(:relation waql::_ :user))
+          simple-error)
+
+;;; test RELATION-TYPE-PATTERN-STRICT-P function
+(is (waql::relation-type-pattern-strict-p '(:relation :user)) t)
+(is (waql::relation-type-pattern-strict-p :relation) nil)
+(is (waql::relation-type-pattern-strict-p '(:relation waql::_)) nil)
+(is (waql::relation-type-pattern-strict-p :user) nil)
+(is-error (waql::relation-type-pattern-strict-p '(:relation))
+          simple-error)
+(is-error (waql::relation-type-pattern-strict-p '(:relation :user waql::_))
+          simple-error)
+
+;;; test RELATION-TYPE-PATTERN-ATTRS function
+
+;;; test RELATION-TYPE-PATTERN-DIM function
 
 
 ;;;
-;;; test Types - scalar types
+;;; test Types - Scalar types
 ;;;
 
-(diag "test Types - scalar types")
+(diag "test Types - Scalar types")
 
 (ok (waql::scalar-type-p :int))
 (ok (waql::scalar-type-p :user))
@@ -508,10 +533,10 @@
 
 
 ;;;
-;;; test Types - relation type
+;;; test Types - Relation type
 ;;;
 
-(diag "test Types - relation type")
+(diag "test Types - Relation type")
 
 ;;; test MAKE-RELATION-TYPE function
 (ok (waql::make-relation-type '(:user :event)))
@@ -526,6 +551,8 @@
 (is (waql::relation-type-attrs (waql::make-relation-type '(:user :event)))
     '(:user :event))
 (is-error (waql::relation-type-attrs '(:relation)) simple-error)
+
+;;; test RELATION-TYPE-DIM function
 
 
 ;;;
