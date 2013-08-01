@@ -649,7 +649,7 @@
 
 
 ;;;
-;;; test Compiler - literal
+;;; test Compiler - Literal
 ;;;
 
 (diag "test Compiler - literal")
@@ -660,7 +660,7 @@
 
 
 ;;;
-;;; test Compiler - symbol
+;;; test Compiler - Symbol
 ;;;
 
 (diag "test Compiler - symbol")
@@ -671,7 +671,7 @@
 
 
 ;;;
-;;; test Compiler - query
+;;; test Compiler - Query
 ;;;
 
 (diag "test Compiler - query")
@@ -712,7 +712,7 @@
 
 
 ;;;
-;;; test Compiler - query - quantification
+;;; test Compiler - Query - Quantification
 ;;;
 
 (diag "test Compiler - query - quantification")
@@ -750,7 +750,7 @@
 
 
 ;;;
-;;; test Compiler - query - predicate
+;;; test Compiler - Query - Predicate
 ;;;
 
 (diag "test Compiler - query - predicate")
@@ -766,7 +766,7 @@
 
 
 ;;;
-;;; test Compiler - lisp form
+;;; test Compiler - Lisp form
 ;;;
 
 (diag "test Compiler - lisp form")
@@ -777,7 +777,7 @@
 
 
 ;;;
-;;; test Compiler - function application
+;;; test Compiler - Function application
 ;;;
 
 (diag "test Compiler - function application")

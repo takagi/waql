@@ -669,7 +669,7 @@
 
 
 ;;;
-;;; Compiler - literal
+;;; Compiler - Literal
 ;;;
 
 (defun literal-p (expr)
@@ -682,7 +682,7 @@
 
 
 ;;;
-;;; Compiler - symbol
+;;; Compiler - Symbol
 ;;;
 
 (defun symbol-p (expr)
@@ -695,7 +695,7 @@
 
 
 ;;;
-;;; Compiler - query
+;;; Compiler - Query
 ;;;
 
 (defun make-query (exprs quals)
@@ -744,7 +744,7 @@
 
 
 ;;;
-;;; Compiler - query - quantification
+;;; Compiler - Query - Quantification
 ;;;
 
 (defun make-quantification (vars rel)
@@ -780,7 +780,7 @@
 
 
 ;;;
-;;; Compiler - query - predicate
+;;; Compiler - Query - Predicate
 ;;;
 
 (defun compile-predicate (pred rest exprs)
@@ -789,7 +789,7 @@
 
 
 ;;;
-;;; Compiler - lisp form
+;;; Compiler - Lisp form
 ;;;
 
 (defun lisp-form-p (expr)
@@ -807,7 +807,7 @@
 
 
 ;;;
-;;; Compiler - function
+;;; Compiler - Function application
 ;;;
 
 (defun make-function (operator operands)
