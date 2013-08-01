@@ -623,7 +623,7 @@
 
 (defun relation-type-attrs (type)
   (unless (relation-type-p type)
-    (error "invalid relation type: ~S") type)
+    (error "invalid relation type: ~S" type))
   (cdr type))
 
 (defun relation-type-dim (type)
