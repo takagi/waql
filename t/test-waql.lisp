@@ -163,8 +163,8 @@
 ;;;                            (<- (a d) r2))
 ;;;
 ;;; solved  : (query (a b c d) (<- (a b c) r1)
-;;;                            (<- (a1 d) r2)
-;;;                            (= a a1))
+;;;                            (<- (%a1 d) r2)
+;;;                            (= a %a1))
 ;;;
 
 (diag "test Solving pattern match")
