@@ -347,10 +347,19 @@
     ((function-p expr) (specialize-function-function expr typenv))
     (t (error "invalid expression: ~S" expr))))
 
+
+;;;
+;;; Function specialization - Literal
+;;;
+
 (defun specialize-function-literal (expr)
   (unless (literal-p expr)
     (error "invalid expression: ~S" expr))
   (list expr :int))
+
+;;;
+;;; Function specialization - Symbol
+;;;
 
 (defun specialize-function-symbol (expr typenv)
   (unless (symbol-p expr)
@@ -360,13 +369,17 @@
                   (error "unbound variable: ~S" expr))))
     (list expr type)))
 
+
+;;;
+;;; Function specialization - Query
+;;;
+
 (defun specialize-function-query (expr typenv)
   (let ((quals (query-quals expr))
         (exprs (query-exprs expr)))
     (destructuring-bind (quals1 exprs1 type1)
         (specialize-function-quals quals exprs typenv)
       (list (make-query exprs1 quals1) type1))))
-
 
 (defun specialize-function-quals (quals exprs typenv)
   (if quals
@@ -397,7 +410,7 @@
 
 
 ;;;
-;;; Function specialization - query - quantification
+;;; Function specialization - Query - Quantification
 ;;;
 
 (defun specialize-function-quantification (qual rest exprs typenv)
@@ -423,7 +436,7 @@
 
 
 ;;;
-;;; Function specialization - query - predicate
+;;; Function specialization - Query - Predicate
 ;;;
 
 (defun specialize-function-predicate (pred rest exprs typenv)
@@ -436,7 +449,7 @@
 
 
 ;;;
-;;; Function specialization - lisp form
+;;; Function specialization - Lisp form
 ;;;
 
 (defun specialize-function-lisp-form (expr)
@@ -448,7 +461,7 @@
 
 
 ;;;
-;;; Function specialization - function
+;;; Function specialization - Function application
 ;;;
 
 (defun specialize-function-function (expr typenv)
@@ -466,7 +479,7 @@
 
 
 ;;;
-;;; Function table
+;;; Function specialization - Function table
 ;;;
 
 (defparameter +function-table+
@@ -493,7 +506,7 @@
 
 
 ;;;
-;;; Type environment
+;;; Function specialization - Type environment
 ;;;
 
 (defun empty-typenv ()
@@ -510,7 +523,7 @@
 
 
 ;;;
-;;; Predefined relation type environment
+;;; Function specialization - Predefined relation type environment
 ;;;
 
 (defvar *predefined-relation-typenv* (empty-typenv))
@@ -532,7 +545,7 @@
 
 
 ;;;
-;;; Type matching
+;;; Function specialization - Type matching
 ;;;
 
 (defun match-types-p (types pattern)
@@ -558,7 +571,7 @@
 
 
 ;;;
-;;; Type patterns - Relation type pattern
+;;; Function specialization - Type patterns - Relation type pattern
 ;;;
 
 (defun relation-type-pattern-p (pattern)
@@ -609,7 +622,7 @@
 
 
 ;;;
-;;; Types - scalar types
+;;; Function specialization - Types - scalar types
 ;;;
 
 (defun scalar-type-p (type)
@@ -618,7 +631,7 @@
 
 
 ;;;
-;;; Types - relation type
+;;; Function specialization - Types - relation type
 ;;;
 
 (defun make-relation-type (types)

@@ -412,10 +412,23 @@
 
 (diag "test Function specialization")
 
+
+;;;
+;;; test Function specialization - Literal
+;;;
+
+(diag "test Function specialization - Literal")
+
 ;;; test SPECIALIZE-FUNCTION-LITERAL function
 (is (waql::specialize-function-literal 1) '(1 :int))
 (is-error (waql::specialize-function-literal 'a) simple-error)
 
+
+;;;
+;;; test Function specialization - Symbol
+;;;
+
+(diag "test Function specialization - Symbol")
 
 ;;; test SPECIALIZE-FUNCTION-SYMBOL function
 (let ((typenv (waql::add-typenv 'a :user (waql::empty-typenv))))
@@ -431,6 +444,12 @@
   (is (waql::specialize-function-symbol 'r typenv)
       '(r (:relation :user :event))))
 
+
+;;;
+;;; test Function specialization - Query
+;;;
+
+(diag "test Function specialization - Query")
 
 ;;; test SPECIALIZE-FUNCTION-QUERY function
 (let ((typenv (waql::empty-typenv))
@@ -448,10 +467,22 @@
         (:relation :user :event :event))))
 
 
+;;;
+;;; test Function specialization - Lisp form
+;;;
+
+(diag "test Function specialization - Lisp form")
+
 ;;; test SPECIALIZE-FUNCTION-LISP-FORM function
 (is (waql::specialize-function-lisp-form '(lisp 'some-lisp-form))
     '((lisp 'some-lisp-form) :bool))
 
+
+;;;
+;;; test Function specialization - Function application
+;;;
+
+(diag "test Function specialization - Function application")
 
 ;;; test SPECIALIZE-FUNCTION-FUNCTION function
 (let ((patenv (waql::add-typenv '%a1 :user
@@ -459,6 +490,13 @@
                   (waql::empty-typenv)))))
   (is (waql::specialize-function-function '(= a %a1) patenv)
       '((waql::user= a %a1) :bool)))
+
+
+;;;
+;;; test Function specialization - Function table
+;;;
+
+(diag "test Function specialization - Function table")
 
 ;;; test LOOKUP-GENERIC-FUNCTION function
 (is (waql::lookup-generic-function '= '(:user :user))
@@ -468,11 +506,12 @@
 
 
 ;;;
-;;; test Type environment
+;;; test Function specialization - Type environment
 ;;;
 
-(diag "test Type environment")
+(diag "test Function specialization - Type environment")
 
+;;; test basic interfaces of Type environment
 (let ((typenv (waql::add-typenv 'b :event
                 (waql::add-typenv 'a :user
                   (waql::empty-typenv)))))
@@ -482,6 +521,7 @@
   (let ((typenv1 (waql::add-typenv 'a :int typenv)))
     (is (waql::lookup-typenv 'a typenv1) :int)))
 
+;;; test REMOVE-TYPENV function
 (let ((typenv (waql::remove-typenv 'a
                 (waql::add-typenv 'a :user
                   (waql::empty-typenv)))))
@@ -489,10 +529,10 @@
 
 
 ;;;
-;;; test Type matching
+;;; test Function specialization - Type matching
 ;;;
 
-(diag "test Type matching")
+(diag "test Function specialization - Type matching")
 
 (is (waql::match-types-p '(:user :user) '(:user :user)) t)
 (is (waql::match-types-p '(:user :event) '(:user :user)) nil)
@@ -506,10 +546,10 @@
 
 
 ;;;
-;;; test Type patterns - Relation type pattern
+;;; test Function specialization - Type patterns - Relation type pattern
 ;;;
 
-(diag "test Type patterns - Relation type pattern")
+(diag "test Function specialization - Type patterns - Relation type pattern")
 
 ;;; test RELATION-TYPE-PATTERN-P function
 (is (waql::relation-type-pattern-p :relation) t)
@@ -550,10 +590,10 @@
 
 
 ;;;
-;;; test Types - Scalar types
+;;; test Function specialization - Types - Scalar types
 ;;;
 
-(diag "test Types - Scalar types")
+(diag "test Function specialization - Types - Scalar types")
 
 (ok (waql::scalar-type-p :int))
 (ok (waql::scalar-type-p :user))
@@ -564,10 +604,10 @@
 
 
 ;;;
-;;; test Types - Relation type
+;;; test Function specialization - Types - Relation type
 ;;;
 
-(diag "test Types - Relation type")
+(diag "test Function specialization - Types - Relation type")
 
 ;;; test MAKE-RELATION-TYPE function
 (ok (waql::make-relation-type '(:user :event)))
