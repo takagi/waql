@@ -681,7 +681,7 @@
 ;;; test Compiler - Literal
 ;;;
 
-(diag "test Compiler - literal")
+(diag "test Compiler - Literal")
 
 ;;; test LITERAL-P function
 (ok (waql::literal-p 1))
@@ -692,7 +692,7 @@
 ;;; test Compiler - Symbol
 ;;;
 
-(diag "test Compiler - symbol")
+(diag "test Compiler - Symbol")
 
 ;;; test SYMBOL-P function
 (ok (waql::symbol-p 'a))
@@ -703,7 +703,7 @@
 ;;; test Compiler - Query
 ;;;
 
-(diag "test Compiler - query")
+(diag "test Compiler - Query")
 
 ;;; test COMPILE-QUERY function
 
@@ -744,7 +744,7 @@
 ;;; test Compiler - Query - Quantification
 ;;;
 
-(diag "test Compiler - query - quantification")
+(diag "test Compiler - Query - Quantification")
 
 ;;; test MAKE-QUANTIFICATION constructor
 (let ((q (waql::make-quantification '(a b c) 'foo)))
@@ -782,7 +782,7 @@
 ;;; test Compiler - Query - Predicate
 ;;;
 
-(diag "test Compiler - query - predicate")
+(diag "test Compiler - Query - Predicate")
 
 ;;; test COMPILE-PREDICATE function
 (is (waql::compile-predicate '(waql::user= u u1) nil '(a b c))
@@ -798,7 +798,7 @@
 ;;; test Compiler - Lisp form
 ;;;
 
-(diag "test Compiler - lisp form")
+(diag "test Compiler - Lisp form")
 
 ;;; test COMPILE-LISP-FORM function
 (is (waql::compile-lisp-form '(lisp (= (waql::user-id u) 1)))
@@ -809,7 +809,7 @@
 ;;; test Compiler - Function application
 ;;;
 
-(diag "test Compiler - function application")
+(diag "test Compiler - Function application")
 
 ;;; test COMPILE-FUNCTION function
 (is (waql::compile-function '(waql::user= u u1))
