@@ -239,24 +239,24 @@
   `(let ((,vars (%patenv-variables ,patenv)))
      (%make-patenv :variables ,@form)))
 
-(defun patenv-add (var patenv)
-  (unless (null (patenv-lookup var patenv))
+(defun add-patenv (var patenv)
+  (unless (null (lookup-patenv var patenv))
     (error "variable ~S already exists" var))
   (with-%patenv-variables (vars patenv)
     (acons var 1 vars)))
 
-(defun patenv-inc (var patenv)
-  (labels ((%patenv-inc (var vars)
+(defun inc-patenv (var patenv)
+  (labels ((%inc-patenv (var vars)
              (cl-pattern:match vars
                (((var1 . cnt) . rest)
                 (if (eq var1 var)
                     (acons var1 (1+ cnt) rest)
-                    (acons var1 cnt (%patenv-inc var rest))))
+                    (acons var1 cnt (%inc-patenv var rest))))
                (_ (error "variable ~S does not exist" var)))))
     (with-%patenv-variables (vars patenv)
-      (%patenv-inc var vars))))
+      (%inc-patenv var vars))))
 
-(defun patenv-lookup (var patenv)
+(defun lookup-patenv (var patenv)
   (assoc var (%patenv-variables patenv)))
 
 (defun print-patenv (patenv stream)
@@ -297,16 +297,16 @@
          (let ((vars1 (cons var1 vars)))
            (values vars1 patenv preds))))
       (t
-       (cl-pattern:match (patenv-lookup var patenv)
+       (cl-pattern:match (lookup-patenv var patenv)
          ((_ . count)
           (let ((var1 (pattern-matcher-symbol var count)))
             (let ((vars1   (cons var1 vars))
-                  (patenv1 (patenv-inc var patenv))
+                  (patenv1 (inc-patenv var patenv))
                   (preds1  (cons `(= ,var ,var1) preds)))
               (values vars1 patenv1 preds1))))
          (_
           (let ((vars1   (cons var vars))
-                (patenv1 (patenv-add var patenv)))
+                (patenv1 (add-patenv var patenv)))
             (values vars1 patenv1 preds))))))))
 
 (defun pattern-matcher-symbol (var count)

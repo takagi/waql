@@ -296,7 +296,7 @@
         patenv)
       '((<- (a b c) r1) ((<- (%a1 d) r2) (= a %a1)) (a b c d))))
 
-(let ((patenv (waql::patenv-add 'a (waql::empty-patenv))))
+(let ((patenv (waql::add-patenv 'a (waql::empty-patenv))))
   (is (waql::solve-pattern-match-quantification '(<- (a d) r2) nil '(a b c d)
                                                 patenv)
       '((<- (%a1 d) r2) ((= a %a1)) (a b c d))))
@@ -349,33 +349,33 @@
 
 (diag "test Solving pattern match - Pattern matching environment")
 
-;;; test EMPTY-PATENV constructor and PATENV-LOOKUP function
-(ok (null (waql::patenv-lookup 'a (waql::empty-patenv))))
+;;; test EMPTY-PATENV constructor and LOOKUP-PATENV function
+(ok (null (waql::lookup-patenv 'a (waql::empty-patenv))))
 
-;;; test PATENV-ADD function
-(let ((patenv (waql::patenv-add 'b
-                (waql::patenv-add 'a (waql::empty-patenv)))))
-  (is (waql::patenv-lookup 'a patenv) '(a . 1))
-  (is (waql::patenv-lookup 'b patenv) '(b . 1)))
+;;; test ADD-PATENV function
+(let ((patenv (waql::add-patenv 'b
+                (waql::add-patenv 'a (waql::empty-patenv)))))
+  (is (waql::lookup-patenv 'a patenv) '(a . 1))
+  (is (waql::lookup-patenv 'b patenv) '(b . 1)))
 
 ;;; error if trying to add duplicated symbol
-(let ((patenv (waql::patenv-add 'a (waql::empty-patenv))))
-  (is-error (waql::patenv-add 'a patenv) simple-error))
+(let ((patenv (waql::add-patenv 'a (waql::empty-patenv))))
+  (is-error (waql::add-patenv 'a patenv) simple-error))
 
-;;; test PATENV-INC function
-(let ((patenv (waql::patenv-inc 'a
-                (waql::patenv-add 'b
-                  (waql::patenv-add 'a (waql::empty-patenv))))))
-  (is (waql::patenv-lookup 'a patenv) '(a . 2)))
+;;; test INC-PATENV function
+(let ((patenv (waql::inc-patenv 'a
+                (waql::add-patenv 'b
+                  (waql::add-patenv 'a (waql::empty-patenv))))))
+  (is (waql::lookup-patenv 'a patenv) '(a . 2)))
 
 ;;; error if trying to increment non-exist symbol
-(let ((patenv (waql::patenv-add 'a (waql::empty-patenv))))
-  (is-error (waql::patenv-inc 'b patenv) simple-error))
+(let ((patenv (waql::add-patenv 'a (waql::empty-patenv))))
+  (is-error (waql::inc-patenv 'b patenv) simple-error))
 
 ;;; test PRINT-PATENV function
-(let ((patenv (waql::patenv-inc 'a
-                (waql::patenv-add 'b
-                  (waql::patenv-add 'a (waql::empty-patenv))))))
+(let ((patenv (waql::inc-patenv 'a
+                (waql::add-patenv 'b
+                  (waql::add-patenv 'a (waql::empty-patenv))))))
   (is-print (print-object patenv *standard-output*)
             "#S(WAQL::PATENV (B . 1) (A . 2))"))
 
@@ -392,12 +392,12 @@
     (destructuring-bind (vars patenv1 preds)
         (waql::pattern-matcher-result matcher)
       (is vars nil)
-      (is (waql::patenv-lookup 'a patenv1) nil)
+      (is (waql::lookup-patenv 'a patenv1) nil)
       (is preds nil))))
 
 ;;; test PATTERN-MATCHER-MATCH function
-(let ((patenv (waql::patenv-add 'b
-                (waql::patenv-add 'a (waql::empty-patenv)))))
+(let ((patenv (waql::add-patenv 'b
+                (waql::add-patenv 'a (waql::empty-patenv)))))
   (let* ((waql::*underscore-count* 1)
          (matcher (waql::pattern-matcher-match '_
                     (waql::pattern-matcher-match '_
@@ -408,9 +408,9 @@
     (destructuring-bind (vars patenv1 preds)
         (waql::pattern-matcher-result matcher)
       (is vars '(%a1 %b1 c %_1 %_2))
-      (is (waql::patenv-lookup 'a patenv1) '(a . 2))
-      (is (waql::patenv-lookup 'b patenv1) '(b . 2))
-      (is (waql::patenv-lookup 'c patenv1) '(c . 1))
+      (is (waql::lookup-patenv 'a patenv1) '(a . 2))
+      (is (waql::lookup-patenv 'b patenv1) '(b . 2))
+      (is (waql::lookup-patenv 'c patenv1) '(c . 1))
       (is preds '((= a %a1)
                   (= b %b1))))))
 
@@ -421,16 +421,16 @@
 
 
 ;;; test PATTERN-MATCHER-MATCH-ALL function
-(let ((patenv (waql::patenv-add 'b
-                (waql::patenv-add 'a (waql::empty-patenv)))))
+(let ((patenv (waql::add-patenv 'b
+                (waql::add-patenv 'a (waql::empty-patenv)))))
   (let ((matcher (waql::pattern-matcher-match-all '(a b c)
                    (waql::make-pattern-matcher patenv))))
     (destructuring-bind (vars patenv1 preds)
         (waql::pattern-matcher-result matcher)
       (is vars '(%a1 %b1 c))
-      (is (waql::patenv-lookup 'a patenv1) '(a . 2))
-      (is (waql::patenv-lookup 'b patenv1) '(b . 2))
-      (is (waql::patenv-lookup 'c patenv1) '(c . 1))
+      (is (waql::lookup-patenv 'a patenv1) '(a . 2))
+      (is (waql::lookup-patenv 'b patenv1) '(b . 2))
+      (is (waql::lookup-patenv 'c patenv1) '(c . 1))
       (is preds '((= a %a1)
                   (= b %b1))))))
 
