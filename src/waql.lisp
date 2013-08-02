@@ -230,37 +230,37 @@
 (defstruct (patenv (:constructor %make-patenv)
                    (:conc-name %patenv-)
                    (:print-object print-patenv))
-  (variables nil :type list :read-only t)) ; alist { var -> counter }
+  (elements nil :type list :read-only t))  ; alist { var -> counter }
 
 (defun empty-patenv ()
   (%make-patenv))
 
-(defmacro with-%patenv-variables ((vars patenv) &body form)
-  `(let ((,vars (%patenv-variables ,patenv)))
-     (%make-patenv :variables ,@form)))
+(defmacro with-%patenv-elements ((elems patenv) &body form)
+  `(let ((,elems (%patenv-elements ,patenv)))
+     (%make-patenv :elements (progn ,@form))))
 
 (defun add-patenv (var patenv)
   (unless (null (lookup-patenv var patenv))
     (error "variable ~S already exists" var))
-  (with-%patenv-variables (vars patenv)
-    (acons var 1 vars)))
+  (with-%patenv-elements (elems patenv)
+    (acons var 1 elems)))
 
 (defun inc-patenv (var patenv)
-  (labels ((%inc-patenv (var vars)
-             (cl-pattern:match vars
+  (labels ((%inc-patenv (var elems)
+             (cl-pattern:match elems
                (((var1 . cnt) . rest)
                 (if (eq var1 var)
                     (acons var1 (1+ cnt) rest)
                     (acons var1 cnt (%inc-patenv var rest))))
                (_ (error "variable ~S does not exist" var)))))
-    (with-%patenv-variables (vars patenv)
-      (%inc-patenv var vars))))
+    (with-%patenv-elements (elems patenv)
+      (%inc-patenv var elems))))
 
 (defun lookup-patenv (var patenv)
-  (assoc var (%patenv-variables patenv)))
+  (assoc var (%patenv-elements patenv)))
 
 (defun print-patenv (patenv stream)
-  (format stream "#S~W" `(patenv ,@(%patenv-variables patenv))))
+  (format stream "#S~W" `(patenv ,@(%patenv-elements patenv))))
 
 
 ;;;
