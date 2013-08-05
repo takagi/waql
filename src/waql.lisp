@@ -974,16 +974,16 @@
        (car expr)
        t))
 
-;; (defparameter +specialized-functions+
-;;   (let ((alist (alexandria:plist-alist +function-table+)))
-;;     (loop for (_ . candidates) in alist
-;;        append (mapcar #'caddr candidates))))
+(defparameter +specialized-functions+
+  (let ((alist (alexandria:plist-alist +function-table+)))
+    (loop for (_ . candidates) in alist
+       append (mapcar #'caddr candidates))))
 
-;; (defun specialized-function-p (expr)
-;;   (cl-pattern:match expr
-;;     ((op . _) (and (member op +specialized-functions+)
-;;                    t))
-;;     (_ nil)))
+(defun specialized-function-p (expr)
+  (cl-pattern:match expr
+    ((op . _) (and (member op +specialized-functions+)
+                   t))
+    (_ nil)))
 
 (defun compile-function (expr)
   (cl-pattern:match expr
@@ -1011,6 +1011,8 @@
        ;; add args and operands compiled with compenv to compenv1 as
        ;; :argvar, then compile expr1 with new compenv1 and new scope
        (let ((compiled-operands (mapcar %compile-expression operands)))
+         (unless (alexandria:length= args compiled-operands)
+           (error "invalid number of arguments: ~S" (length compiled-operands)))
          (let ((pairs (mapcar #'cons args compiled-operands)))
            (let ((compenv2
                   (reduce #'(lambda (%compenv pair)

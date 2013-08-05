@@ -963,6 +963,10 @@
                    (waql::empty-compenv)))))
   (is-error (waql::%compile-function '(f r) compenv nil) simple-error))
 
+(let ((compenv (waql::add-letfun-compenv 'f '(x) '(query (a b) (<- (a b) x))
+                 (waql::empty-compenv))))
+  (is-error (waql::%compile-function '(f 1 2) compenv nil) simple-error))
+
 
 ;;;
 ;;; test Compiler - Compiling environment
