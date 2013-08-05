@@ -695,8 +695,52 @@
 (diag "test Compiler - Symbol")
 
 ;;; test SYMBOL-P function
-(ok (waql::symbol-p 'a))
-(ok (null (waql::symbol-p 1)))
+(is (waql::symbol-p 'a) t)
+(is (waql::symbol-p 1) nil)
+
+;;; test COMPILE-SYMBOL function
+
+(let ((compenv (waql::add-qvar-compenv 'a
+                 (waql::empty-compenv))))
+  (is (waql::%compile-symbol 'a compenv '%a1) '%a1.a))
+
+(let ((waql::*scoping-counter* 1)
+      (compenv (waql::add-letvar-compenv 'a '(query (a b) (<- (a b) +r1+))
+                 (waql::empty-compenv))))
+  (is (waql::%compile-symbol 'a compenv '%a1)
+        '(iterate:iter waql::outermost
+           (for-tuple (%a1.a %a1.b) in-relation +r1+)
+           (iterate:in waql::outermost
+             (collect-relation (tuple %a1.a %a1.b))))))
+
+(let ((compenv (waql::add-letfun-compenv 'f '(i) '(query (a) (<- (a i) +r1+))
+                 (waql::empty-compenv))))
+  (is-error (waql::%compile-symbol 'f compenv nil) simple-error))
+
+(let ((compenv (waql::empty-compenv)))
+  (is-error (waql::%compile-symbol 'a compenv nil) simple-error))
+
+
+;;;
+;;; test Compiler - Let
+;;;
+
+(diag "test Compiler - Let")
+
+;;; test LET-P function
+
+;;; test LET-VAR function
+
+;;; test LET-EXPR function
+
+;;; test LET-BODY function
+
+;;; test COMPILE-LET function
+
+;;; test COMPILE-LET-VAR function
+
+;;; test COMPILE-LET-FUN function
+
 
 
 ;;;
@@ -707,7 +751,56 @@
 
 ;;; test COMPILE-QUERY function
 
+(let ((waql::*scoping-counter* 1)
+      (compenv (waql::add-letvar-compenv 'x '(query (a b) (<- (a b) +r1+))
+                 (waql::empty-compenv))))
+  (is (waql::%compile-query '(query (a b) (<- (a b) x)
+                                          (<- (c d) x))
+                            compenv nil)
+       '(iterate:iter waql::outermost
+          (for-tuple (a b) in-relation
+              (iterate:iter waql::outermost
+                (for-tuple (%x1.a %x1.b) in-relation +r1+)
+                (iterate:in waql::outermost
+                  (collect-relation (tuple %x1.a %x1.b)))))
+          (iterate:iter
+            (for-tuple (c d) in-relation
+                (iterate:iter waql::outermost
+                  (for-tuple (%x2.a %x2.b) in-relation +r1+)
+                  (iterate:in waql::outermost
+                    (collect-relation (tuple %x2.a %x2.b)))))
+            (iterate:in waql::outermost
+              (collect-relation (tuple a b)))))))
+
+(let ((waql::*scoping-counter* 1)
+      (compenv (waql::add-letvar-compenv 'y '(query (a b) (<- (a b) x))
+                 (waql::add-letvar-compenv 'x '(query (a b) (<- (a b) r))
+                   (waql::empty-compenv)))))
+  (is (waql::%compile-query '(query (a c) (<- (a b) x)
+                                          (<- (c d) y))
+                            compenv nil)
+      '(iterate:iter waql::outermost
+         (for-tuple (a b) in-relation
+             (iterate:iter waql::outermost
+               (for-tuple (%x1.a %x1.b) in-relation r)
+               (iterate:in waql::outermost
+                 (collect-relation
+                   (tuple %x1.a %x1.b)))))
+           (iterate:iter
+             (for-tuple (c d) in-relation
+                 (iterate:iter waql::outermost
+                   (for-tuple (%Y2.a %Y2.b) in-relation
+                     (iterate:iter waql::outermost
+                       (for-tuple (%X3.a %X3.b) in-relation r)
+                       (iterate:in waql::outermost
+                         (collect-relation (tuple %X3.a %X3.b)))))
+                   (iterate:in waql::outermost
+                     (collect-relation (tuple %Y2.a %Y2.b)))))
+         (iterate:in waql::outermost
+           (collect-relation (tuple a c)))))))
+
 ;;; test COMPILE-QUERY-QUALS function
+
 (is (waql::compile-query-quals '((<- (a b c) foo)) '(a b c) :outermost t)
     '(iterate:iter waql::outermost
        (for-tuple (a b c) in-relation foo)
@@ -817,6 +910,70 @@
 
 (is (waql::compile-function '(relation-count r))
     '(relation-count r))
+
+
+;;;
+;;; test Compiler - Compiling environment
+;;;
+
+(diag "test Compiler - Compiling environment")
+
+;;; test EMPTY-COMPENV function
+(is (waql::%compenv-elements (waql::empty-compenv)) nil)
+
+;;; test ADD-QVAR-COMPENV function
+(is (waql::lookup-compenv 'a
+      (waql::add-qvar-compenv 'a
+        (waql::empty-compenv)))
+    :qvar)
+
+;;; test ADD-LETVAR-COMPENV function
+(destructuring-bind (keyword expr compenv)
+    (waql::lookup-compenv 'a
+      (waql::add-letvar-compenv 'a '(query (a b) (<- (a b) r))
+        (waql::add-qvar-compenv 'a
+          (waql::empty-compenv))))
+  (is (list keyword expr)
+      '(:letvar (query (a b) (<- (a b) r))))
+  (is (waql::%compenv-elements compenv)
+      '((a . :qvar))))
+
+;;; test INC-LETVAR-COMPENV function
+;; (destructuring-bind (keyword cnt expr compenv)
+;;     (waql::lookup-compenv 'a
+;;       (waql::inc-letvar-compenv 'a
+;;         (waql::add-letvar-compenv 'a '(query (a b) (<- (a b) r))
+;;           (waql::empty-compenv))))
+;;   (is (list keyword cnt expr)
+;;       '(:letvar 2 (query (a b) (<- (a b) r))))
+;;   (is (waql::%compenv-elements compenv) nil))
+
+;;; test ADD-LETFUN-COMPENV function
+(destructuring-bind (keyword args expr compenv)
+    (waql::lookup-compenv 'a
+      (waql::add-letfun-compenv 'a '(i) '(query (a b) (<- (a b) r)
+                                                      (= a i))
+        (waql::add-qvar-compenv 'a
+          (waql::empty-compenv))))
+  (is (list keyword args expr)
+      '(:letfun (i) (query (a b) (<- (a b) r)
+                                   (= a i))))
+  (is (waql::%compenv-elements compenv)
+      '((a . :qvar))))
+
+;;; test INC-LETFUN-COMPENV function
+;; (destructuring-bind (keyword cnt args expr compenv)
+;;     (waql::lookup-compenv 'a
+;;       (waql::inc-letfun-compenv 'a
+;;         (waql::add-letfun-compenv 'a '(i) '(query (a b) (<- (a b) r)
+;;                                                         (= a i))
+;;           (waql::empty-compenv))))
+;;   (is (list keyword cnt args expr)
+;;       '(:letfun 2 (i) (query (a b) (<- (a b) r)
+;;                                    (= a i))))
+;;   (is (waql::%compenv-elements compenv) nil))
+
+;;; test PRINT-COMPENV function
 
 
 ;;;

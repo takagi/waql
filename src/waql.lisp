@@ -526,6 +526,9 @@
 
 (defvar *predefined-relation-typenv* (empty-typenv))
 
+(defun lookup-predefined-relations (var)
+  (lookup-typenv var *predefined-relation-typenv*))
+
 (defmacro defrelation (var attr-types &body body)
   ;; currently does not check type of tuples
   `(eval-when (:compile-toplevel :load-toplevel :execute)
@@ -660,6 +663,16 @@
     ((specialized-function-p expr) (compile-function expr))
     (t (error "invalid expression: ~S" expr))))
 
+(defun %compile-expression (expr compenv scope)
+  (cond
+    ((literal-p expr) (compile-literal expr))
+    ((symbol-p expr) (%compile-symbol expr compenv scope))
+    ;; ((tuple-p expr) (%compile-tuple expr compenv scope))
+    ((query-p expr) (%compile-query expr compenv scope))
+    ((lisp-form-p expr) (compile-lisp-form expr))
+    ((specialized-function-p expr) (%compile-function expr compenv scope))
+    (t (error "invalid expression: ~S" expr))))
+
 
 ;;;
 ;;; Compiler - Literal
@@ -685,6 +698,86 @@
   (unless (symbol-p expr)
     (error "invalid expression: ~S" expr))
   expr)
+
+(defun %compile-symbol (expr compenv scope)
+  (unless (symbol-p expr)
+    (error "invalid expression: ~S" expr))
+  (cl-pattern:match (lookup-compenv expr compenv)
+    (:qvar
+     (scoped-symbol expr scope))
+    ((:letvar lexpr lcompenv)
+     (%compile-expression lexpr lcompenv (scoping-symbol expr)))
+    ((:letfun . _)
+     (error "symbol ~S is bound to function" expr))
+    (_ (if (lookup-predefined-relations expr)
+           expr
+           (error "unbound variable: ~S" expr)))))
+
+
+;;;
+;;; Compiler - Let
+;;;
+
+(defun let-p (expr)
+  (or (let-var-p expr)
+      (let-fun-p expr)))
+
+(defun let-var-p (expr)
+  (cl-pattern:match expr
+    (('let (_ _) _) t)
+    (_ nil)))
+
+(defun let-fun-p (expr)
+  (cl-pattern:match expr
+    (('let (_ _ _) _) t)
+    (_ nil)))
+
+(defun let-var (expr)
+  ;; use optima instead of cl-pattern because of uncapability in this case
+  (optima:match expr
+    ((list 'let (list var _) _) var)
+    ((list 'let (list var _ _) _) var)
+    (_ (error "invalid expression~S" expr))))
+
+(defun let-args (expr)
+  (cl-pattern:match expr
+    (('let (_ args _) _) args)
+    (_ (error "invalid expression: ~S" expr))))
+
+(defun let-expr (expr)
+  ;; use optima instead of cl-pattern because of uncapability in this case
+  (optima:match expr
+    ((list 'let (list _ expr1) _) expr1)
+    ((list 'let (list _ _ expr1) _) expr1)
+    (_ (error "invalid expression: ~S" expr))))
+
+(defun let-body (expr)
+  ;; use optima instead of cl-pattern because of uncapability in this case
+  (optima:match expr
+    ((list 'let (list _ _) body) body)
+    ((list 'let (list _ _ _) body) body)
+    (_ (error "invalid expression: ~S" expr))))
+
+(defun %compile-let (expr compenv scope)
+  (cond
+    ((let-var-p expr) (%compile-let-var expr compenv scope))
+    ((let-fun-p expr) (%compile-let-fun expr compenv scope))
+    (t (error "must not be reached"))))
+
+(defun %compile-let-var (expr compenv scope)
+  (let ((lvar  (let-var expr))
+        (lexpr (let-expr expr))
+        (lbody (let-body expr)))
+    (let ((compenv1 (add-letvar-compenv lvar lexpr compenv)))
+      (%compile-expression lbody compenv1 scope))))
+
+(defun %compile-let-fun (expr compenv scope)
+  (let ((lvar  (let-var expr))
+        (largs (let-args expr))
+        (lexpr (let-expr expr))
+        (lbody (let-body expr)))
+    (let ((compenv1 (add-letfun-compenv lvar largs lexpr compenv)))
+      (%compile-expression lbody compenv1 scope))))
 
 
 ;;;
@@ -714,6 +807,11 @@
         (exprs (query-exprs expr)))
     (compile-query-quals quals exprs :outermost t)))
 
+(defun %compile-query (expr compenv scope)
+  (let ((quals (query-quals expr))
+        (exprs (query-exprs expr)))
+    (%compile-query-quals quals exprs compenv scope :outermost t)))
+
 (defun compile-query-quals (quals exprs &key outermost)
   (assert (or (null outermost)
               (and outermost
@@ -724,16 +822,39 @@
         (compile-query-qual qual rest exprs outermost))
       (compile-query-exprs exprs)))
 
+(defun %compile-query-quals (quals exprs compenv scope &key outermost)
+  (assert (or (null outermost)
+              (and outermost
+                   (quantification-p (car quals)))))
+  (if quals
+      (let ((qual (car quals))
+            (rest (cdr quals)))
+        (%compile-query-qual qual rest exprs compenv scope outermost))
+      (%compile-query-exprs exprs compenv scope)))
+
 (defun compile-query-qual (qual rest exprs outermost)
   (cond
     ((quantification-p qual)
      (compile-quantification qual rest exprs outermost))
     (t (compile-predicate qual rest exprs))))
 
+(defun %compile-query-qual (qual rest exprs compenv scope outermost)
+  (cond
+    ((quantification-p qual)
+     (%compile-quantification qual rest exprs compenv scope outermost))
+    (t (%compile-predicate qual rest exprs compenv scope))))
+
 (defun compile-query-exprs (exprs)
   (let ((compiled-exprs (mapcar #'compile-expression exprs)))
     `(iterate:in outermost
        (collect-relation (tuple ,@compiled-exprs)))))
+
+(defun %compile-query-exprs (exprs compenv scope)
+  (let ((%compile-expression (alexandria:rcurry #'%compile-expression
+                                                 compenv scope)))
+    (let ((compiled-exprs (mapcar %compile-expression exprs)))
+      `(iterate:in outermost
+         (collect-relation (tuple ,@compiled-exprs))))))
 
 
 ;;;
@@ -760,6 +881,7 @@
     (('<- _ rel) rel)
     (_ (error "invalid expression: ~S" qual))))
 
+
 (defun compile-quantification (qual rest exprs outermost)
   (let ((vars (quantification-vars qual))
         (rel  (quantification-relation qual)))
@@ -767,9 +889,27 @@
         `(iterate:iter outermost
            (for-tuple ,vars in-relation ,(compile-expression rel))
              ,(compile-query-quals rest exprs))
-        `(iterate:iter (for-tuple ,vars in-relation
-                                        ,(compile-expression rel))
-           ,(compile-query-quals rest exprs)))))
+        `(iterate:iter
+           (for-tuple ,vars in-relation ,(compile-expression rel))
+             ,(compile-query-quals rest exprs)))))
+
+(defun %compile-quantification (qual rest exprs compenv scope outermost)
+  (let ((%add-qvar-compenv (flip #'add-qvar-compenv))
+        (%scoped-symbol (alexandria:rcurry #'scoped-symbol scope)))
+    (let ((vars (quantification-vars qual))
+          (rel  (quantification-relation qual)))
+      (let ((vars1 (mapcar %scoped-symbol vars))
+            (compenv1 (reduce %add-qvar-compenv vars
+                              :initial-value compenv)))
+        (if outermost
+            `(iterate:iter outermost
+               (for-tuple ,vars1 in-relation
+                          ,(%compile-expression rel compenv scope))
+                 ,(%compile-query-quals rest exprs compenv1 scope))
+            `(iterate:iter
+               (for-tuple ,vars1 in-relation
+                          ,(%compile-expression rel compenv scope))
+                 ,(%compile-query-quals rest exprs compenv1 scope)))))))
 
 
 ;;;
@@ -779,6 +919,10 @@
 (defun compile-predicate (pred rest exprs)
   `(when ,(compile-expression pred)
      ,(compile-query-quals rest exprs)))
+
+(defun %compile-predicate (pred rest exprs compenv scope)
+  `(when ,(%compile-expression pred compenv scope)
+     ,(%compile-query-quals rest exprs compenv scope)))
 
 
 ;;;
@@ -842,6 +986,120 @@
     ((op . args) `(,op ,@(mapcar #'compile-expression args)))
     (_ (error "invalid expression: ~S" expr))))
 
+(defun %compile-function (expr compenv scope)
+  (let ((%compile-expression (alexandria:rcurry #'%compile-expression
+                                                compenv scope)))
+    (cl-pattern:match expr
+      (('user= x y) `(equalp ,(%compile-expression x compenv scope)
+                             ,(%compile-expression y compenv scope)))
+      (('event= x y) `(equalp ,(%compile-expression x compenv scope)
+                              ,(%compile-expression y compenv scope)))
+      ((op . args) `(,op ,@(mapcar %compile-expression args)))
+      (_ (error "invalid expression: ~S" expr)))))
+
+
+;;;
+;;; Compiler - Scoping counter
+;;;
+
+(defvar *scoping-counter* 1)
+
+(defun scoping-symbol (symbol)
+  (prog1
+      (symbolicate (list "%" symbol *scoping-counter*)
+                   :package (symbol-package symbol))
+    (incf *scoping-counter*)))
+
+(defun scoped-symbol (symbol scope)
+  (if scope
+      (symbolicate (list scope "." symbol))
+      symbol))
+
+
+;;;
+;;; Compiler - Compiling environment
+;;;
+;;; 'elements' of compenv are:
+;;;   alist { var ->  :qvar
+;;;                | (:letvar expr compenv)
+;;;                | (:letfun args expr compenv)
+;;;
+
+(defstruct (compenv (:constructor %make-compenv)
+                    (:conc-name %compenv-)
+                    (:print-object print-compenv))
+  (elements nil :type list :read-only t))
+
+(defun empty-compenv ()
+  (%make-compenv))
+
+(defmacro with-%compenv-elements ((elems compenv) &body form)
+  `(let ((,elems (%compenv-elements ,compenv)))
+     (%make-compenv :elements (progn ,@form))))
+
+(defun add-qvar-compenv (var compenv)
+  (assert (symbolp var))
+  (with-%compenv-elements (elems compenv)
+    (acons var :qvar elems)))
+
+(defun add-letvar-compenv (var expr compenv)
+  (assert (symbolp var))
+  (with-%compenv-elements (elems compenv)
+    (acons var (list :letvar expr compenv)
+           elems)))
+
+;; (defun inc-letvar-compenv (var compenv)
+;;   (assert (symbolp var))
+;;   (labels ((%inc-letvar-compenv (var elems)
+;;              (cl-pattern:match elems
+;;                (((var1 . :qvar) . rest)
+;;                 (acons var1 :qvar (%inc-letvar-compenv var rest)))
+;;                (((var1 . (:letvar cnt expr compenv1)) . rest)
+;;                 (if (eq var1 var)
+;;                     (acons var1 (list :letvar (1+ cnt) expr compenv1) rest)
+;;                     (acons var1 (list :letvar cnt expr compenv1)
+;;                            (%inc-letvar-compenv var rest))))
+;;                (((var1 . (:letfun cnt args expr compenv1)) . rest)
+;;                 (acons var1 (list :letfun cnt args expr compenv1)
+;;                        (%inc-letvar-compenv var rest)))
+;;                (_ (error "variable ~S does not exist" var)))))
+;;     (with-%compenv-elements (elems compenv)
+;;       (%inc-letvar-compenv var elems))))
+
+(defun add-letfun-compenv (var args expr compenv)
+  (assert (symbolp var))
+  (assert (listp args))
+  (with-%compenv-elements (elems compenv)
+    (acons var (list :letfun args expr compenv)
+           elems)))
+
+;; (defun inc-letfun-compenv (var compenv)
+;;   (assert (symbolp var))
+;;   (labels ((%inc-letfun-compenv (var elems)
+;;              (cl-pattern:match elems
+;;                (((var1 . :qvar) . rest)
+;;                 (acons var1 :qvar (%inc-letfun-compenv var rest)))
+;;                (((var1 . (:letvar cnt expr compenv1)) . rest)
+;;                 (acons var1 (list :letvar cnt expr compenv1)
+;;                        (%inc-letfun-compenv var rest)))
+;;                (((var1 . (:letfun cnt args expr compenv1)) . rest)
+;;                 (if (eq var1 var)
+;;                     (acons var1 (list :letfun (1+ cnt) args expr compenv1)
+;;                            rest)
+;;                     (acons var1 (list :letfun cnt expr compenv1) rest)))
+;;                (_ (error "variable ~S does not exist" var)))))
+;;     (with-%compenv-elements (elems compenv)
+;;       (%inc-letfun-compenv var elems))))
+
+(defun lookup-compenv (var compenv)
+  (assert (symbolp var))
+  (let ((elems (%compenv-elements compenv)))
+    (cdr (assoc var elems))))
+
+(defun print-compenv (compenv stream)
+  (let ((elems (%compenv-elements compenv)))
+    (format stream "#S~W" `(compenv ,@elems))))
+
 
 ;;;
 ;;; Utilities
@@ -849,3 +1107,14 @@
 
 (defun percent-symbol-p (symbol)
   (alexandria:starts-with #\% (princ-to-string symbol)))
+
+(defun flip (function)
+  (lambda (x y)
+    (funcall function y x)))
+
+(defun symbolicate (things &key package)
+  (let* ((strs (mapcar #'princ-to-string things))
+         (name (apply #'concatenate 'string strs)))
+    (if package
+        (intern name package)
+        (intern name))))
