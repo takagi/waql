@@ -741,6 +741,37 @@
 
 ;;; test COMPILE-LET function
 
+(let ((waql::*scoping-counter* 1))
+  (is (waql::%compile-let '(let (r +r1+)
+                             (let (x (query (a b) (<- (a b) r)))
+                               (query (c d) (<- (c d) x))))
+                          (waql::empty-compenv) nil)
+      '(iterate:iter waql::outermost
+        (for-tuple (c d) in-relation
+          (iterate:iter waql::outermost
+            (for-tuple (%X1.a %X1.b) in-relation +r1+)
+            (iterate:in waql::outermost
+               (collect-relation (tuple %X1.a %X1.b)))))
+        (iterate:in waql::outermost
+          (collect-relation (tuple c d))))))
+
+(let ((waql::*scoping-counter* 1))
+  (is (waql::%compile-let '(let (r +r1+)
+                             (let (f (i) (query (a b) (<- (a b) r)
+                                                      (= a i)))
+                               (query (c d) (<- (c d) (f 1)))))
+                          (waql::empty-compenv) nil)
+      '(iterate:iter waql::outermost
+         (for-tuple (c d) in-relation
+           (iterate:iter waql::outermost
+             (for-tuple (%F1.a %F1.b) in-relation +r1+)
+             (when (= %F1.a 1)
+               (iterate:in waql::outermost
+                 (collect-relation (tuple %F1.a %F1.b))))))
+         (iterate:in waql::outermost
+           (collect-relation (tuple c d))))))
+
+
 ;;; test COMPILE-LET-VAR function
 
 ;;; test COMPILE-LET-FUN function
