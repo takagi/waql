@@ -705,6 +705,8 @@
   (cl-pattern:match (lookup-compenv expr compenv)
     (:qvar
      (scoped-symbol expr scope))
+    ((:argvar expr1)
+     expr1)
     ((:letvar lexpr lcompenv)
      (%compile-expression lexpr lcompenv (scoping-symbol expr)))
     ((:letfun . _)
@@ -987,15 +989,37 @@
     (_ (error "invalid expression: ~S" expr))))
 
 (defun %compile-function (expr compenv scope)
+  (let ((operator (function-operator expr))
+        (operands (function-operands expr)))
+    (cond
+      ((lookup-compenv operator compenv)
+       (%compile-function-letfun operator operands compenv scope))
+      (t
+       (%compile-function-built-in operator operands compenv scope)))))
+
+(defun %compile-function-letfun (operator operands compenv scope)
   (let ((%compile-expression (alexandria:rcurry #'%compile-expression
                                                 compenv scope)))
-    (cl-pattern:match expr
-      (('user= x y) `(equalp ,(%compile-expression x compenv scope)
-                             ,(%compile-expression y compenv scope)))
-      (('event= x y) `(equalp ,(%compile-expression x compenv scope)
-                              ,(%compile-expression y compenv scope)))
-      ((op . args) `(,op ,@(mapcar %compile-expression args)))
-      (_ (error "invalid expression: ~S" expr)))))
+    (cl-pattern:match (lookup-compenv operator compenv)
+      ((:letfun args expr compenv1)
+       ;; add args and operands compiled with compenv to compenv1 as
+       ;; :argvar, then compile expr1 with new compenv1 and new scope
+       (let ((compiled-operands (mapcar %compile-expression operands)))
+         (let ((pairs (mapcar #'cons args compiled-operands)))
+           (let ((compenv2
+                  (reduce #'(lambda (%compenv pair)
+                              (destructuring-bind (arg . operand) pair
+                                (add-argvar-compenv arg operand %compenv)))
+                          pairs
+                          :initial-value compenv1)))
+             (%compile-expression expr compenv2
+                                  (scoping-symbol operator))))))
+      (_ (error "symbol ~S is bound to variable" operator)))))
+
+(defun %compile-function-built-in (operator operands compenv scope)
+  (let ((%compile-expression (alexandria:rcurry #'%compile-expression
+                                                compenv scope)))
+    `(,operator ,@(mapcar %compile-expression operands))))
 
 
 ;;;
@@ -1021,6 +1045,7 @@
 ;;;
 ;;; 'elements' of compenv are:
 ;;;   alist { var ->  :qvar
+;;;                | (:argvar expr)
 ;;;                | (:letvar expr compenv)
 ;;;                | (:letfun args expr compenv)
 ;;;
@@ -1041,6 +1066,12 @@
   (assert (symbolp var))
   (with-%compenv-elements (elems compenv)
     (acons var :qvar elems)))
+
+(defun add-argvar-compenv (var expr compenv)
+  (assert (symbolp var))
+  (with-%compenv-elements (elems compenv)
+    (acons var (list :argvar expr)
+           elems)))
 
 (defun add-letvar-compenv (var expr compenv)
   (assert (symbolp var))
