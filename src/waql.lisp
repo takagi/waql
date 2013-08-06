@@ -817,20 +817,27 @@
 (defun compile-symbol (expr compenv scope)
   (unless (symbol-p expr)
     (error "invalid expression: ~S" expr))
-  (acond
+  (cond
     ((lookup-compenv expr compenv)
-     (cl-pattern:match it
-       (:qvar
-        (scoped-symbol expr scope))
-       ((:argvar expr1)
-        expr1)
-       ((:letvar expr1 compenv1)
-        (let ((scope1 (scoping-symbol expr)))
-          (compile-expression expr1 compenv1 scope1)))
-       ((:letfun . _)
-        (error "symbol ~S is bound to function" expr))))
-    ((lookup-predefined-relations expr) expr)
+     (compile-symbol-in-compenv expr compenv scope))
+    ((lookup-predefined-relations expr)
+     (compile-symbol-in-predefined-relations expr))
     (t (error "unbound variable: ~S" expr))))
+
+(defun compile-symbol-in-compenv (expr compenv scope)
+  (cl-pattern:match (lookup-compenv expr compenv)
+    (:qvar
+     (scoped-symbol expr scope))
+    ((:argvar expr1)
+     expr1)
+    ((:letvar expr1 compenv1)
+     (let ((scope1 (scoping-symbol expr)))
+       (compile-expression expr1 compenv1 scope1)))
+    ((:letfun . _)
+     (error "symbol ~S is bound to function" expr))))
+
+(defun compile-symbol-in-predefined-relations (expr)
+  expr)
 
 
 ;;;
