@@ -806,9 +806,6 @@
 ;;; Compiler - Literal
 ;;;
 
-(defun literal-p (expr)
-  (typep expr 'fixnum))
-
 (defun compile-literal (expr)
   (unless (literal-p expr)
     (error "invalid expression: ~S" expr))
@@ -818,9 +815,6 @@
 ;;;
 ;;; Compiler - Symbol
 ;;;
-
-(defun symbol-p (expr)
-  (symbolp expr))
 
 (defun compile-symbol (expr compenv scope)
   (unless (symbol-p expr)
@@ -852,59 +846,6 @@
 ;;; Compiler - Let
 ;;;
 
-(defun make-let-var (var expr body)
-  `(let (,var ,expr) ,body))
-
-(defun make-let-fun (var args expr body)
-  `(let (,var ,args ,expr) ,body))
-
-(defun let-p (expr)
-  (cl-pattern:match expr
-    (('let . _) t)
-    (_ nil)))
-
-(defun let-var-p (expr)
-  (cl-pattern:match expr
-    (('let (_ _) _) t)
-    (_ nil)))
-
-(defun let-fun-p (expr)
-  (cl-pattern:match expr
-    (('let (_ _ _) _) t)
-    (_ nil)))
-
-(defun let-var (expr)
-  ;; use optima instead of cl-pattern because of uncapability in this case
-  (optima:match expr
-    ((list 'let (list var _) _) var)
-    ((list 'let (list var _ _) _) var)
-    (_ (error "invalid expression~S" expr))))
-
-(defun let-args (expr)
-  (cl-pattern:match expr
-    (('let (_ args _) _) args)
-    (_ (error "invalid expression: ~S" expr))))
-
-(defun let-arg-vars (expr)
-  (mapcar #'car (let-args expr)))
-
-(defun let-arg-types (expr)
-  (mapcar #'cadr (let-args expr)))
-
-(defun let-expr (expr)
-  ;; use optima instead of cl-pattern because of uncapability in this case
-  (optima:match expr
-    ((list 'let (list _ expr1) _) expr1)
-    ((list 'let (list _ _ expr1) _) expr1)
-    (_ (error "invalid expression: ~S" expr))))
-
-(defun let-body (expr)
-  ;; use optima instead of cl-pattern because of uncapability in this case
-  (optima:match expr
-    ((list 'let (list _ _) body) body)
-    ((list 'let (list _ _ _) body) body)
-    (_ (error "invalid expression: ~S" expr))))
-
 (defun compile-let (expr compenv scope)
   (cond
     ((let-var-p expr) (compile-let-var expr compenv scope))
@@ -930,24 +871,6 @@
 ;;;
 ;;; Compiler - Query
 ;;;
-
-(defun make-query (exprs quals)
-  `(query ,exprs ,@quals))
-
-(defun query-p (expr)
-  (cl-pattern:match expr
-    (('query . _) t)
-    (_ nil)))
-
-(defun query-exprs (expr)
-  (cl-pattern:match expr
-    (('query exprs . _) exprs)
-    (_ (error "invalid expression: ~S" expr))))
-
-(defun query-quals (expr)
-  (cl-pattern:match expr
-    (('query _ . quals) quals)
-    (_ (error "invalid expression: ~S" expr))))
 
 (defun compile-query (expr compenv scope)
   (let ((quals (query-quals expr))
@@ -982,27 +905,6 @@
 ;;; Compiler - Query - Quantification
 ;;;
 
-(defun make-quantification (vars rel)
-  `(<- ,vars ,rel))
-
-(defun quantification-p (qual)
-  (cl-pattern:match qual
-    (('<- . _) t)
-    (_ nil)))
-
-(defun quantification-vars (qual)
-  (cl-pattern:match qual
-    (('<- vars _) (unless (listp vars)
-                    (error "quantification variables must be list: ~S" vars))
-                  vars)
-    (_ (error "invalid expression: ~S" qual))))
-
-(defun quantification-relation (qual)
-  (cl-pattern:match qual
-    (('<- _ rel) rel)
-    (_ (error "invalid expression: ~S" qual))))
-
-
 (defun compile-quantification (qual rest exprs compenv scope outermost)
   (let ((%scoped-symbol (alexandria:rcurry #'scoped-symbol scope)))
     (let ((vars (quantification-vars qual))
@@ -1034,16 +936,6 @@
 ;;; Compiler - Lisp form
 ;;;
 
-(defun lisp-form-p (expr)
-  (cl-pattern:match expr
-    (('lisp _) t)
-    (_ nil)))
-
-(defun lisp-form (expr)
-  (cl-pattern:match expr
-    (('lisp form) form)
-    (_ (error "invalid expression: ~S" expr))))
-
 (defun compile-lisp-form (expr)
   (lisp-form expr))
 
@@ -1051,34 +943,6 @@
 ;;;
 ;;; Compiler - Function application
 ;;;
-
-(defun make-function (operator operands)
-  `(,operator ,@operands))
-
-(defun function-operator (expr)
-  (cl-pattern:match expr
-    ((operator . _) operator)
-    (_ (error "invalid expression: ~S" expr))))
-
-(defun function-operands (expr)
-  (cl-pattern:match expr
-    ((_ . operands) operands)
-    (_ (error "invalid expression: ~S" expr))))
-
-(defun function-p (expr)
-  (and (consp expr)
-       (car expr)
-       t))
-
-(defun generic-function-p (expr)
-  (and (function-p expr)
-       (member (car expr) +generic-functions+)
-       t))
-
-(defun specialized-function-p (expr)
-  (and (function-p expr)
-       (member (car expr) +specialized-functions+)
-       t))
 
 (defun compile-function (expr compenv scope)
   (let ((operator (function-operator expr))
@@ -1188,6 +1052,176 @@
 (defun print-compenv (compenv stream)
   (let ((elems (%compenv-elements compenv)))
     (format stream "#S~W" `(compenv ,@elems))))
+
+
+;;;
+;;; Syntax - Literal
+;;;
+
+(defun literal-p (expr)
+  (typep expr 'fixnum))
+
+
+;;;
+;;; Syntax - Symbol
+;;;
+
+(defun symbol-p (expr)
+  (symbolp expr))
+
+
+;;;
+;;; Syntax - Let
+;;;
+
+(defun make-let-var (var expr body)
+  `(let (,var ,expr) ,body))
+
+(defun make-let-fun (var args expr body)
+  `(let (,var ,args ,expr) ,body))
+
+(defun let-p (expr)
+  (cl-pattern:match expr
+    (('let . _) t)
+    (_ nil)))
+
+(defun let-var-p (expr)
+  (cl-pattern:match expr
+    (('let (_ _) _) t)
+    (_ nil)))
+
+(defun let-fun-p (expr)
+  (cl-pattern:match expr
+    (('let (_ _ _) _) t)
+    (_ nil)))
+
+(defun let-var (expr)
+  ;; use optima instead of cl-pattern because of uncapability in this case
+  (optima:match expr
+    ((list 'let (list var _) _) var)
+    ((list 'let (list var _ _) _) var)
+    (_ (error "invalid expression~S" expr))))
+
+(defun let-args (expr)
+  (cl-pattern:match expr
+    (('let (_ args _) _) args)
+    (_ (error "invalid expression: ~S" expr))))
+
+(defun let-arg-vars (expr)
+  (mapcar #'car (let-args expr)))
+
+(defun let-arg-types (expr)
+  (mapcar #'cadr (let-args expr)))
+
+(defun let-expr (expr)
+  ;; use optima instead of cl-pattern because of uncapability in this case
+  (optima:match expr
+    ((list 'let (list _ expr1) _) expr1)
+    ((list 'let (list _ _ expr1) _) expr1)
+    (_ (error "invalid expression: ~S" expr))))
+
+(defun let-body (expr)
+  ;; use optima instead of cl-pattern because of uncapability in this case
+  (optima:match expr
+    ((list 'let (list _ _) body) body)
+    ((list 'let (list _ _ _) body) body)
+    (_ (error "invalid expression: ~S" expr))))
+
+
+;;;
+;;; Syntax - Query
+;;;
+
+(defun make-query (exprs quals)
+  `(query ,exprs ,@quals))
+
+(defun query-p (expr)
+  (cl-pattern:match expr
+    (('query . _) t)
+    (_ nil)))
+
+(defun query-exprs (expr)
+  (cl-pattern:match expr
+    (('query exprs . _) exprs)
+    (_ (error "invalid expression: ~S" expr))))
+
+(defun query-quals (expr)
+  (cl-pattern:match expr
+    (('query _ . quals) quals)
+    (_ (error "invalid expression: ~S" expr))))
+
+
+;;;
+;;; Syntax - Query - Quantification
+;;;
+
+(defun make-quantification (vars rel)
+  `(<- ,vars ,rel))
+
+(defun quantification-p (qual)
+  (cl-pattern:match qual
+    (('<- . _) t)
+    (_ nil)))
+
+(defun quantification-vars (qual)
+  (cl-pattern:match qual
+    (('<- vars _) (unless (listp vars)
+                    (error "quantification variables must be list: ~S" vars))
+                  vars)
+    (_ (error "invalid expression: ~S" qual))))
+
+(defun quantification-relation (qual)
+  (cl-pattern:match qual
+    (('<- _ rel) rel)
+    (_ (error "invalid expression: ~S" qual))))
+
+
+;;;
+;;; Syntax - Lisp form
+;;;
+
+(defun lisp-form-p (expr)
+  (cl-pattern:match expr
+    (('lisp _) t)
+    (_ nil)))
+
+(defun lisp-form (expr)
+  (cl-pattern:match expr
+    (('lisp form) form)
+    (_ (error "invalid expression: ~S" expr))))
+
+
+;;;
+;;; Syntax - Function
+;;;
+
+(defun make-function (operator operands)
+  `(,operator ,@operands))
+
+(defun function-operator (expr)
+  (cl-pattern:match expr
+    ((operator . _) operator)
+    (_ (error "invalid expression: ~S" expr))))
+
+(defun function-operands (expr)
+  (cl-pattern:match expr
+    ((_ . operands) operands)
+    (_ (error "invalid expression: ~S" expr))))
+
+(defun function-p (expr)
+  (and (consp expr)
+       (car expr)
+       t))
+
+(defun generic-function-p (expr)
+  (and (function-p expr)
+       (member (car expr) +generic-functions+)
+       t))
+
+(defun specialized-function-p (expr)
+  (and (function-p expr)
+       (member (car expr) +specialized-functions+)
+       t))
 
 
 ;;;

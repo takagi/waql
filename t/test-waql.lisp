@@ -792,20 +792,12 @@
 
 (diag "test Compiler - Literal")
 
-;;; test LITERAL-P function
-(ok (waql::literal-p 1))
-(ok (null (waql::literal-p 'a)))
-
 
 ;;;
 ;;; test Compiler - Symbol
 ;;;
 
 (diag "test Compiler - Symbol")
-
-;;; test SYMBOL-P function
-(is (waql::symbol-p 'a) t)
-(is (waql::symbol-p 1) nil)
 
 ;;; test COMPILE-SYMBOL function
 
@@ -840,14 +832,6 @@
 
 (diag "test Compiler - Let")
 
-;;; test LET-P function
-
-;;; test LET-VAR function
-
-;;; test LET-EXPR function
-
-;;; test LET-BODY function
-
 ;;; test COMPILE-LET function
 
 (let ((waql::*scoping-count* 1))
@@ -879,12 +863,6 @@
                  (collect-relation (tuple %F1.a %F1.b))))))
          (iterate:in waql::outermost
            (collect-relation (tuple c d))))))
-
-
-;;; test COMPILE-LET-VAR function
-
-;;; test COMPILE-LET-FUN function
-
 
 
 ;;;
@@ -989,24 +967,6 @@
 ;;;
 
 (diag "test Compiler - Query - Quantification")
-
-;;; test MAKE-QUANTIFICATION constructor
-(let ((q (waql::make-quantification '(a b c) 'foo)))
-  (is (waql::quantification-vars q) '(a b c))
-  (is (waql::quantification-relation q) 'foo))
-
-;;; test QUANTIFICATION-P function
-(is (waql::quantification-p '(<- (a b c) foo)) t)
-(is (waql::quantification-p '(= 1 1)) nil)
-
-;;; test QUANTIFICATION-VARS function
-(is (waql::quantification-vars '(<- (a b c) foo)) '(a b c))
-(is-error (waql::quantification-vars '(<- a foo)) simple-error)
-(is-error (waql::quantification-vars '(= 1 1)) simple-error)
-
-;;; test QUANTIFICATION-RELATION function
-(is (waql::quantification-relation '(<- (a b c) foo)) 'foo)
-(is-error (waql::quantification-relation '(= 1 1)) simple-error)
 
 ;;; test COMPILE-QUANTIFICATION function
 (is (waql::compile-quantification '(<- (a b) +r1+) nil '(a b)
@@ -1153,6 +1113,74 @@
       '((a . :qvar))))
 
 ;;; test PRINT-COMPENV function
+
+
+;;;
+;;; test Syntax - Literal
+;;;
+
+(diag "test Syntax - Literal")
+
+;;; test LITERAL-P function
+(ok (waql::literal-p 1))
+(ok (null (waql::literal-p 'a)))
+
+
+;;;
+;;; test Syntax - Symbol
+;;;
+
+(diag "test Syntax - Symbol")
+
+;;; test SYMBOL-P function
+(is (waql::symbol-p 'a) t)
+(is (waql::symbol-p 1) nil)
+
+
+;;;
+;;; test Syntax - Let
+;;;
+
+(diag "test Syntax - Let")
+
+
+;;;
+;;; test Syntax - Query
+;;;
+
+(diag "test Syntax - Query")
+
+
+;;;
+;;; test Syntax - Query - Quantification
+;;;
+
+(diag "test Syntax - Query - Quantification")
+
+;;; test MAKE-QUANTIFICATION constructor
+(let ((q (waql::make-quantification '(a b c) 'foo)))
+  (is (waql::quantification-vars q) '(a b c))
+  (is (waql::quantification-relation q) 'foo))
+
+;;; test QUANTIFICATION-P function
+(is (waql::quantification-p '(<- (a b c) foo)) t)
+(is (waql::quantification-p '(= 1 1)) nil)
+
+;;; test QUANTIFICATION-VARS function
+(is (waql::quantification-vars '(<- (a b c) foo)) '(a b c))
+(is-error (waql::quantification-vars '(<- a foo)) simple-error)
+(is-error (waql::quantification-vars '(= 1 1)) simple-error)
+
+;;; test QUANTIFICATION-RELATION function
+(is (waql::quantification-relation '(<- (a b c) foo)) 'foo)
+(is-error (waql::quantification-relation '(= 1 1)) simple-error)
+
+
+;;;
+;;; test Function
+;;;
+
+(diag "test Function")
 
 
 ;;;
