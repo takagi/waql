@@ -758,16 +758,16 @@
 
 (diag "test Compiler")
 
-(is (waql::compile-expression
-      '(query (a1 c) (<- (a b) r1)
-                     (<- (a1 c) (query (a c) (<- (b1 c) r2)
+(is (waql::compile-expression-top
+      '(query (a1 c) (<- (a b) +r1+)
+                     (<- (a1 c) (query (a c) (<- (b1 c) +r1+)
                                              (waql::user= b b1)))))
     '(iterate:iter waql::outermost
-       (for-tuple (a b) in-relation r1)
+       (for-tuple (a b) in-relation +r1+)
          (iterate:iter (for-tuple (a1 c) in-relation
                          (iterate:iter waql::outermost
-                           (for-tuple (b1 c) in-relation r2)
-                           (when (equalp b b1)
+                           (for-tuple (b1 c) in-relation +r1+)
+                           (when (waql::user= b b1)
                              (iterate:in waql::outermost
                                (collect-relation (tuple a c))))))
                        (iterate:in waql::outermost
@@ -799,16 +799,16 @@
 
 (let ((compenv (waql::add-qvar-compenv 'a
                  (waql::empty-compenv))))
-  (is (waql::%compile-symbol 'a compenv '%a1) '%a1.a))
+  (is (waql::compile-symbol 'a compenv '%a1) '%a1.a))
 
 (let ((compenv (waql::add-argvar-compenv 'a 1
                  (waql::empty-compenv))))
-  (is (waql::%compile-symbol 'a compenv nil) 1))
+  (is (waql::compile-symbol 'a compenv nil) 1))
 
 (let ((waql::*scoping-counter* 1)
       (compenv (waql::add-letvar-compenv 'a '(query (a b) (<- (a b) +r1+))
                  (waql::empty-compenv))))
-  (is (waql::%compile-symbol 'a compenv '%a1)
+  (is (waql::compile-symbol 'a compenv '%a1)
         '(iterate:iter waql::outermost
            (for-tuple (%a1.a %a1.b) in-relation +r1+)
            (iterate:in waql::outermost
@@ -816,10 +816,10 @@
 
 (let ((compenv (waql::add-letfun-compenv 'f '(i) '(query (a) (<- (a i) +r1+))
                  (waql::empty-compenv))))
-  (is-error (waql::%compile-symbol 'f compenv nil) simple-error))
+  (is-error (waql::compile-symbol 'f compenv nil) simple-error))
 
 (let ((compenv (waql::empty-compenv)))
-  (is-error (waql::%compile-symbol 'a compenv nil) simple-error))
+  (is-error (waql::compile-symbol 'a compenv nil) simple-error))
 
 
 ;;;
@@ -839,7 +839,7 @@
 ;;; test COMPILE-LET function
 
 (let ((waql::*scoping-counter* 1))
-  (is (waql::%compile-let '(let (r +r1+)
+  (is (waql::compile-let '(let (r +r1+)
                              (let (x (query (a b) (<- (a b) r)))
                                (query (c d) (<- (c d) x))))
                           (waql::empty-compenv) nil)
@@ -853,7 +853,7 @@
           (collect-relation (tuple c d))))))
 
 (let ((waql::*scoping-counter* 1))
-  (is (waql::%compile-let '(let (r +r1+)
+  (is (waql::compile-let '(let (r +r1+)
                              (let (f ((i :int)) (query (a b) (<- (a b) r)
                                                              (= a i)))
                                (query (c d) (<- (c d) (f 1)))))
@@ -886,9 +886,9 @@
 (let ((waql::*scoping-counter* 1)
       (compenv (waql::add-letvar-compenv 'x '(query (a b) (<- (a b) +r1+))
                  (waql::empty-compenv))))
-  (is (waql::%compile-query '(query (a b) (<- (a b) x)
-                                          (<- (c d) x))
-                            compenv nil)
+  (is (waql::compile-query '(query (a b) (<- (a b) x)
+                                         (<- (c d) x))
+                           compenv nil)
        '(iterate:iter waql::outermost
           (for-tuple (a b) in-relation
               (iterate:iter waql::outermost
@@ -908,9 +908,9 @@
       (compenv (waql::add-letvar-compenv 'y '(query (a b) (<- (a b) x))
                  (waql::add-letvar-compenv 'x '(query (a b) (<- (a b) +r1+))
                    (waql::empty-compenv)))))
-  (is (waql::%compile-query '(query (a c) (<- (a b) x)
-                                          (<- (c d) y))
-                            compenv nil)
+  (is (waql::compile-query '(query (a c) (<- (a b) x)
+                                         (<- (c d) y))
+                           compenv nil)
       '(iterate:iter waql::outermost
          (for-tuple (a b) in-relation
              (iterate:iter waql::outermost
@@ -933,36 +933,43 @@
 
 ;;; test COMPILE-QUERY-QUALS function
 
-(is (waql::compile-query-quals '((<- (a b c) foo)) '(a b c) :outermost t)
+(is (waql::compile-query-quals '((<- (a b) +r1+)) '(a b)
+                               (waql::empty-compenv) nil :outermost t)
     '(iterate:iter waql::outermost
-       (for-tuple (a b c) in-relation foo)
+       (for-tuple (a b) in-relation +r1+)
          (iterate:in waql::outermost
-           (collect-relation (tuple a b c)))))
+           (collect-relation (tuple a b)))))
 
-(is (waql::compile-query-quals '((<- (a b c) foo)
-                                 (<- (d e f) baz)
-                                 (waql::user= a d))
-                               '(a b c d e f) :outermost t)
+(is (waql::compile-query-quals '((<- (a b) +r1+)
+                                 (<- (c d) +r1+)
+                                 (waql::user= a c))
+                               '(a b c d)
+                               (waql::empty-compenv) nil :outermost t)
     `(iterate:iter waql::outermost
-       (for-tuple (a b c) in-relation foo)
-         (iterate:iter (for-tuple (d e f) in-relation baz)
-           (when (equalp a d)
+       (for-tuple (a b) in-relation +r1+)
+         (iterate:iter (for-tuple (c d) in-relation +r1+)
+           (when (waql::user= a c)
              (iterate:in waql::outermost
-               (collect-relation (tuple a b c d e f)))))))
+               (collect-relation (tuple a b c d)))))))
 
 ;;; test COMPILE-QUERY-QUAL function
-(is (waql::compile-query-qual '(<- (a b c) foo) nil '(a b c) t)
+(is (waql::compile-query-qual '(<- (a b) +r1+) nil '(a b)
+                              (waql::empty-compenv) nil t)
     '(iterate:iter waql::outermost
-       (for-tuple (a b c) in-relation foo)
+       (for-tuple (a b) in-relation +r1+)
          (iterate:in waql::outermost
-           (collect-relation (tuple a b c)))))
+           (collect-relation (tuple a b)))))
 
 ;;; test COMPILE-QUERY-EXPRS function
-(is (waql::compile-query-exprs '(a b c))
-    '(iterate:in waql::outermost
-       (collect-relation (tuple a b c))))
+(let ((compenv (waql::add-qvar-compenv 'c
+                 (waql::add-qvar-compenv 'b
+                   (waql::add-qvar-compenv 'a
+                     (waql::empty-compenv))))))
+  (is (waql::compile-query-exprs '(a b c) compenv nil)
+      '(iterate:in waql::outermost
+         (collect-relation (tuple a b c)))))
 
-(is-error (waql::compile-query-exprs 'a) type-error)
+(is-error (waql::compile-query-exprs 'a (waql::empty-compenv) nil) type-error)
 
 
 ;;;
@@ -977,8 +984,8 @@
   (is (waql::quantification-relation q) 'foo))
 
 ;;; test QUANTIFICATION-P function
-(ok (waql::quantification-p '(<- (a b c) foo)))
-(ok (null (waql::quantification-p '(= 1 1))))
+(is (waql::quantification-p '(<- (a b c) foo)) t)
+(is (waql::quantification-p '(= 1 1)) nil)
 
 ;;; test QUANTIFICATION-VARS function
 (is (waql::quantification-vars '(<- (a b c) foo)) '(a b c))
@@ -990,16 +997,22 @@
 (is-error (waql::quantification-relation '(= 1 1)) simple-error)
 
 ;;; test COMPILE-QUANTIFICATION function
-(is (waql::compile-quantification '(<- (a b c) foo) nil '(a b c) t)
-    `(iterate:iter waql::outermost
-       (for-tuple (a b c) in-relation foo)
-         ,(waql::compile-query-quals nil '(a b c))))
+(is (waql::compile-quantification '(<- (a b) +r1+) nil '(a b)
+                                  (waql::empty-compenv) nil t)
+    '(iterate:iter waql::outermost
+       (for-tuple (a b) in-relation +r1+)
+       (iterate:in waql::outermost
+         (collect-relation (tuple a b)))))
 
-(is (waql::compile-quantification '(<- (a b c) foo) nil '(a b c) nil)
-    `(iterate:iter (for-tuple (a b c) in-relation foo)
-       ,(waql::compile-query-quals nil '(a b c))))
+(is (waql::compile-quantification '(<- (a b) +r1+) nil '(a b)
+                                  (waql::empty-compenv) nil nil)
+    '(iterate:iter
+       (for-tuple (a b) in-relation +r1+)
+       (iterate:in waql::outermost
+         (collect-relation (tuple a b)))))
 
-(is-error (waql::compile-quantification '(<- a foo) nil '(a b c) t)
+(is-error (waql::compile-quantification '(<- (a b) +r1+) nil '(a b c)
+                                        (waql::empty-compenv) nil t)
           simple-error)
 
 
@@ -1010,13 +1023,26 @@
 (diag "test Compiler - Query - Predicate")
 
 ;;; test COMPILE-PREDICATE function
-(is (waql::compile-predicate '(waql::user= u u1) nil '(a b c))
-    `(when (equalp u u1)
-       ,(waql::compile-query-quals nil '(a b c))))
+(let ((compenv (waql::add-qvar-compenv 'c
+                 (waql::add-qvar-compenv 'b
+                   (waql::add-qvar-compenv 'a
+                     (waql::add-qvar-compenv 'u
+                       (waql::add-qvar-compenv 'u1
+                         (waql::empty-compenv))))))))
+  (is (waql::compile-predicate '(waql::user= u u1) nil '(a b c)
+                               compenv nil)
+      '(when (waql::user= u u1)
+         (iterate:in waql::outermost
+           (collect-relation (tuple a b c))))))
 
-(is (waql::compile-predicate 'a nil '(a b c))
-    `(when a
-       ,(waql::compile-query-quals nil '(a b c))))
+(let ((compenv (waql::add-qvar-compenv 'c
+                 (waql::add-qvar-compenv 'b
+                   (waql::add-qvar-compenv 'a
+                     (waql::empty-compenv))))))
+  (is (waql::compile-predicate 'a nil '(a b c) compenv nil)
+      '(when a
+         (iterate:in waql::outermost
+           (collect-relation (tuple a b c))))))
 
 
 ;;;
@@ -1038,18 +1064,22 @@
 
 ;;; test COMPILE-FUNCTION function
 
-(is (waql::compile-function '(waql::user= u u1))
-    '(equalp u u1))
+(let ((compenv (waql::add-qvar-compenv 'u1
+                 (waql::add-qvar-compenv 'u
+                   (waql::empty-compenv)))))
+  (is (waql::compile-function '(waql::user= u u1) compenv nil)
+      '(waql::user= u u1)))
 
-(is (waql::compile-function '(relation-count r))
-    '(relation-count r))
+(is (waql::compile-function '(relation-count +r1+)
+                            (waql::empty-compenv) nil)
+    '(relation-count +r1+))
 
 (let ((waql::*scoping-counter* 1)
       (compenv (waql::add-letvar-compenv 'r '+r1+
                  (waql::add-letfun-compenv 'f '(x)
                                            '(query (a b) (<- (a b) x))
                    (waql::empty-compenv)))))
-  (is (waql::%compile-function '(f r) compenv nil)
+  (is (waql::compile-function '(f r) compenv nil)
       '(iterate:iter waql::outermost
          (for-tuple (%F2.a %F2.b) in-relation +r1+)
          (iterate:in waql::outermost
@@ -1058,11 +1088,11 @@
 (let ((compenv (waql::add-letvar-compenv 'r '+r1+
                  (waql::add-letfun-compenv 'f '(x) '(query (a b) (<- (a b) r))
                    (waql::empty-compenv)))))
-  (is-error (waql::%compile-function '(f r) compenv nil) simple-error))
+  (is-error (waql::compile-function '(f r) compenv nil) simple-error))
 
 (let ((compenv (waql::add-letfun-compenv 'f '(x) '(query (a b) (<- (a b) x))
                  (waql::empty-compenv))))
-  (is-error (waql::%compile-function '(f 1 2) compenv nil) simple-error))
+  (is-error (waql::compile-function '(f 1 2) compenv nil) simple-error))
 
 
 ;;;

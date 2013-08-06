@@ -12,6 +12,9 @@
 (defstruct (user (:constructor user (id)))
   (id nil :type fixnum :read-only t))
 
+(defun user= (user1 user2)
+  (= (user-id user1) (user-id user2)))
+
 
 ;;;
 ;;; Event

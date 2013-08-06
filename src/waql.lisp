@@ -102,7 +102,7 @@
   (compile-waql expr))
 
 (defun compile-waql (expr)
-  (compile-expression
+  (compile-expression-top
     (specialize-function-top
       (solve-pattern-match-top expr))))
 
@@ -778,25 +778,18 @@
 ;;; Compiler
 ;;;
 
-(defun compile-expression (expr)
-  (cond
-    ((literal-p expr) (compile-literal expr))
-    ((symbol-p expr) (compile-symbol expr))
-;;     ((tuple-p expr) (compile-tuple expr))
-    ((query-p expr) (compile-query expr))
-    ((lisp-form-p expr) (compile-lisp-form expr))
-    ((specialized-function-p expr) (compile-function expr))
-    (t (error "invalid expression: ~S" expr))))
+(defun compile-expression-top (expr)
+  (compile-expression expr (empty-compenv) nil))
 
-(defun %compile-expression (expr compenv scope)
+(defun compile-expression (expr compenv scope)
   (cond
     ((literal-p expr) (compile-literal expr))
-    ((symbol-p expr) (%compile-symbol expr compenv scope))
-    ((let-p expr) (%compile-let expr compenv scope))
-    ;; ((tuple-p expr) (%compile-tuple expr compenv scope))
-    ((query-p expr) (%compile-query expr compenv scope))
+    ((symbol-p expr) (compile-symbol expr compenv scope))
+    ((let-p expr) (compile-let expr compenv scope))
+    ;; ((tuple-p expr) (compile-tuple expr compenv scope))
+    ((query-p expr) (compile-query expr compenv scope))
     ((lisp-form-p expr) (compile-lisp-form expr))
-    ((function-p expr) (%compile-function expr compenv scope))
+    ((function-p expr) (compile-function expr compenv scope))
     (t (error "invalid expression: ~S" expr))))
 
 
@@ -820,26 +813,23 @@
 (defun symbol-p (expr)
   (symbolp expr))
 
-(defun compile-symbol (expr)
+(defun compile-symbol (expr compenv scope)
   (unless (symbol-p expr)
     (error "invalid expression: ~S" expr))
-  expr)
-
-(defun %compile-symbol (expr compenv scope)
-  (unless (symbol-p expr)
-    (error "invalid expression: ~S" expr))
-  (cl-pattern:match (lookup-compenv expr compenv)
-    (:qvar
-     (scoped-symbol expr scope))
-    ((:argvar expr1)
-     expr1)
-    ((:letvar lexpr lcompenv)
-     (%compile-expression lexpr lcompenv (scoping-symbol expr)))
-    ((:letfun . _)
-     (error "symbol ~S is bound to function" expr))
-    (_ (if (lookup-predefined-relations expr)
-           expr
-           (error "unbound variable: ~S" expr)))))
+  (acond
+    ((lookup-compenv expr compenv)
+     (cl-pattern:match it
+       (:qvar
+        (scoped-symbol expr scope))
+       ((:argvar expr1)
+        expr1)
+       ((:letvar expr1 compenv1)
+        (let ((scope1 (scoping-symbol expr)))
+          (compile-expression expr1 compenv1 scope1)))
+       ((:letfun . _)
+        (error "symbol ~S is bound to function" expr))))
+    ((lookup-predefined-relations expr) expr)
+    (t (error "unbound variable: ~S" expr))))
 
 
 ;;;
@@ -898,26 +888,26 @@
     ((list 'let (list _ _ _) body) body)
     (_ (error "invalid expression: ~S" expr))))
 
-(defun %compile-let (expr compenv scope)
+(defun compile-let (expr compenv scope)
   (cond
-    ((let-var-p expr) (%compile-let-var expr compenv scope))
-    ((let-fun-p expr) (%compile-let-fun expr compenv scope))
+    ((let-var-p expr) (compile-let-var expr compenv scope))
+    ((let-fun-p expr) (compile-let-fun expr compenv scope))
     (t (error "must not be reached"))))
 
-(defun %compile-let-var (expr compenv scope)
+(defun compile-let-var (expr compenv scope)
   (let ((lvar  (let-var expr))
         (lexpr (let-expr expr))
         (lbody (let-body expr)))
     (let ((compenv1 (add-letvar-compenv lvar lexpr compenv)))
-      (%compile-expression lbody compenv1 scope))))
+      (compile-expression lbody compenv1 scope))))
 
-(defun %compile-let-fun (expr compenv scope)
+(defun compile-let-fun (expr compenv scope)
   (let ((lvar  (let-var expr))
         (largs (let-arg-vars expr))
         (lexpr (let-expr expr))
         (lbody (let-body expr)))
     (let ((compenv1 (add-letfun-compenv lvar largs lexpr compenv)))
-      (%compile-expression lbody compenv1 scope))))
+      (compile-expression lbody compenv1 scope))))
 
 
 ;;;
@@ -942,55 +932,29 @@
     (('query _ . quals) quals)
     (_ (error "invalid expression: ~S" expr))))
 
-(defun compile-query (expr)
+(defun compile-query (expr compenv scope)
   (let ((quals (query-quals expr))
         (exprs (query-exprs expr)))
-    (compile-query-quals quals exprs :outermost t)))
+    (compile-query-quals quals exprs compenv scope :outermost t)))
 
-(defun %compile-query (expr compenv scope)
-  (let ((quals (query-quals expr))
-        (exprs (query-exprs expr)))
-    (%compile-query-quals quals exprs compenv scope :outermost t)))
-
-(defun compile-query-quals (quals exprs &key outermost)
+(defun compile-query-quals (quals exprs compenv scope &key outermost)
   (assert (or (null outermost)
               (and outermost
                    (quantification-p (car quals)))))
   (if quals
       (let ((qual (car quals))
             (rest (cdr quals)))
-        (compile-query-qual qual rest exprs outermost))
-      (compile-query-exprs exprs)))
+        (compile-query-qual qual rest exprs compenv scope outermost))
+      (compile-query-exprs exprs compenv scope)))
 
-(defun %compile-query-quals (quals exprs compenv scope &key outermost)
-  (assert (or (null outermost)
-              (and outermost
-                   (quantification-p (car quals)))))
-  (if quals
-      (let ((qual (car quals))
-            (rest (cdr quals)))
-        (%compile-query-qual qual rest exprs compenv scope outermost))
-      (%compile-query-exprs exprs compenv scope)))
-
-(defun compile-query-qual (qual rest exprs outermost)
+(defun compile-query-qual (qual rest exprs compenv scope outermost)
   (cond
     ((quantification-p qual)
-     (compile-quantification qual rest exprs outermost))
-    (t (compile-predicate qual rest exprs))))
+     (compile-quantification qual rest exprs compenv scope outermost))
+    (t (compile-predicate qual rest exprs compenv scope))))
 
-(defun %compile-query-qual (qual rest exprs compenv scope outermost)
-  (cond
-    ((quantification-p qual)
-     (%compile-quantification qual rest exprs compenv scope outermost))
-    (t (%compile-predicate qual rest exprs compenv scope))))
-
-(defun compile-query-exprs (exprs)
-  (let ((compiled-exprs (mapcar #'compile-expression exprs)))
-    `(iterate:in outermost
-       (collect-relation (tuple ,@compiled-exprs)))))
-
-(defun %compile-query-exprs (exprs compenv scope)
-  (let ((%compile-expression (alexandria:rcurry #'%compile-expression
+(defun compile-query-exprs (exprs compenv scope)
+  (let ((%compile-expression (alexandria:rcurry #'compile-expression
                                                  compenv scope)))
     (let ((compiled-exprs (mapcar %compile-expression exprs)))
       `(iterate:in outermost
@@ -1022,18 +986,7 @@
     (_ (error "invalid expression: ~S" qual))))
 
 
-(defun compile-quantification (qual rest exprs outermost)
-  (let ((vars (quantification-vars qual))
-        (rel  (quantification-relation qual)))
-    (if outermost
-        `(iterate:iter outermost
-           (for-tuple ,vars in-relation ,(compile-expression rel))
-             ,(compile-query-quals rest exprs))
-        `(iterate:iter
-           (for-tuple ,vars in-relation ,(compile-expression rel))
-             ,(compile-query-quals rest exprs)))))
-
-(defun %compile-quantification (qual rest exprs compenv scope outermost)
+(defun compile-quantification (qual rest exprs compenv scope outermost)
   (let ((%scoped-symbol (alexandria:rcurry #'scoped-symbol scope)))
     (let ((vars (quantification-vars qual))
           (rel  (quantification-relation qual)))
@@ -1043,25 +996,21 @@
         (if outermost
             `(iterate:iter outermost
                (for-tuple ,vars1 in-relation
-                          ,(%compile-expression rel compenv scope))
-                 ,(%compile-query-quals rest exprs compenv1 scope))
+                          ,(compile-expression rel compenv scope))
+                 ,(compile-query-quals rest exprs compenv1 scope))
             `(iterate:iter
                (for-tuple ,vars1 in-relation
-                          ,(%compile-expression rel compenv scope))
-                 ,(%compile-query-quals rest exprs compenv1 scope)))))))
+                          ,(compile-expression rel compenv scope))
+                 ,(compile-query-quals rest exprs compenv1 scope)))))))
 
 
 ;;;
 ;;; Compiler - Query - Predicate
 ;;;
 
-(defun compile-predicate (pred rest exprs)
-  `(when ,(compile-expression pred)
-     ,(compile-query-quals rest exprs)))
-
-(defun %compile-predicate (pred rest exprs compenv scope)
-  `(when ,(%compile-expression pred compenv scope)
-     ,(%compile-query-quals rest exprs compenv scope)))
+(defun compile-predicate (pred rest exprs compenv scope)
+  `(when ,(compile-expression pred compenv scope)
+     ,(compile-query-quals rest exprs compenv scope)))
 
 
 ;;;
@@ -1114,26 +1063,17 @@
        (member (car expr) +specialized-functions+)
        t))
 
-(defun compile-function (expr)
-  (cl-pattern:match expr
-    (('user= x y) `(equalp ,(compile-expression x)
-                           ,(compile-expression y)))
-    (('event= x y) `(equalp ,(compile-expression x)
-                            ,(compile-expression y)))
-    ((op . args) `(,op ,@(mapcar #'compile-expression args)))
-    (_ (error "invalid expression: ~S" expr))))
-
-(defun %compile-function (expr compenv scope)
+(defun compile-function (expr compenv scope)
   (let ((operator (function-operator expr))
         (operands (function-operands expr)))
     (cond
       ((lookup-compenv operator compenv)
-       (%compile-function-letfun operator operands compenv scope))
+       (compile-function-letfun operator operands compenv scope))
       (t
-       (%compile-function-built-in operator operands compenv scope)))))
+       (compile-function-built-in operator operands compenv scope)))))
 
-(defun %compile-function-letfun (operator operands compenv scope)
-  (let ((%compile-expression (alexandria:rcurry #'%compile-expression
+(defun compile-function-letfun (operator operands compenv scope)
+  (let ((%compile-expression (alexandria:rcurry #'compile-expression
                                                 compenv scope)))
     (cl-pattern:match (lookup-compenv operator compenv)
       ((:letfun args expr compenv1)
@@ -1149,12 +1089,12 @@
                                 (add-argvar-compenv arg operand %compenv)))
                           pairs
                           :initial-value compenv1)))
-             (%compile-expression expr compenv2
-                                  (scoping-symbol operator))))))
+             (compile-expression expr compenv2
+                                 (scoping-symbol operator))))))
       (_ (error "symbol ~S is bound to variable" operator)))))
 
-(defun %compile-function-built-in (operator operands compenv scope)
-  (let ((%compile-expression (alexandria:rcurry #'%compile-expression
+(defun compile-function-built-in (operator operands compenv scope)
+  (let ((%compile-expression (alexandria:rcurry #'compile-expression
                                                 compenv scope)))
     `(,operator ,@(mapcar %compile-expression operands))))
 
