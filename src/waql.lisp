@@ -158,11 +158,12 @@
         (make-let-var lvar lexpr1 lbody1)))))
 
 (defun solve-pattern-match-let-fun (expr patenv)
-  (let ((lvar  (let-var expr))
-        (largs (let-arg-vars expr))
-        (lexpr (let-expr expr))
-        (lbody (let-body expr)))
-    (let ((patenv1 (reduce (flip #'add-patenv) largs
+  (let ((lvar      (let-var expr))
+        (largs     (let-args expr))
+        (larg-vars (let-arg-vars expr))
+        (lexpr     (let-expr expr))
+        (lbody     (let-body expr)))
+    (let ((patenv1 (reduce (flip #'add-patenv) larg-vars
                            :initial-value patenv)))
       (let ((lexpr1 (solve-pattern-match lexpr patenv1))
             (lbody1 (solve-pattern-match lbody patenv)))
