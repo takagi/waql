@@ -491,6 +491,11 @@
   (let ((alist (alexandria:plist-alist +function-table+)))
     (mapcar #'car alist)))
 
+(defparameter +specialized-functions+
+  (let ((alist (alexandria:plist-alist +function-table+)))
+    (loop for (_ . candidates) in alist
+       append (mapcar #'caddr candidates))))
+
 (defun lookup-generic-function (operator operand-types)
   (let ((candidates (getf +function-table+ operator)))
     (unless candidates
@@ -670,7 +675,7 @@
     ;; ((tuple-p expr) (%compile-tuple expr compenv scope))
     ((query-p expr) (%compile-query expr compenv scope))
     ((lisp-form-p expr) (compile-lisp-form expr))
-    ((%function-p expr) (%compile-function expr compenv scope))
+    ((function-p expr) (%compile-function expr compenv scope))
     (t (error "invalid expression: ~S" expr))))
 
 
@@ -962,26 +967,19 @@
     (_ (error "invalid expression: ~S" expr))))
 
 (defun function-p (expr)
-  (cl-pattern:match expr
-    ((op . _) (and (member op +generic-functions+)
-                   t))
-    (_ nil)))
-
-(defun %function-p (expr)
   (and (consp expr)
        (car expr)
        t))
 
-(defparameter +specialized-functions+
-  (let ((alist (alexandria:plist-alist +function-table+)))
-    (loop for (_ . candidates) in alist
-       append (mapcar #'caddr candidates))))
+(defun generic-function-p (expr)
+  (and (function-p expr)
+       (member (car expr) +generic-functions+)
+       t))
 
 (defun specialized-function-p (expr)
-  (cl-pattern:match expr
-    ((op . _) (and (member op +specialized-functions+)
-                   t))
-    (_ nil)))
+  (and (function-p expr)
+       (member (car expr) +specialized-functions+)
+       t))
 
 (defun compile-function (expr)
   (cl-pattern:match expr
