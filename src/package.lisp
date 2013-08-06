@@ -5,7 +5,7 @@
 
 (in-package :cl-user)
 (defpackage waql
-  (:use :cl)
+  (:use :cl :anaphora)
   (:export ;; User
            #:user
            ;; Event

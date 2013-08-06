@@ -748,7 +748,7 @@
 
 ;;; test FUNCTION-TYPE-RETURN-TYPE function
 (let ((function-type (waql::make-function-type '(:int :int) :int)))
-  (is (waql::function-type-return-type function-type) :int)))
+  (is (waql::function-type-return-type function-type) :int))
 
 
 ;;;

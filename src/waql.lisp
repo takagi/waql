@@ -547,22 +547,22 @@
                                                    operands)))
         (let ((operands1 (mapcar #'car specialized-operand-and-types))
               (operand-types (mapcar #'cadr specialized-operand-and-types)))
-          (anaphora:acond
+          (acond
             ((lookup-typenv operator typenv)
-             (unless (function-type-p anaphora:it)
+             (unless (function-type-p it)
                (error "symbol ~S is bound to variable" operator))
              (unless (alexandria:length=
-                       (function-type-arg-types anaphora:it)
+                       (function-type-arg-types it)
                        operand-types)
                (error "invalid number of arguments: ~S"
                       (length operand-types)))
-             (unless (equal (function-type-arg-types anaphora:it)
+             (unless (equal (function-type-arg-types it)
                             operand-types)
                (error "invalid type of arguments: ~S" operands))
              (list (make-function operator operands1)
-                   (function-type-return-type anaphora:it)))
+                   (function-type-return-type it)))
             ((lookup-generic-function operator operand-types)
-             (destructuring-bind (return-type operator1) anaphora:it
+             (destructuring-bind (return-type operator1) it
                (list (make-function operator1 operands1)
                      return-type)))))))))
 

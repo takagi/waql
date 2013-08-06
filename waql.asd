@@ -16,7 +16,7 @@
   :version "0.1-SNAPSHOT"
   :author "Masayuki Takagi"
   :license "LLGPL"
-  :depends-on (:alexandria :iterate :cl-pattern :optima)
+  :depends-on (:alexandria :iterate :cl-pattern :optima :anaphora)
   :components ((:module "src"
                 :serial t
                 :components
