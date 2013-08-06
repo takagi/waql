@@ -695,6 +695,7 @@
 
 (diag "test Function specialization - Types - Scalar types")
 
+(ok (waql::scalar-type-p :bool))
 (ok (waql::scalar-type-p :int))
 (ok (waql::scalar-type-p :user))
 (ok (waql::scalar-type-p :event))

@@ -723,7 +723,7 @@
 ;;;
 
 (defun scalar-type-p (type)
-  (and (member type '(:int :user :event :action :conversion))
+  (and (member type '(:bool :int :user :event :action :conversion))
        t))
 
 
