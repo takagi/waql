@@ -532,7 +532,7 @@
 (let ((waql::*predefined-relation-typenv*
         (waql::add-typenv 'r1 '(:relation :user)
           (waql::empty-typenv))))
-  (is (waql::specialize-function-let '(let (x (user 1))
+  (is (waql::specialize-function-let '(let (x (waql::user 1))
                                         (query (a) (<- (a) r1)
                                                    (= a x)))
                                      (waql::empty-typenv))
