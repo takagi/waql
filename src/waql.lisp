@@ -1103,13 +1103,13 @@
 ;;; Compiler - Scoping counter
 ;;;
 
-(defvar *scoping-counter* 1)
+(defvar *scoping-count* 1)
 
 (defun scoping-symbol (symbol)
   (prog1
-      (symbolicate (list "%" symbol *scoping-counter*)
+      (symbolicate (list "%" symbol *scoping-count*)
                    :package (symbol-package symbol))
-    (incf *scoping-counter*)))
+    (incf *scoping-count*)))
 
 (defun scoped-symbol (symbol scope)
   (if scope

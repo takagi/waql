@@ -805,7 +805,7 @@
                  (waql::empty-compenv))))
   (is (waql::compile-symbol 'a compenv nil) 1))
 
-(let ((waql::*scoping-counter* 1)
+(let ((waql::*scoping-count* 1)
       (compenv (waql::add-letvar-compenv 'a '(query (a b) (<- (a b) +r1+))
                  (waql::empty-compenv))))
   (is (waql::compile-symbol 'a compenv '%a1)
@@ -838,7 +838,7 @@
 
 ;;; test COMPILE-LET function
 
-(let ((waql::*scoping-counter* 1))
+(let ((waql::*scoping-count* 1))
   (is (waql::compile-let '(let (r +r1+)
                              (let (x (query (a b) (<- (a b) r)))
                                (query (c d) (<- (c d) x))))
@@ -852,7 +852,7 @@
         (iterate:in waql::outermost
           (collect-relation (tuple c d))))))
 
-(let ((waql::*scoping-counter* 1))
+(let ((waql::*scoping-count* 1))
   (is (waql::compile-let '(let (r +r1+)
                              (let (f ((i :int)) (query (a b) (<- (a b) r)
                                                              (= a i)))
@@ -883,7 +883,7 @@
 
 ;;; test COMPILE-QUERY function
 
-(let ((waql::*scoping-counter* 1)
+(let ((waql::*scoping-count* 1)
       (compenv (waql::add-letvar-compenv 'x '(query (a b) (<- (a b) +r1+))
                  (waql::empty-compenv))))
   (is (waql::compile-query '(query (a b) (<- (a b) x)
@@ -904,7 +904,7 @@
             (iterate:in waql::outermost
               (collect-relation (tuple a b)))))))
 
-(let ((waql::*scoping-counter* 1)
+(let ((waql::*scoping-count* 1)
       (compenv (waql::add-letvar-compenv 'y '(query (a b) (<- (a b) x))
                  (waql::add-letvar-compenv 'x '(query (a b) (<- (a b) +r1+))
                    (waql::empty-compenv)))))
@@ -1074,7 +1074,7 @@
                             (waql::empty-compenv) nil)
     '(relation-count +r1+))
 
-(let ((waql::*scoping-counter* 1)
+(let ((waql::*scoping-count* 1)
       (compenv (waql::add-letvar-compenv 'r '+r1+
                  (waql::add-letfun-compenv 'f '(x)
                                            '(query (a b) (<- (a b) x))
