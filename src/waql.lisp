@@ -119,6 +119,7 @@
     ((literal-p expr) expr)
     ((symbol-p expr) (solve-pattern-match-symbol expr))
 ;;     ((tuple-p expr) expr)
+    ((let-p expr) (solve-pattern-match-let expr patenv))
     ((query-p expr) (solve-pattern-match-query expr patenv))
     ((lisp-form-p expr) expr)
     ((function-p expr) (solve-pattern-match-function expr patenv))
@@ -133,6 +134,39 @@
   (unless (null (percent-symbol-p expr))
     (error "symbol beginning with \"%\" is reserved: ~S" expr))
   expr)
+
+
+;;;
+;;; Solving pattern match - Let
+;;;
+
+(defun solve-pattern-match-let (expr patenv)
+  (cond
+    ((let-var-p expr)
+     (solve-pattern-match-let-var expr patenv))
+    ((let-fun-p expr)
+     (solve-pattern-match-let-fun expr patenv))
+    (t (error "must not be reached"))))
+
+(defun solve-pattern-match-let-var (expr patenv)
+  (let ((lvar  (let-var expr))
+        (lexpr (let-expr expr))
+        (lbody (let-body expr)))
+    (let ((patenv1 (add-patenv lvar patenv)))
+      (let ((lexpr1 (solve-pattern-match lexpr patenv))
+            (lbody1 (solve-pattern-match lbody patenv1)))
+        (make-let-var lvar lexpr1 lbody1)))))
+
+(defun solve-pattern-match-let-fun (expr patenv)
+  (let ((lvar  (let-var expr))
+        (largs (let-args expr))
+        (lexpr (let-expr expr))
+        (lbody (let-body expr)))
+    (let ((patenv1 (reduce (flip #'add-patenv) largs
+                           :initial-value patenv)))
+      (let ((lexpr1 (solve-pattern-match lexpr patenv1))
+            (lbody1 (solve-pattern-match lbody patenv)))
+        (make-let-fun lvar largs lexpr1 lbody1)))))
 
 
 ;;;
@@ -240,6 +274,7 @@
      (%make-patenv :elements (progn ,@form))))
 
 (defun add-patenv (var patenv)
+  (assert (symbolp var))
   (unless (null (lookup-patenv var patenv))
     (error "variable ~S already exists" var))
   (with-%patenv-elements (elems patenv)
@@ -724,6 +759,12 @@
 ;;;
 ;;; Compiler - Let
 ;;;
+
+(defun make-let-var (var expr body)
+  `(let (,var ,expr) ,body))
+
+(defun make-let-fun (var args expr body)
+  `(let (,var ,args ,expr) ,body))
 
 (defun let-p (expr)
   (or (let-var-p expr)

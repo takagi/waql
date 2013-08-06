@@ -254,6 +254,42 @@
 
 
 ;;;
+;;; test Solving pattern match - Let
+;;;
+
+;;; test SOLVE-PATTERN-MATCH-LET function
+
+(let ((waql::*underscore-count* 1))
+  (is (waql::solve-pattern-match-let '(let (x (query (a b) (<- (a b) r1)
+                                                           (<- (a _) r2)))
+                                        (let (i 1)
+                                          (query (a b) (<- (a i) x))))
+                                     (waql::empty-patenv))
+      '(let (x (query (a b) (<- (a b) r1)
+                            (<- (%a1 %_1) r2)
+                            (= a %a1)))
+         (let (i 1)
+           (query (a b) (<- (a %i1) x)
+                        (= i %i1))))))
+
+(is (waql::solve-pattern-match-let '(let (f (i) (query (a b) (<- (a b) r1)
+                                                             (<- (a i) r2)))
+                                      (query (a b) (<- (a b) (f i))))
+                                   (waql::empty-patenv))
+    '(let (f (i) (query (a b) (<- (a b) r1)
+                              (<- (%a1 %i1) r2)
+                              (= a %a1)
+                              (= i %i1)))
+       (query (a b) (<- (a b) (f i)))))
+
+;;; error if trying to use expression other than symbol on pattern matching
+(is-error (waql::solve-pattern-match-let '(let (f (i) i)
+                                            (query (a b) (<- (a (f i)) r)))
+                                         (waql::empty-patenv))
+          simple-error)
+
+
+;;;
 ;;; test Solving pattern match - Query
 ;;;
 
