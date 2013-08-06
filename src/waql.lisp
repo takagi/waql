@@ -538,35 +538,43 @@
 ;;;
 
 (defun specialize-function-function (expr typenv)
-  (let ((%specialize-function (alexandria:rcurry #'specialize-function
-                                                 typenv)))
-    (let ((operator (function-operator expr))
-          (operands (function-operands expr)))
-      (let ((specialized-operand-and-types (mapcar %specialize-function
-                                                   operands)))
-        (let ((operands1 (mapcar #'car specialized-operand-and-types))
-              (operand-types (mapcar #'cadr specialized-operand-and-types)))
-          (acond
-            ((lookup-typenv operator typenv)
-             (unless (function-type-p it)
-               (error "symbol ~S is bound to variable" operator))
-             (unless (alexandria:length=
-                       (function-type-arg-types it)
-                       operand-types)
-               (error "invalid number of arguments: ~S"
-                      (length operand-types)))
-             (unless (equal (function-type-arg-types it)
-                            operand-types)
-               (error "invalid type of arguments: ~S" operands))
-             (list (make-function operator operands1)
-                   (function-type-return-type it)))
-            ((lookup-generic-function operator operand-types)
-             (destructuring-bind (return-type operator1) it
-               (list (make-function operator1 operands1)
-                     return-type)))
-            (t
-             (error "undefined function: ~S" operator))))))))
+  (let ((operator (function-operator expr))
+        (operands (function-operands expr)))
+    (cond
+      ((lookup-typenv operator typenv)
+       (specialize-function-function-in-typenv operator operands typenv))
+      ((generic-function-p expr)
+       (specialize-function-generic-function operator operands typenv))
+      (t (error "undefined function: ~S" operator)))))
 
+(defun specialize-function-function-in-typenv (operator operands typenv)
+  (let ((%specialize-function
+          (alexandria:rcurry #'specialize-function typenv)))
+    (let* ((pairs         (mapcar %specialize-function operands))
+           (operands1     (mapcar #'car pairs))
+           (operand-types (mapcar #'cadr pairs)))
+      (let* ((type        (lookup-typenv operator typenv))
+             (arg-types   (function-type-arg-types type))
+             (return-type (function-type-return-type type)))
+        (unless (function-type-p type)
+          (error "symbol ~S is bound to variable" operator))
+        (unless (alexandria:length= arg-types operand-types)
+          (error "invalid number of arguments: ~S" (length operands)))
+        (unless (equal arg-types operand-types)
+          (error "invalid type of arguments: ~S" `(,operator ,@operands)))
+        (list (make-function operator operands1)
+              return-type)))))
+
+(defun specialize-function-generic-function (operator operands typenv)
+  (let ((%specialize-function
+          (alexandria:rcurry #'specialize-function typenv)))
+      (let* ((pairs         (mapcar %specialize-function operands))
+             (operands1     (mapcar #'car pairs))
+             (operand-types (mapcar #'cadr pairs)))
+        (destructuring-bind (return-type operator1)
+            (lookup-generic-function operator operand-types)
+          (list (make-function operator1 operands1)
+                return-type)))))
 
 
 ;;;
