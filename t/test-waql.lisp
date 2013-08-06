@@ -1138,16 +1138,6 @@
   (is (waql::%compenv-elements compenv)
       '((a . :qvar))))
 
-;;; test INC-LETVAR-COMPENV function
-;; (destructuring-bind (keyword cnt expr compenv)
-;;     (waql::lookup-compenv 'a
-;;       (waql::inc-letvar-compenv 'a
-;;         (waql::add-letvar-compenv 'a '(query (a b) (<- (a b) r))
-;;           (waql::empty-compenv))))
-;;   (is (list keyword cnt expr)
-;;       '(:letvar 2 (query (a b) (<- (a b) r))))
-;;   (is (waql::%compenv-elements compenv) nil))
-
 ;;; test ADD-LETFUN-COMPENV function
 (destructuring-bind (keyword args expr compenv)
     (waql::lookup-compenv 'a
@@ -1160,18 +1150,6 @@
                                    (= a i))))
   (is (waql::%compenv-elements compenv)
       '((a . :qvar))))
-
-;;; test INC-LETFUN-COMPENV function
-;; (destructuring-bind (keyword cnt args expr compenv)
-;;     (waql::lookup-compenv 'a
-;;       (waql::inc-letfun-compenv 'a
-;;         (waql::add-letfun-compenv 'a '(i) '(query (a b) (<- (a b) r)
-;;                                                         (= a i))
-;;           (waql::empty-compenv))))
-;;   (is (list keyword cnt args expr)
-;;       '(:letfun 2 (i) (query (a b) (<- (a b) r)
-;;                                    (= a i))))
-;;   (is (waql::%compenv-elements compenv) nil))
 
 ;;; test PRINT-COMPENV function
 
