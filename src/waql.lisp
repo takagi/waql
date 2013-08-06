@@ -159,7 +159,7 @@
 
 (defun solve-pattern-match-let-fun (expr patenv)
   (let ((lvar  (let-var expr))
-        (largs (let-args expr))
+        (largs (let-arg-vars expr))
         (lexpr (let-expr expr))
         (lbody (let-body expr)))
     (let ((patenv1 (reduce (flip #'add-patenv) largs
@@ -373,6 +373,7 @@
     ((literal-p expr) (specialize-function-literal expr))
     ((symbol-p expr) (specialize-function-symbol expr typenv))
     ;; ((tuple-p expr) (specialize-function-tuple expr typenv))
+    ((let-p expr) (specialize-function-let expr typenv))
     ((query-p expr) (specialize-function-query expr typenv))
     ((lisp-form-p expr) (specialize-function-lisp-form expr))
     ((function-p expr) (specialize-function-function expr typenv))
@@ -399,6 +400,48 @@
                   (lookup-typenv expr *predefined-relation-typenv*)
                   (error "unbound variable: ~S" expr))))
     (list expr type)))
+
+
+;;;
+;;; Function specialization - Let
+;;;
+
+(defun specialize-function-let (expr typenv)
+  (cond
+    ((let-var-p expr) (specialize-function-let-var expr typenv))
+    ((let-fun-p expr) (specialize-function-let-fun expr typenv))
+    (t (error "must not be reached"))))
+
+(defun specialize-function-let-var (expr typenv)
+  (let ((lvar  (let-var expr))
+        (lexpr (let-expr expr))
+        (lbody (let-body expr)))
+    (destructuring-bind (lexpr1 var-type)
+        (specialize-function lexpr typenv)
+      (let ((typenv1 (add-typenv lvar var-type typenv)))
+        (destructuring-bind (lbody1 type1)
+            (specialize-function lbody typenv1)
+          (list (make-let-var lvar lexpr1 lbody1)
+                type1))))))
+
+(defun specialize-function-let-fun (expr typenv)
+  (let ((lvar       (let-var expr))
+        (largs      (let-args expr))
+        (larg-types (let-arg-types expr))
+        (lexpr      (let-expr expr))
+        (lbody      (let-body expr)))
+    (let ((typenv1 (reduce #'(lambda (%typenv var-type)
+                               (destructuring-bind (var type) var-type
+                                 (add-typenv var type %typenv)))
+                           largs :initial-value typenv)))
+      (destructuring-bind (lexpr1 return-type)
+          (specialize-function lexpr typenv1)
+        (let* ((funtype (make-function-type larg-types return-type))
+               (typenv2 (add-typenv lvar funtype typenv)))
+          (destructuring-bind (lbody1 type1)
+              (specialize-function lbody typenv2)
+            (list (make-let-fun lvar largs lexpr1 lbody1)
+                  type1)))))))
 
 
 ;;;
@@ -496,17 +539,32 @@
 ;;;
 
 (defun specialize-function-function (expr typenv)
-  (let ((operator (function-operator expr))
-        (operands (function-operands expr)))
-    (let ((specialized-operand-and-types
-           (mapcar #'(lambda (operand)
-                       (specialize-function operand typenv))
-                   operands)))
-      (let ((operands1 (mapcar #'car specialized-operand-and-types))
-            (operand-types (mapcar #'cadr specialized-operand-and-types)))
-        (destructuring-bind (return-type operator1)
-            (lookup-generic-function operator operand-types)
-          (list (make-function operator1 operands1) return-type))))))
+  (let ((%specialize-function (alexandria:rcurry #'specialize-function
+                                                 typenv)))
+    (let ((operator (function-operator expr))
+          (operands (function-operands expr)))
+      (let ((specialized-operand-and-types (mapcar %specialize-function
+                                                   operands)))
+        (let ((operands1 (mapcar #'car specialized-operand-and-types))
+              (operand-types (mapcar #'cadr specialized-operand-and-types)))
+          (anaphora:acond
+            ((lookup-typenv operator typenv)
+             (unless (function-type-p anaphora:it)
+               (error "symbol ~S is bound to variable" operator))
+             (unless (alexandria:length=
+                       (function-type-arg-types anaphora:it)
+                       operand-types)
+               (error "invalid number of arguments: ~S"
+                      (length operand-types)))
+             (unless (equal (function-type-arg-types anaphora:it)
+                            operand-types)
+               (error "invalid type of arguments: ~S" operands))
+             (list (make-function operator operands1)
+                   (function-type-return-type anaphora:it)))
+            ((lookup-generic-function operator operand-types)
+             (destructuring-bind (return-type operator1) anaphora:it
+               (list (make-function operator1 operands1)
+                     return-type)))))))))
 
 
 ;;;
@@ -520,6 +578,7 @@
     <       (((:event :event) :bool event<)
              ((:int :int)     :bool <))
     count   (((:relation)     :int  relation-count))
+    user    (((:int)          :user user))
     user-id (((:user)         :int  user-id))))
 
 (defparameter +generic-functions+
@@ -689,6 +748,33 @@
 
 
 ;;;
+;;; Function specialization - Types - functon type
+;;;
+
+(defun make-function-type (arg-types return-type)
+  (unless (every #'scalar-type-p arg-types)
+    (error "invalid types: ~S" arg-types))
+  (unless (scalar-type-p return-type)
+    (error "invalid type: ~S" return-type))
+  `(:function ,arg-types ,return-type))
+
+(defun function-type-p (type)
+  (cl-pattern:match type
+    ((:function args _) (assert (listp args)) t)
+    (_ nil)))
+
+(defun function-type-arg-types (type)
+  (unless (function-type-p type)
+    (error "invalid function type: ~S" type))
+  (cadr type))
+
+(defun function-type-return-type (type)
+  (unless (function-type-p type)
+    (error "invalid function type: ~S" type))
+  (caddr type))
+
+
+;;;
 ;;; Compiler
 ;;;
 
@@ -792,6 +878,12 @@
     (('let (_ args _) _) args)
     (_ (error "invalid expression: ~S" expr))))
 
+(defun let-arg-vars (expr)
+  (mapcar #'car (let-args expr)))
+
+(defun let-arg-types (expr)
+  (mapcar #'cadr (let-args expr)))
+
 (defun let-expr (expr)
   ;; use optima instead of cl-pattern because of uncapability in this case
   (optima:match expr
@@ -821,7 +913,7 @@
 
 (defun %compile-let-fun (expr compenv scope)
   (let ((lvar  (let-var expr))
-        (largs (let-args expr))
+        (largs (let-arg-vars expr))
         (lexpr (let-expr expr))
         (lbody (let-body expr)))
     (let ((compenv1 (add-letfun-compenv lvar largs lexpr compenv)))

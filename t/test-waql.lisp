@@ -274,8 +274,9 @@
            (query (a b) (<- (a %i1) x)
                         (= i %i1))))))
 
-(is (waql::solve-pattern-match-let '(let (f (i) (query (a b) (<- (a b) r1)
-                                                             (<- (a i) r2)))
+(is (waql::solve-pattern-match-let '(let (f ((i :int))
+                                            (query (a b) (<- (a b) r1)
+                                                         (<- (a i) r2)))
                                       (query (a b) (<- (a b) (f i))))
                                    (waql::empty-patenv))
     '(let (f (i) (query (a b) (<- (a b) r1)
@@ -285,7 +286,7 @@
        (query (a b) (<- (a b) (f i)))))
 
 ;;; error if trying to use expression other than symbol on pattern matching
-(is-error (waql::solve-pattern-match-let '(let (f (i) i)
+(is-error (waql::solve-pattern-match-let '(let (f ((i :int)) i)
                                             (query (a b) (<- (a (f i)) r)))
                                          (waql::empty-patenv))
           simple-error)
@@ -510,6 +511,38 @@
           (waql::empty-typenv))))
   (is (waql::specialize-function-symbol 'r typenv)
       '(r (:relation :user :event))))
+
+
+;;;
+;;; test Function specialization - Let
+;;;
+
+(diag "test Function specialization - Let")
+
+(let ((waql::*predefined-relation-typenv*
+        (waql::add-typenv 'r1 '(:relation :user)
+          (waql::empty-typenv))))
+  (is (waql::specialize-function-let '(let (x (user 1))
+                                        (query (a) (<- (a) r1)
+                                                   (= a x)))
+                                     (waql::empty-typenv))
+      '((let (x (user 1))
+          (query (a) (<- (a) r1)
+                     (waql::user= a x)))
+        (:relation :user))))
+
+
+(let ((waql::*predefined-relation-typenv*
+        (waql::add-typenv 'r1 '(:relation :user)
+          (waql::empty-typenv))))
+  (is (waql::specialize-function-let '(let (f ((i :int)) (user i))
+                                        (query (a) (<- (a) r1)
+                                                   (= a (f 1))))
+                                     (waql::empty-typenv))
+      '((let (f ((i :int)) (user i))
+          (query (a) (<- (a) r1)
+                     (waql::user= a (f 1))))
+        (:relation :user))))
 
 
 ;;;
@@ -795,8 +828,8 @@
 
 (let ((waql::*scoping-counter* 1))
   (is (waql::%compile-let '(let (r +r1+)
-                             (let (f (i) (query (a b) (<- (a b) r)
-                                                      (= a i)))
+                             (let (f ((i :int)) (query (a b) (<- (a b) r)
+                                                             (= a i)))
                                (query (c d) (<- (c d) (f 1)))))
                           (waql::empty-compenv) nil)
       '(iterate:iter waql::outermost
