@@ -142,11 +142,9 @@
 
 (defun solve-pattern-match-let (expr patenv)
   (cond
-    ((let-var-p expr)
-     (solve-pattern-match-let-var expr patenv))
-    ((let-fun-p expr)
-     (solve-pattern-match-let-fun expr patenv))
-    (t (error "must not be reached"))))
+    ((let-var-p expr) (solve-pattern-match-let-var expr patenv))
+    ((let-fun-p expr) (solve-pattern-match-let-fun expr patenv))
+    (t (error "invalid expression: ~S" expr))))
 
 (defun solve-pattern-match-let-var (expr patenv)
   (let ((lvar  (let-var expr))
@@ -411,7 +409,7 @@
   (cond
     ((let-var-p expr) (specialize-function-let-var expr typenv))
     ((let-fun-p expr) (specialize-function-let-fun expr typenv))
-    (t (error "must not be reached"))))
+    (t (error "invalid expression: ~S" expr))))
 
 (defun specialize-function-let-var (expr typenv)
   (let ((lvar  (let-var expr))
@@ -845,8 +843,9 @@
   `(let (,var ,args ,expr) ,body))
 
 (defun let-p (expr)
-  (or (let-var-p expr)
-      (let-fun-p expr)))
+  (cl-pattern:match expr
+    (('let . _) t)
+    (_ nil)))
 
 (defun let-var-p (expr)
   (cl-pattern:match expr
@@ -894,7 +893,7 @@
   (cond
     ((let-var-p expr) (compile-let-var expr compenv scope))
     ((let-fun-p expr) (compile-let-fun expr compenv scope))
-    (t (error "must not be reached"))))
+    (t (error "invalid expression: ~S" expr))))
 
 (defun compile-let-var (expr compenv scope)
   (let ((lvar  (let-var expr))
