@@ -317,8 +317,7 @@
             (symbol-package var))))
 
 (defun pattern-matcher-match-all (vars matcher)
-  (reduce #'(lambda (matcher var)
-              (pattern-matcher-match var matcher))
+  (reduce (flip #'pattern-matcher-match)
           vars :initial-value matcher))
 
 (defun pattern-matcher-result (matcher)
@@ -897,12 +896,11 @@
              ,(compile-query-quals rest exprs)))))
 
 (defun %compile-quantification (qual rest exprs compenv scope outermost)
-  (let ((%add-qvar-compenv (flip #'add-qvar-compenv))
-        (%scoped-symbol (alexandria:rcurry #'scoped-symbol scope)))
+  (let ((%scoped-symbol (alexandria:rcurry #'scoped-symbol scope)))
     (let ((vars (quantification-vars qual))
           (rel  (quantification-relation qual)))
       (let ((vars1 (mapcar %scoped-symbol vars))
-            (compenv1 (reduce %add-qvar-compenv vars
+            (compenv1 (reduce (flip #'add-qvar-compenv) vars
                               :initial-value compenv)))
         (if outermost
             `(iterate:iter outermost
