@@ -725,7 +725,7 @@
 
 
 ;;;
-;;; Function specialization - Types - relation type
+;;; Function specialization - Types - Relation type
 ;;;
 
 (defun make-relation-type (types)
@@ -748,7 +748,7 @@
 
 
 ;;;
-;;; Function specialization - Types - functon type
+;;; Function specialization - Types - Functon type
 ;;;
 
 (defun make-function-type (arg-types return-type)
@@ -760,7 +760,7 @@
 
 (defun function-type-p (type)
   (cl-pattern:match type
-    ((:function args _) (assert (listp args)) t)
+    ((:function _ _) t)
     (_ nil)))
 
 (defun function-type-arg-types (type)

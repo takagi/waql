@@ -727,6 +727,32 @@
 
 
 ;;;
+;;; test Function specialization - Types - Function type
+;;;
+
+(diag "test Function specialization - Types - Function type")
+
+;;; test MAKE-FUNCTION-TYPE function
+(ok (waql::make-function-type '(:int :int) :int))
+(is-error (waql::make-function-type 1 :int) type-error)
+(is-error (waql::make-function-type '(1) :int) simple-error)
+(is-error (waql::make-function-type '(:int) 1) simple-error)
+
+;;; test FUNCTION-TYPE-P function
+(let ((function-type (waql::make-function-type '(:int :int) :int)))
+  (is (waql::function-type-p function-type) t))
+
+;;; test FUNCTION-TYPE-ARG-TYPES function
+(let ((function-type (waql::make-function-type '(:int :int) :int)))
+  (is (waql::function-type-arg-types function-type) '(:int :int)))
+
+;;; test FUNCTION-TYPE-RETURN-TYPE function
+(let ((function-type (waql::make-function-type '(:int :int) :int)))
+  (is (waql::function-type-return-type function-type) :int)))
+
+
+;;;
+;;;
 ;;; test Compiler
 ;;;
 
