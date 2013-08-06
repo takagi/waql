@@ -164,6 +164,16 @@
   (ok (relation-member (tuple (user 2)) result))
   (is (relation-count result) 2))
 
+;;; test let binding
+(let ((result (eval-waql
+                (let (x (query (u e) (<- (u e) +r1+)))
+                  (let (f ((u :user) (i :int))
+                          (= (waql::user-id u) i))
+                    (query (u) (<- (u e) x)
+                               (f u 1)))))))
+  (ok (relation-member (tuple (user 1)) result))
+  (is (relation-count result) 1))
+
 
 ;;;
 ;;; test Solving pattern match
