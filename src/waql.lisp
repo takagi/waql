@@ -564,7 +564,10 @@
             ((lookup-generic-function operator operand-types)
              (destructuring-bind (return-type operator1) it
                (list (make-function operator1 operands1)
-                     return-type)))))))))
+                     return-type)))
+            (t
+             (error "undefined function: ~S" operator))))))))
+
 
 
 ;;;
@@ -592,13 +595,12 @@
 
 (defun lookup-generic-function (operator operand-types)
   (let ((candidates (getf +function-table+ operator)))
-    (unless candidates
-      (error "undefined function: ~S" operator))
-    (let ((func (assoc operand-types candidates :test #'match-types-p)))
-      (unless func
-        (error "invalid argument types for function ~S : ~S"
-               operator operand-types))
-      (cdr func))))
+    (when candidates
+      (let ((func (assoc operand-types candidates :test #'match-types-p)))
+        (unless func
+          (error "invalid argument types for function ~S : ~S"
+                 operator operand-types))
+        (cdr func)))))
 
 
 ;;;
