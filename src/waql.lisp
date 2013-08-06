@@ -1101,7 +1101,7 @@
 
 
 ;;;
-;;; Compiler - Scoping counter
+;;; Compiler - Scoping
 ;;;
 
 (defvar *scoping-count* 1)
