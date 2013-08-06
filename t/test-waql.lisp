@@ -257,6 +257,8 @@
 ;;; test Solving pattern match - Let
 ;;;
 
+(diag "test Solving pattern match - Let")
+
 ;;; test SOLVE-PATTERN-MATCH-LET function
 
 (let ((waql::*underscore-count* 1))
