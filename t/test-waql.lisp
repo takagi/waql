@@ -826,13 +826,13 @@
                  (iterate:iter waql::outermost
                    (for-tuple (%Y2.a %Y2.b) in-relation
                      (iterate:iter waql::outermost
-                       (for-tuple (%X3.a %X3.b) in-relation +r1+
+                       (for-tuple (%X3.a %X3.b) in-relation +r1+)
                        (iterate:in waql::outermost
                          (collect-relation (tuple %X3.a %X3.b)))))
                    (iterate:in waql::outermost
                      (collect-relation (tuple %Y2.a %Y2.b)))))
          (iterate:in waql::outermost
-           (collect-relation (tuple a c))))))))
+           (collect-relation (tuple a c)))))))
 
 ;;; test COMPILE-QUERY-QUALS function
 
