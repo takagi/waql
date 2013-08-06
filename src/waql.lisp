@@ -580,6 +580,7 @@
     <       (((:event :event) :bool event<)
              ((:int :int)     :bool <))
     count   (((:relation)     :int  relation-count))
+    user    (((:int)          :user user))
     user-id (((:user)         :int  user-id))))
 
 (defparameter +generic-functions+

@@ -289,10 +289,10 @@
                                                          (<- (a i) r2)))
                                       (query (a b) (<- (a b) (f i))))
                                    (waql::empty-patenv))
-    '(let (f (i) (query (a b) (<- (a b) r1)
-                              (<- (%a1 %i1) r2)
-                              (= a %a1)
-                              (= i %i1)))
+    '(let (f ((i :int)) (query (a b) (<- (a b) r1)
+                                     (<- (%a1 %i1) r2)
+                                     (= a %a1)
+                                     (= i %i1)))
        (query (a b) (<- (a b) (f i)))))
 
 ;;; error if trying to use expression other than symbol on pattern matching
@@ -609,10 +609,11 @@
 (diag "test Function specialization - Function table")
 
 ;;; test LOOKUP-GENERIC-FUNCTION function
+
 (is (waql::lookup-generic-function '= '(:user :user))
     '(:bool waql::user=))
 
-(is-error (waql::lookup-generic-function 'foo nil) simple-error)
+(is (waql::lookup-generic-function 'foo nil) nil)
 
 
 ;;;
