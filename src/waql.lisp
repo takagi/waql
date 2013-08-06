@@ -395,10 +395,14 @@
 (defun specialize-function-symbol (expr typenv)
   (unless (symbol-p expr)
     (error "invalid expression: ~S" expr))
-  (let ((type (or (lookup-typenv expr typenv)
-                  (lookup-typenv expr *predefined-relation-typenv*)
-                  (error "unbound variable: ~S" expr))))
-    (list expr type)))
+  (acond
+    ((lookup-typenv expr typenv)
+     (unless (not (function-type-p it))
+       (error "symbol ~S is bound to function" expr))
+     (list expr it))
+    ((lookup-predefined-relations expr)
+     (list expr it))
+    (t (error "unbound variable: ~S" expr))))
 
 
 ;;;

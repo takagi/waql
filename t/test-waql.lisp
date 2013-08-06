@@ -512,9 +512,16 @@
 (let ((typenv (waql::add-typenv 'a :user (waql::empty-typenv))))
   (is (waql::specialize-function-symbol 'a typenv) '(a :user)))
 
+;;; error if symbol is not bound
 (let ((typenv (waql::empty-typenv)))
   (is-error (waql::specialize-function-symbol 'a typenv) simple-error))
 
+;;; error if symbol is bound to function
+(let ((typenv (waql::add-typenv 'f '(:function (:int) :user)
+                (waql::empty-typenv))))
+  (is-error (waql::specialize-function-symbol 'f typenv) simple-error))
+
+;;; test to lookup predefined relations
 (let ((typenv (waql::empty-typenv))
       (waql::*predefined-relation-typenv*
         (waql::add-typenv 'r '(:relation :user :event)
