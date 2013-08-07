@@ -463,11 +463,15 @@
       (is preds '((= a %a1)
                   (= b %b1))))))
 
+;;; error if matched form is not symbol
+(is-error (waql::pattern-matcher-match '(f i)
+            (waql::make-pattern-matcher (waql::empty-patenv)))
+          simple-error)
+
 ;;; test UNIQUE-SYMBOL function
 (is (waql::UNIQUE-SYMBOL 'a 1) '%a1)
 (is-error (waql::UNIQUE-SYMBOL 1 1) simple-type-error)
 (is-error (waql::UNIQUE-SYMBOL 'a 'a) simple-type-error)
-
 
 ;;; test PATTERN-MATCHER-MATCH-ALL function
 (let ((patenv (waql::add-patenv 'b

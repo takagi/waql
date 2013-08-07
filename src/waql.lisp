@@ -323,6 +323,7 @@
 (defvar *underscore-count* 1)
 
 (defun pattern-matcher-match (var matcher)
+  (assert (symbolp var))
   (with-%pattern-matcher ((vars patenv preds) matcher)
     (cond
       ((underscore-notation-p var)
