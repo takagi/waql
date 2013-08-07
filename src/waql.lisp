@@ -95,38 +95,6 @@
 
 
 ;;;
-;;; Predefined relations
-;;;
-
-(defvar *predefined-relations* (make-predefined-relations))
-
-(defun make-predefined-relations ()
-  (empty-typenv))
-
-(defun add-predefined-relations (var types predefined-relations)
-  (assert (symbolp var))
-  (add-typenv var (make-relation-type types)
-    (remove-typenv var predefined-relations)))
-
-(defun lookup-predefined-relations (var &optional (predefined-relations
-                                                   *predefined-relations*))
-  (assert (symbolp var))
-  (lookup-typenv var predefined-relations))
-
-(defmacro defrelation (var types &body body)
-  (assert (single body))
-  (alexandria:with-gensyms (relation)
-    `(eval-when (:compile-toplevel :load-toplevel :execute)
-       (let ((,relation ,(car body)))
-         ;; currently, does not check relation type validity, just check-type
-         (check-type ,relation relation)
-         (defparameter ,var ,relation))
-       (setf *predefined-relations*
-             (add-predefined-relations ',var ',types
-                                       *predefined-relations*)))))
-
-
-;;;
 ;;; Evaluating WAQL
 ;;;
 
@@ -1245,6 +1213,38 @@
   (and (function-p expr)
        (member (car expr) +generic-functions+)
        t))
+
+
+;;;
+;;; Predefined relations
+;;;
+
+(defun make-predefined-relations ()
+  (empty-typenv))
+
+(defvar *predefined-relations* (make-predefined-relations))
+
+(defun add-predefined-relations (var types predefined-relations)
+  (assert (symbolp var))
+  (add-typenv var (make-relation-type types)
+    (remove-typenv var predefined-relations)))
+
+(defun lookup-predefined-relations (var &optional (predefined-relations
+                                                   *predefined-relations*))
+  (assert (symbolp var))
+  (lookup-typenv var predefined-relations))
+
+(defmacro defrelation (var types &body body)
+  (assert (single body))
+  (alexandria:with-gensyms (relation)
+    `(eval-when (:compile-toplevel :load-toplevel :execute)
+       (let ((,relation ,(car body)))
+         ;; currently, does not check relation type validity, just check-type
+         (check-type ,relation relation)
+         (defparameter ,var ,relation))
+       (setf *predefined-relations*
+             (add-predefined-relations ',var ',types
+                                       *predefined-relations*)))))
 
 
 ;;;

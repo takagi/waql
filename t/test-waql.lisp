@@ -105,17 +105,6 @@
 
 
 ;;;
-;;; test Predefined relations
-;;;
-
-(diag "test Predefined relations")
-
-;;; test DEFRELATION macro
-(ok (defrelation r (:int) (waql::empty-relation)))
-(is-error (defrelation r (:int) 1) type-error)
-
-
-;;;
 ;;; test Evaluating WAQL
 ;;;
 
@@ -1204,6 +1193,18 @@
 ;;;
 
 (diag "test Function")
+
+
+;;;
+;;; test Predefined relations
+;;;
+
+(diag "test Predefined relations")
+
+;;; test DEFRELATION macro
+(let ((waql::*predefined-relations* (waql::make-predefined-relations)))
+  (ok (defrelation r (:int) (waql::empty-relation)))
+  (is-error (defrelation r (:int) 1) type-error))
 
 
 ;;;
