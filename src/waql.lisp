@@ -257,47 +257,6 @@
 
 
 ;;;
-;;; Solving pattern match - Pattern matching environment
-;;;
-
-(defstruct (patenv (:constructor %make-patenv)
-                   (:conc-name %patenv-)
-                   (:print-object print-patenv))
-  (elements nil :type list :read-only t))  ; alist { var -> counter }
-
-(defun empty-patenv ()
-  (%make-patenv))
-
-(defmacro with-%patenv-elements ((elems patenv) &body form)
-  `(let ((,elems (%patenv-elements ,patenv)))
-     (%make-patenv :elements (progn ,@form))))
-
-(defun add-patenv (var patenv)
-  (assert (symbolp var))
-  (unless (null (lookup-patenv var patenv))
-    (error "variable ~S already exists" var))
-  (with-%patenv-elements (elems patenv)
-    (acons var 1 elems)))
-
-(defun inc-patenv (var patenv)
-  (labels ((%inc-patenv (var elems)
-             (cl-pattern:match elems
-               (((var1 . cnt) . rest)
-                (if (eq var1 var)
-                    (acons var1 (1+ cnt) rest)
-                    (acons var1 cnt (%inc-patenv var rest))))
-               (_ (error "variable ~S does not exist" var)))))
-    (with-%patenv-elements (elems patenv)
-      (%inc-patenv var elems))))
-
-(defun lookup-patenv (var patenv)
-  (assoc var (%patenv-elements patenv)))
-
-(defun print-patenv (patenv stream)
-  (format stream "#S~W" `(patenv ,@(%patenv-elements patenv))))
-
-
-;;;
 ;;; Solving pattern match - Pattern matcher
 ;;;
 
@@ -359,6 +318,47 @@
   (list (reverse (%pattern-matcher-vars matcher))
         (%pattern-matcher-patenv matcher)
         (reverse (%pattern-matcher-preds matcher))))
+
+
+;;;
+;;; Solving pattern match - Pattern matching environment
+;;;
+
+(defstruct (patenv (:constructor %make-patenv)
+                   (:conc-name %patenv-)
+                   (:print-object print-patenv))
+  (elements nil :type list :read-only t))  ; alist { var -> counter }
+
+(defun empty-patenv ()
+  (%make-patenv))
+
+(defmacro with-%patenv-elements ((elems patenv) &body form)
+  `(let ((,elems (%patenv-elements ,patenv)))
+     (%make-patenv :elements (progn ,@form))))
+
+(defun add-patenv (var patenv)
+  (assert (symbolp var))
+  (unless (null (lookup-patenv var patenv))
+    (error "variable ~S already exists" var))
+  (with-%patenv-elements (elems patenv)
+    (acons var 1 elems)))
+
+(defun inc-patenv (var patenv)
+  (labels ((%inc-patenv (var elems)
+             (cl-pattern:match elems
+               (((var1 . cnt) . rest)
+                (if (eq var1 var)
+                    (acons var1 (1+ cnt) rest)
+                    (acons var1 cnt (%inc-patenv var rest))))
+               (_ (error "variable ~S does not exist" var)))))
+    (with-%patenv-elements (elems patenv)
+      (%inc-patenv var elems))))
+
+(defun lookup-patenv (var patenv)
+  (assoc var (%patenv-elements patenv)))
+
+(defun print-patenv (patenv stream)
+  (format stream "#S~W" `(patenv ,@(%patenv-elements patenv))))
 
 
 ;;;
