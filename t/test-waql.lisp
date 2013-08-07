@@ -105,6 +105,18 @@
 
 
 ;;;
+;;; test Predefined relations
+;;;
+
+(diag "test Predefined relations")
+
+;;; test DEFRELATION macro
+(ok (defrelation r (:int) (waql::empty-relation)))
+(is-error (defrelation r (:int) (waql::empty-relation) 1) type-error)
+(is-error (defrelation r (:int) 1) type-error)
+
+
+;;;
 ;;; test Evaluating WAQL
 ;;;
 
@@ -1201,9 +1213,16 @@
 
 (diag "test Utilities")
 
+;;; test PERCENT-SYMBOL-P function
 (is (waql::percent-symbol-p '%a) t)
 (is (waql::percent-symbol-p 'a) nil)
 (is (waql::percent-symbol-p '(f i)) nil)
+
+;;; test SINGLE function
+(is (waql::single '(1)) t)
+(is (waql::single '(1 2)) nil)
+(is (waql::single '()) nil)
+(is (waql::single '(1 . 2)) nil)
 
 
 (finalize)

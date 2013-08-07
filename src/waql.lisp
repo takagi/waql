@@ -95,6 +95,33 @@
 
 
 ;;;
+;;; Predefined relations
+;;;
+
+(defvar *predefined-relations* (make-predefined-relations))
+
+(defun make-predefined-relations ()
+  (empty-typenv))
+
+(defun add-predefined-relations (var types)
+  (setf *predefined-relations* (add-typenv var (make-relation-type types)
+                                 (remove-typenv var
+                                   *predefined-relations*))))
+
+(defun lookup-predefined-relations (var)
+  (lookup-typenv var *predefined-relations*))
+
+(defmacro defrelation (var types &body body)
+  (assert (single body))
+  (alexandria:with-gensyms (relation)
+    `(eval-when (:compile-toplevel :load-toplevel :execute)
+       (let ((,relation ,(car body)))
+         (check-type ,relation relation)
+         (defparameter ,var ,relation))
+       (add-predefined-relations ',var ',types))))
+
+
+;;;
 ;;; Evaluating WAQL
 ;;;
 
@@ -1242,3 +1269,8 @@
     (if package
         (intern name package)
         (intern name))))
+
+(defun single (list)
+  (and (listp list)
+       (car list)
+       (null (cdr list))))
