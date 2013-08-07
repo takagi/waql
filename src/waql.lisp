@@ -494,18 +494,20 @@
 (defun specialize-function-quantification (qual rest exprs typenv)
   (let ((vars (quantification-vars qual))
         (rel  (quantification-relation qual)))
-    (destructuring-bind (rel1 rel-type)
-        (specialize-function rel typenv)
-      (let ((attr-types (relation-type-attrs rel-type)))
-        (unless (= (length vars) (length attr-types))
-          (error "variables do not match to type of relation: ~S" qual))
-        (unless (notany #'(lambda (var)
-                            (lookup-typenv var typenv)) vars)
-          (error "variables ~S already exist in type environment" vars))
-        (let ((typenv1 (reduce #'(lambda (%typenv var-type)
-                                   (destructuring-bind (var . type) var-type
-                                     (add-typenv var type %typenv)))
-                               (mapcar #'cons vars attr-types)
+    ;; error if any variables already exist in environment
+    (let ((%lookup-typenv (alexandria:rcurry #'lookup-typenv typenv)))
+      (unless (notany %lookup-typenv vars)
+        (error "variables ~S already exist in environment" vars)))
+    (destructuring-bind (rel1 rel-type) (specialize-function rel typenv)
+      ;; error if relation dimension does not match
+      (unless (= (length vars) (relation-type-dim rel-type))
+        (error "variables do not match to relation dimension"))
+      ;; add variables to environment and process sub expression recursively
+      (let ((%add-typenv #'(lambda (%typenv var-type)
+                             (destructuring-bind (var . type) var-type
+                               (add-typenv var type %typenv))))
+            (attr-types (relation-type-attrs rel-type)))
+        (let ((typenv1 (reduce %add-typenv (mapcar #'cons vars attr-types)
                                :initial-value typenv)))
           (destructuring-bind (rest1 exprs1 type1)
               (specialize-function-quals rest exprs typenv1)
