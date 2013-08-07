@@ -633,152 +633,6 @@
 
 
 ;;;
-;;; Function specialization - Type matching
-;;;
-
-(defun match-types-p (types pattern)
-  (every #'match-type-p types pattern))
-
-(defun match-type-p (type pattern)
-  (cond
-    ((relation-type-pattern-p pattern) (match-relation-type-p type pattern))
-    (t (eq pattern type))))
-
-(defun match-relation-type-p (type pattern)
-  (and (relation-type-pattern-p pattern)
-       (relation-type-p type)
-       (cond
-         ((relation-type-pattern-general-p pattern) t)
-         ((relation-type-pattern-wildcard-p pattern)
-          (= (relation-type-pattern-dim pattern)
-             (relation-type-dim type)))
-         ((relation-type-pattern-strict-p pattern)
-          (equal (relation-type-pattern-attrs pattern)
-                 (relation-type-attrs type)))
-         (t (error "must not be reached")))))
-
-
-;;;
-;;; Function specialization - Type patterns - Relation type pattern
-;;;
-
-(defun relation-type-pattern-p (pattern)
-  (cl-pattern:match pattern
-    (:relation t)
-    ((:relation)
-     (error "invalid relation type pattern: ~S" pattern))
-    ((:relation '_ . attrs)
-     (or (every #'wildcard-p attrs)
-         (error "invalid relation type pattern: ~S" pattern)))
-    ((:relation . attrs)
-     (or (notany #'wildcard-p attrs)
-         (error "invalid relation type pattern: ~S" pattern)))
-    (_ nil)))
-
-(defun relation-type-pattern-general-p (pattern)
-  (and (relation-type-pattern-p pattern)
-       (cl-pattern:match pattern
-         (:relation t)
-         (_ nil))))
-
-(defun relation-type-pattern-wildcard-p (pattern)
-  (and (relation-type-pattern-p pattern)
-       (cl-pattern:match pattern
-         ((:relation '_ . _) t)
-         (_ nil))))
-
-(defun relation-type-pattern-strict-p (pattern)
-  (and (relation-type-pattern-p pattern)
-       (cl-pattern:match pattern
-         ((:relation '_ . _) nil)
-         ((:relation . _) t)
-         (_ nil))))
-
-(defun wildcard-p (symbol)
-  (eq symbol '_))
-
-(defun relation-type-pattern-attrs (pattern)
-  (unless (relation-type-pattern-p pattern)
-    (error "pattern ~S is not relation type pattern" pattern))
-  (cl-pattern:match pattern
-    (:relation (error "relation type pattern of general does not have explicit attributes: ~S" pattern))
-    ((:relation . attrs) attrs)
-    (_ (error "must not be reached"))))
-
-(defun relation-type-pattern-dim (pattern)
-  (length (relation-type-pattern-attrs pattern)))
-
-
-;;;
-;;; Function specialization - Types
-;;;
-
-(defun type-p (type)
-  (or (scalar-type-p type)
-      (relation-type-p type)
-      (function-type-p type)))
-
-
-;;;
-;;; Function specialization - Types - scalar types
-;;;
-
-(defun scalar-type-p (type)
-  (and (member type '(:bool :int :user :event :action :conversion))
-       t))
-
-
-;;;
-;;; Function specialization - Types - Relation type
-;;;
-
-(defun make-relation-type (types)
-  (unless (every #'scalar-type-p types)
-    (error "currently, relation type can have attributes of scalar type only"))
-  `(:relation ,@types))
-
-(defun relation-type-p (type)
-  (cl-pattern:match type
-    ((:relation _ . _) t)
-    (_ nil)))
-
-(defun relation-type-attrs (type)
-  (unless (relation-type-p type)
-    (error "invalid relation type: ~S" type))
-  (cdr type))
-
-(defun relation-type-dim (type)
-  (length (relation-type-attrs type)))
-
-
-;;;
-;;; Function specialization - Types - Functon type
-;;;
-
-(defun make-function-type (arg-types return-type)
-  (unless (every #'scalar-type-p arg-types)
-    (error "invalid types: ~S" arg-types))
-  (unless (scalar-type-p return-type)
-    (error "invalid type: ~S" return-type))
-  `(:function ,arg-types ,return-type))
-
-(defun function-type-p (type)
-  (cl-pattern:match type
-    ((:function _ _) t)
-    (_ nil)))
-
-(defun function-type-arg-types (type)
-  (unless (function-type-p type)
-    (error "invalid function type: ~S" type))
-  (cadr type))
-
-(defun function-type-return-type (type)
-  (unless (function-type-p type)
-    (error "invalid function type: ~S" type))
-  (caddr type))
-
-
-;;;
 ;;; Compiler
 ;;;
 
@@ -1213,6 +1067,152 @@
   (and (function-p expr)
        (member (car expr) +generic-functions+)
        t))
+
+
+;;;
+;;; Type matching
+;;;
+
+(defun match-types-p (types pattern)
+  (every #'match-type-p types pattern))
+
+(defun match-type-p (type pattern)
+  (cond
+    ((relation-type-pattern-p pattern) (match-relation-type-p type pattern))
+    (t (eq pattern type))))
+
+(defun match-relation-type-p (type pattern)
+  (and (relation-type-pattern-p pattern)
+       (relation-type-p type)
+       (cond
+         ((relation-type-pattern-general-p pattern) t)
+         ((relation-type-pattern-wildcard-p pattern)
+          (= (relation-type-pattern-dim pattern)
+             (relation-type-dim type)))
+         ((relation-type-pattern-strict-p pattern)
+          (equal (relation-type-pattern-attrs pattern)
+                 (relation-type-attrs type)))
+         (t (error "must not be reached")))))
+
+
+;;;
+;;; Type matching - Relation type pattern
+;;;
+
+(defun relation-type-pattern-p (pattern)
+  (cl-pattern:match pattern
+    (:relation t)
+    ((:relation)
+     (error "invalid relation type pattern: ~S" pattern))
+    ((:relation '_ . attrs)
+     (or (every #'wildcard-p attrs)
+         (error "invalid relation type pattern: ~S" pattern)))
+    ((:relation . attrs)
+     (or (notany #'wildcard-p attrs)
+         (error "invalid relation type pattern: ~S" pattern)))
+    (_ nil)))
+
+(defun relation-type-pattern-general-p (pattern)
+  (and (relation-type-pattern-p pattern)
+       (cl-pattern:match pattern
+         (:relation t)
+         (_ nil))))
+
+(defun relation-type-pattern-wildcard-p (pattern)
+  (and (relation-type-pattern-p pattern)
+       (cl-pattern:match pattern
+         ((:relation '_ . _) t)
+         (_ nil))))
+
+(defun relation-type-pattern-strict-p (pattern)
+  (and (relation-type-pattern-p pattern)
+       (cl-pattern:match pattern
+         ((:relation '_ . _) nil)
+         ((:relation . _) t)
+         (_ nil))))
+
+(defun wildcard-p (symbol)
+  (eq symbol '_))
+
+(defun relation-type-pattern-attrs (pattern)
+  (unless (relation-type-pattern-p pattern)
+    (error "pattern ~S is not relation type pattern" pattern))
+  (cl-pattern:match pattern
+    (:relation (error "relation type pattern of general does not have explicit attributes: ~S" pattern))
+    ((:relation . attrs) attrs)
+    (_ (error "must not be reached"))))
+
+(defun relation-type-pattern-dim (pattern)
+  (length (relation-type-pattern-attrs pattern)))
+
+
+;;;
+;;; Type
+;;;
+
+(defun type-p (type)
+  (or (scalar-type-p type)
+      (relation-type-p type)
+      (function-type-p type)))
+
+
+;;;
+;;; Type - Scalar types
+;;;
+
+(defun scalar-type-p (type)
+  (and (member type '(:bool :int :user :event :action :conversion))
+       t))
+
+
+;;;
+;;; Type - Relation type
+;;;
+
+(defun make-relation-type (types)
+  (unless (every #'scalar-type-p types)
+    (error "currently, relation type can have attributes of scalar type only"))
+  `(:relation ,@types))
+
+(defun relation-type-p (type)
+  (cl-pattern:match type
+    ((:relation _ . _) t)
+    (_ nil)))
+
+(defun relation-type-attrs (type)
+  (unless (relation-type-p type)
+    (error "invalid relation type: ~S" type))
+  (cdr type))
+
+(defun relation-type-dim (type)
+  (length (relation-type-attrs type)))
+
+
+;;;
+;;; Type - Functon type
+;;;
+
+(defun make-function-type (arg-types return-type)
+  (unless (every #'scalar-type-p arg-types)
+    (error "invalid types: ~S" arg-types))
+  (unless (scalar-type-p return-type)
+    (error "invalid type: ~S" return-type))
+  `(:function ,arg-types ,return-type))
+
+(defun function-type-p (type)
+  (cl-pattern:match type
+    ((:function _ _) t)
+    (_ nil)))
+
+(defun function-type-arg-types (type)
+  (unless (function-type-p type)
+    (error "invalid function type: ~S" type))
+  (cadr type))
+
+(defun function-type-return-type (type)
+  (unless (function-type-p type)
+    (error "invalid function type: ~S" type))
+  (caddr type))
 
 
 ;;;

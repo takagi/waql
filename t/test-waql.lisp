@@ -651,130 +651,6 @@
 
 
 ;;;
-;;; test Function specialization - Type matching
-;;;
-
-(diag "test Function specialization - Type matching")
-
-(is (waql::match-types-p '(:user :user) '(:user :user)) t)
-(is (waql::match-types-p '(:user :event) '(:user :user)) nil)
-(is (waql::match-types-p '((:relation :user)) '(:relation)) t)
-(is (waql::match-types-p '((:relation :user)) '((:relation waql::_))) t)
-(is (waql::match-types-p '((:relation :user :event)) '((:relation waql::_)))
-    nil)
-(is (waql::match-types-p '((:relation :user :event))
-                         '((:relation :user :event)))
-    t)
-
-
-;;;
-;;; test Function specialization - Type patterns - Relation type pattern
-;;;
-
-(diag "test Function specialization - Type patterns - Relation type pattern")
-
-;;; test RELATION-TYPE-PATTERN-P function
-(is (waql::relation-type-pattern-p :relation) t)
-(is (waql::relation-type-pattern-p '(:relation waql::_ waql::_)) t)
-(is (waql::relation-type-pattern-p '(:relation :user :event)) t)
-(is (waql::relation-type-pattern-p :user) nil)
-(is-error (waql::relation-type-pattern-p '(:relation)) simple-error)
-(is-error (waql::relation-type-pattern-p '(:relation waql::_ :user))
-          simple-error)
-
-;;; test RELATION-TYPE-PATTERN-GENERAL-P function
-(is (waql::relation-type-pattern-general-p :relation) t)
-(is (waql::relation-type-pattern-general-p '(:relation waql::_)) nil)
-(is (waql::relation-type-pattern-general-p '(:relation :user)) nil)
-(is (waql::relation-type-pattern-general-p :user) nil)
-
-;;; test RELATION-TYPE-PATTERN-WILDCARD-P function
-(is (waql::relation-type-pattern-wildcard-p '(:relation waql::_ waql::_)) t)
-(is (waql::relation-type-pattern-wildcard-p :relation) nil)
-(is (waql::relation-type-pattern-wildcard-p '(:relation :user)) nil)
-(is (waql::relation-type-pattern-wildcard-p :user) nil)
-(is-error (waql::relation-type-pattern-wildcard-p '(:relation waql::_ :user))
-          simple-error)
-
-;;; test RELATION-TYPE-PATTERN-STRICT-P function
-(is (waql::relation-type-pattern-strict-p '(:relation :user)) t)
-(is (waql::relation-type-pattern-strict-p :relation) nil)
-(is (waql::relation-type-pattern-strict-p '(:relation waql::_)) nil)
-(is (waql::relation-type-pattern-strict-p :user) nil)
-(is-error (waql::relation-type-pattern-strict-p '(:relation))
-          simple-error)
-(is-error (waql::relation-type-pattern-strict-p '(:relation :user waql::_))
-          simple-error)
-
-;;; test RELATION-TYPE-PATTERN-ATTRS function
-
-;;; test RELATION-TYPE-PATTERN-DIM function
-
-
-;;;
-;;; test Function specialization - Types - Scalar types
-;;;
-
-(diag "test Function specialization - Types - Scalar types")
-
-(ok (waql::scalar-type-p :bool))
-(ok (waql::scalar-type-p :int))
-(ok (waql::scalar-type-p :user))
-(ok (waql::scalar-type-p :event))
-(ok (waql::scalar-type-p :action))
-(ok (waql::scalar-type-p :conversion))
-(ok (null (waql::scalar-type-p 1)))
-
-
-;;;
-;;; test Function specialization - Types - Relation type
-;;;
-
-(diag "test Function specialization - Types - Relation type")
-
-;;; test MAKE-RELATION-TYPE function
-(ok (waql::make-relation-type '(:user :event)))
-(is-error (waql::make-relation-type '((:relation :user :event)))
-          simple-error)
-
-;;; test RELATION-TYPE-P function
-(ok (waql::relation-type-p '(:relation :user :event)))
-(ok (null (waql::relation-type-p :user)))
-
-;;; test RELATION-TYPE-ATTRS function
-(is (waql::relation-type-attrs (waql::make-relation-type '(:user :event)))
-    '(:user :event))
-(is-error (waql::relation-type-attrs '(:relation)) simple-error)
-
-;;; test RELATION-TYPE-DIM function
-
-
-;;;
-;;; test Function specialization - Types - Function type
-;;;
-
-(diag "test Function specialization - Types - Function type")
-
-;;; test MAKE-FUNCTION-TYPE function
-(ok (waql::make-function-type '(:int :int) :int))
-(is-error (waql::make-function-type 1 :int) type-error)
-(is-error (waql::make-function-type '(1) :int) simple-error)
-(is-error (waql::make-function-type '(:int) 1) simple-error)
-
-;;; test FUNCTION-TYPE-P function
-(let ((function-type (waql::make-function-type '(:int :int) :int)))
-  (is (waql::function-type-p function-type) t))
-
-;;; test FUNCTION-TYPE-ARG-TYPES function
-(let ((function-type (waql::make-function-type '(:int :int) :int)))
-  (is (waql::function-type-arg-types function-type) '(:int :int)))
-
-;;; test FUNCTION-TYPE-RETURN-TYPE function
-(let ((function-type (waql::make-function-type '(:int :int) :int)))
-  (is (waql::function-type-return-type function-type) :int))
-
-
-;;;
 ;;;
 ;;; test Compiler
 ;;;
@@ -1193,6 +1069,137 @@
 ;;;
 
 (diag "test Function")
+
+
+;;;
+;;; test Type matching
+;;;
+
+(diag "test Type matching")
+
+(is (waql::match-types-p '(:user :user) '(:user :user)) t)
+(is (waql::match-types-p '(:user :event) '(:user :user)) nil)
+(is (waql::match-types-p '((:relation :user)) '(:relation)) t)
+(is (waql::match-types-p '((:relation :user)) '((:relation waql::_))) t)
+(is (waql::match-types-p '((:relation :user :event)) '((:relation waql::_)))
+    nil)
+(is (waql::match-types-p '((:relation :user :event))
+                         '((:relation :user :event)))
+    t)
+
+
+;;;
+;;; test Type matching - Relation type pattern
+;;;
+
+(diag "test Type matching - Relation type pattern")
+
+;;; test RELATION-TYPE-PATTERN-P function
+(is (waql::relation-type-pattern-p :relation) t)
+(is (waql::relation-type-pattern-p '(:relation waql::_ waql::_)) t)
+(is (waql::relation-type-pattern-p '(:relation :user :event)) t)
+(is (waql::relation-type-pattern-p :user) nil)
+(is-error (waql::relation-type-pattern-p '(:relation)) simple-error)
+(is-error (waql::relation-type-pattern-p '(:relation waql::_ :user))
+          simple-error)
+
+;;; test RELATION-TYPE-PATTERN-GENERAL-P function
+(is (waql::relation-type-pattern-general-p :relation) t)
+(is (waql::relation-type-pattern-general-p '(:relation waql::_)) nil)
+(is (waql::relation-type-pattern-general-p '(:relation :user)) nil)
+(is (waql::relation-type-pattern-general-p :user) nil)
+
+;;; test RELATION-TYPE-PATTERN-WILDCARD-P function
+(is (waql::relation-type-pattern-wildcard-p '(:relation waql::_ waql::_)) t)
+(is (waql::relation-type-pattern-wildcard-p :relation) nil)
+(is (waql::relation-type-pattern-wildcard-p '(:relation :user)) nil)
+(is (waql::relation-type-pattern-wildcard-p :user) nil)
+(is-error (waql::relation-type-pattern-wildcard-p '(:relation waql::_ :user))
+          simple-error)
+
+;;; test RELATION-TYPE-PATTERN-STRICT-P function
+(is (waql::relation-type-pattern-strict-p '(:relation :user)) t)
+(is (waql::relation-type-pattern-strict-p :relation) nil)
+(is (waql::relation-type-pattern-strict-p '(:relation waql::_)) nil)
+(is (waql::relation-type-pattern-strict-p :user) nil)
+(is-error (waql::relation-type-pattern-strict-p '(:relation))
+          simple-error)
+(is-error (waql::relation-type-pattern-strict-p '(:relation :user waql::_))
+          simple-error)
+
+;;; test RELATION-TYPE-PATTERN-ATTRS function
+
+;;; test RELATION-TYPE-PATTERN-DIM function
+
+
+;;;
+;;; test Type
+;;;
+
+(diag "test Type")
+
+
+;;;
+;;; test Type - Scalar types
+;;;
+
+(diag "test Type - Scalar types")
+
+(ok (waql::scalar-type-p :bool))
+(ok (waql::scalar-type-p :int))
+(ok (waql::scalar-type-p :user))
+(ok (waql::scalar-type-p :event))
+(ok (waql::scalar-type-p :action))
+(ok (waql::scalar-type-p :conversion))
+(ok (null (waql::scalar-type-p 1)))
+
+
+;;;
+;;; test Type - Relation type
+;;;
+
+(diag "test Type - Relation type")
+
+;;; test MAKE-RELATION-TYPE function
+(ok (waql::make-relation-type '(:user :event)))
+(is-error (waql::make-relation-type '((:relation :user :event)))
+          simple-error)
+
+;;; test RELATION-TYPE-P function
+(ok (waql::relation-type-p '(:relation :user :event)))
+(ok (null (waql::relation-type-p :user)))
+
+;;; test RELATION-TYPE-ATTRS function
+(is (waql::relation-type-attrs (waql::make-relation-type '(:user :event)))
+    '(:user :event))
+(is-error (waql::relation-type-attrs '(:relation)) simple-error)
+
+;;; test RELATION-TYPE-DIM function
+
+
+;;;
+;;; test Type - Function type
+;;;
+
+(diag "test Type - Function type")
+
+;;; test MAKE-FUNCTION-TYPE function
+(ok (waql::make-function-type '(:int :int) :int))
+(is-error (waql::make-function-type 1 :int) type-error)
+(is-error (waql::make-function-type '(1) :int) simple-error)
+(is-error (waql::make-function-type '(:int) 1) simple-error)
+
+;;; test FUNCTION-TYPE-P function
+(let ((function-type (waql::make-function-type '(:int :int) :int)))
+  (is (waql::function-type-p function-type) t))
+
+;;; test FUNCTION-TYPE-ARG-TYPES function
+(let ((function-type (waql::make-function-type '(:int :int) :int)))
+  (is (waql::function-type-arg-types function-type) '(:int :int)))
+
+;;; test FUNCTION-TYPE-RETURN-TYPE function
+(let ((function-type (waql::make-function-type '(:int :int) :int)))
+  (is (waql::function-type-return-type function-type) :int))
 
 
 ;;;
