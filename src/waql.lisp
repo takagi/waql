@@ -145,7 +145,6 @@
   (cond
     ((literal-p expr) expr)
     ((symbol-p expr) (solve-pattern-match-symbol expr))
-;;     ((tuple-p expr) expr)
     ((let-p expr) (solve-pattern-match-let expr patenv))
     ((query-p expr) (solve-pattern-match-query expr patenv))
     ((lisp-form-p expr) expr)
@@ -399,7 +398,6 @@
   (cond
     ((literal-p expr) (specialize-function-literal expr))
     ((symbol-p expr) (specialize-function-symbol expr typenv))
-    ;; ((tuple-p expr) (specialize-function-tuple expr typenv))
     ((let-p expr) (specialize-function-let expr typenv))
     ((query-p expr) (specialize-function-query expr typenv))
     ((lisp-form-p expr) (specialize-function-lisp-form expr))
@@ -824,7 +822,6 @@
     ((literal-p expr) (compile-literal expr))
     ((symbol-p expr) (compile-symbol expr compenv scope))
     ((let-p expr) (compile-let expr compenv scope))
-    ;; ((tuple-p expr) (compile-tuple expr compenv scope))
     ((query-p expr) (compile-query expr compenv scope))
     ((lisp-form-p expr) (compile-lisp-form expr))
     ((function-p expr) (compile-function expr compenv scope))
