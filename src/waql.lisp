@@ -651,12 +651,16 @@
   nil)
 
 (defun add-typenv (var type typenv)
+  (assert (symbolp var))
+  (assert (type-p type))
   (acons var type typenv))
 
 (defun lookup-typenv (var typenv)
+  (assert (symbolp var))
   (cdr (assoc var typenv)))
 
 (defun remove-typenv (var typenv)
+  (assert (symbolp var))
   (remove var typenv :key #'car))
 
 
@@ -735,6 +739,16 @@
 
 (defun relation-type-pattern-dim (pattern)
   (length (relation-type-pattern-attrs pattern)))
+
+
+;;;
+;;; Function specialization - Types
+;;;
+
+(defun type-p (type)
+  (or (scalar-type-p type)
+      (relation-type-p type)
+      (function-type-p type)))
 
 
 ;;;
