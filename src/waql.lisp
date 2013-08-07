@@ -326,14 +326,14 @@
   (with-%pattern-matcher ((vars patenv preds) matcher)
     (cond
       ((underscore-notation-p var)
-       (let ((var1 (pattern-matcher-symbol var *underscore-count*)))
+       (let ((var1 (unique-symbol var *underscore-count*)))
          (incf *underscore-count*)
          (let ((vars1 (cons var1 vars)))
            (values vars1 patenv preds))))
       (t
        (cl-pattern:match (lookup-patenv var patenv)
          ((_ . count)
-          (let ((var1 (pattern-matcher-symbol var count)))
+          (let ((var1 (unique-symbol var count)))
             (let ((vars1   (cons var1 vars))
                   (patenv1 (inc-patenv var patenv))
                   (preds1  (cons `(= ,var ,var1) preds)))
@@ -343,7 +343,7 @@
                 (patenv1 (add-patenv var patenv)))
             (values vars1 patenv1 preds))))))))
 
-(defun pattern-matcher-symbol (var count)
+(defun unique-symbol (var count)
   (check-type var symbol)
   (check-type count integer)
   (let ((strs (mapcar #'princ-to-string (list "%" var count))))
