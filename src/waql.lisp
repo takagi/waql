@@ -375,6 +375,7 @@
     (acons var 1 elems)))
 
 (defun inc-patenv (var patenv)
+  (assert (symbolp var))
   (labels ((%inc-patenv (var elems)
              (cl-pattern:match elems
                (((var1 . cnt) . rest)
