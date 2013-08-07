@@ -1200,8 +1200,9 @@
 
 (diag "test Utilities")
 
-(ok (waql::percent-symbol-p '%a))
-(ok (null (waql::percent-symbol-p 'a)))
+(is (waql::percent-symbol-p '%a) t)
+(is (waql::percent-symbol-p 'a) nil)
+(is (waql::percent-symbol-p '(f i)) nil)
 
 
 (finalize)

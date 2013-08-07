@@ -1234,7 +1234,9 @@
 ;;;
 
 (defun percent-symbol-p (symbol)
-  (alexandria:starts-with #\% (princ-to-string symbol)))
+  (and (symbolp symbol)
+       (alexandria:starts-with #\% (princ-to-string symbol))
+       t))
 
 (defun flip (function)
   (lambda (x y)
