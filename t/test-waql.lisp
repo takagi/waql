@@ -112,7 +112,6 @@
 
 ;;; test DEFRELATION macro
 (ok (defrelation r (:int) (waql::empty-relation)))
-(is-error (defrelation r (:int) (waql::empty-relation) 1) type-error)
 (is-error (defrelation r (:int) 1) type-error)
 
 
@@ -539,9 +538,9 @@
 
 ;;; test to lookup predefined relations
 (let ((typenv (waql::empty-typenv))
-      (waql::*predefined-relation-typenv*
-        (waql::add-typenv 'r '(:relation :user :event)
-          (waql::empty-typenv))))
+      (waql::*predefined-relations*
+        (waql::add-predefined-relations 'r '(:user :event)
+          (waql::make-predefined-relations))))
   (is (waql::specialize-function-symbol 'r typenv)
       '(r (:relation :user :event))))
 
@@ -552,9 +551,9 @@
 
 (diag "test Function specialization - Let")
 
-(let ((waql::*predefined-relation-typenv*
-        (waql::add-typenv 'r1 '(:relation :user)
-          (waql::empty-typenv))))
+(let ((waql::*predefined-relations*
+        (waql::add-predefined-relations 'r1 '(:user)
+          (waql::make-predefined-relations))))
   (is (waql::specialize-function-let '(let (x (waql::user 1))
                                         (query (a) (<- (a) r1)
                                                    (= a x)))
@@ -565,9 +564,9 @@
         (:relation :user))))
 
 
-(let ((waql::*predefined-relation-typenv*
-        (waql::add-typenv 'r1 '(:relation :user)
-          (waql::empty-typenv))))
+(let ((waql::*predefined-relations*
+        (waql::add-predefined-relations 'r1 '(:user)
+          (waql::make-predefined-relations))))
   (is (waql::specialize-function-let '(let (f ((i :int)) (user i))
                                         (query (a) (<- (a) r1)
                                                    (= a (f 1))))
@@ -586,9 +585,9 @@
 
 ;;; test SPECIALIZE-FUNCTION-QUERY function
 (let ((typenv (waql::empty-typenv))
-      (waql::*predefined-relation-typenv*
-        (waql::add-typenv 'r2 '(:relation :user :event)
-          (waql::add-typenv 'r1 '(:relation :user :event)
+      (waql::*predefined-relations*
+        (waql::add-predefined-relations 'r2 '(:user :event)
+          (waql::add-predefined-relations 'r1 '(:user :event)
             (waql::empty-typenv)))))
   (is (waql::specialize-function-query '(query (a b c) (<- (a b) r1)
                                                        (<- (%a1 c) r2)

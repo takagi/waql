@@ -103,22 +103,27 @@
 (defun make-predefined-relations ()
   (empty-typenv))
 
-(defun add-predefined-relations (var types)
-  (setf *predefined-relations* (add-typenv var (make-relation-type types)
-                                 (remove-typenv var
-                                   *predefined-relations*))))
+(defun add-predefined-relations (var types predefined-relations)
+  (assert (symbolp var))
+  (add-typenv var (make-relation-type types)
+    (remove-typenv var predefined-relations)))
 
-(defun lookup-predefined-relations (var)
-  (lookup-typenv var *predefined-relations*))
+(defun lookup-predefined-relations (var &optional (predefined-relations
+                                                   *predefined-relations*))
+  (assert (symbolp var))
+  (lookup-typenv var predefined-relations))
 
 (defmacro defrelation (var types &body body)
   (assert (single body))
   (alexandria:with-gensyms (relation)
     `(eval-when (:compile-toplevel :load-toplevel :execute)
        (let ((,relation ,(car body)))
+         ;; currently, does not check relation type validity, just check-type
          (check-type ,relation relation)
          (defparameter ,var ,relation))
-       (add-predefined-relations ',var ',types))))
+       (setf *predefined-relations*
+             (add-predefined-relations ',var ',types
+                                       *predefined-relations*)))))
 
 
 ;;;
@@ -652,26 +657,6 @@
 
 (defun remove-typenv (var typenv)
   (remove var typenv :key #'car))
-
-
-;;;
-;;; Function specialization - Predefined relation type environment
-;;;
-
-(defvar *predefined-relation-typenv* (empty-typenv))
-
-(defun lookup-predefined-relations (var)
-  (lookup-typenv var *predefined-relation-typenv*))
-
-(defmacro defrelation (var attr-types &body body)
-  ;; currently does not check type of tuples
-  `(eval-when (:compile-toplevel :load-toplevel :execute)
-     (defparameter ,var
-       ,@body)
-     (setf *predefined-relation-typenv*
-           (add-typenv ',var '(:relation ,@attr-types)
-             (remove-typenv ',var
-               *predefined-relation-typenv*)))))
 
 
 ;;;
