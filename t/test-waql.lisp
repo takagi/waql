@@ -1181,6 +1181,7 @@
 (is (waql::quantification-vars '(<- (a b c) foo)) '(a b c))
 (is-error (waql::quantification-vars '(<- a foo)) simple-error)
 (is-error (waql::quantification-vars '(= 1 1)) simple-error)
+(is-error (waql::quantification-vars '(<- ((f i)) foo)) simple-error)
 
 ;;; test QUANTIFICATION-RELATION function
 (is (waql::quantification-relation '(<- (a b c) foo)) 'foo)

@@ -1170,9 +1170,11 @@
 
 (defun quantification-vars (qual)
   (cl-pattern:match qual
-    (('<- vars _) (unless (listp vars)
-                    (error "quantification variables must be list: ~S" vars))
-                  vars)
+    (('<- vars _)
+     (unless (and (listp vars)
+                  (every #'symbol-p vars))
+       (error "invalid expression: ~S" qual))
+     vars)
     (_ (error "invalid expression: ~S" qual))))
 
 (defun quantification-relation (qual)
