@@ -5,7 +5,14 @@
 
 (in-package :cl-user)
 (defpackage waql
-  (:use :cl :alexandria :anaphora)
+  (:use :cl)
+  (:import-from :anaphora
+                :acond
+                :it)
+  (:import-from :alexandria
+                :with-gensyms
+                :plist-alist
+                :rcurry)
   (:export ;; User
            #:user
            ;; Event
