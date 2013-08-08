@@ -12,6 +12,9 @@
   (:import-from :alexandria
                 :with-gensyms
                 :plist-alist
+                :starts-with
+                :length=
+                :hash-table-keys
                 :rcurry)
   (:export ;; User
            #:user
