@@ -43,7 +43,7 @@
   (empty-relation))
 
 ;;; < Event, User, Advertise >
-(defrelation +eua+ (:int :int :in)
+(defrelation +eua+ (:int :int :int)
   (eval-waql (query (ev u ad) (<- (ev u) +ev+)
                               (<- (ev ad) +ad+))))
 
@@ -83,14 +83,14 @@
   (ok (relation-member (tuple 2 2) result))
   (is (relation-count result) 3))
 
-;;; conversion per advertise by times
+;;; conversion per advertises by times
 (print
   (eval-waql (query ( ad
                       (count (query (ae) (<- (_ ae _) +uf1+)
                                          (<- (ae ad) +ad+))))
                     (<- (_ ad) +ad+))))
 
-;;; conversion per advertise by UUs
+;;; conversion per advertises by UUs
 (print
   (eval-waql (query ( ad
                       (count (query (u) (<- (u ae _) +uf1+)
