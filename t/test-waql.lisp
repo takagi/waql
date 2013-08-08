@@ -587,6 +587,15 @@
                        (waql::user= a %a1))
         (:relation :user :event :event))))
 
+(let ((typenv (waql::empty-typenv))
+      (waql::*predefined-relations*
+        (waql::add-predefined-relations 'r '(:user :event)
+          (waql::make-predefined-relations))))
+  (is-error (waql::specialize-function-query '(query (a b) (<- (a %r1) r)
+                                                           (= r %r1))
+                                             typenv)
+            simple-error))
+
 
 ;;;
 ;;; test Function specialization - Query - Quantification
