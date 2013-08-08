@@ -577,7 +577,7 @@
       (waql::*predefined-relations*
         (waql::add-predefined-relations 'r2 '(:user :event)
           (waql::add-predefined-relations 'r1 '(:user :event)
-            (waql::empty-typenv)))))
+            (waql::make-predefined-relations)))))
   (is (waql::specialize-function-query '(query (a b c) (<- (a b) r1)
                                                        (<- (%a1 c) r2)
                                                        (= a %a1))
