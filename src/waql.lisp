@@ -498,6 +498,9 @@
       (unless (notany %lookup-typenv vars)
         (error "variables ~S already exist in environment" vars)))
     (destructuring-bind (rel1 rel-type) (specialize-function rel typenv)
+      ;; error if quantification binder is not of relation type
+      (unless (relation-type-p rel-type)
+        (error "quantification binder must be of relation type: ~S" rel))
       ;; error if relation dimension does not match
       (unless (= (length vars) (relation-type-dim rel-type))
         (error "variables do not match to relation dimension"))

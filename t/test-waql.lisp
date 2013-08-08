@@ -589,6 +589,20 @@
 
 
 ;;;
+;;; test Function specialization - Query - Quantification
+;;;
+
+(diag "test Function specialization - Query - Quantification")
+
+;;; test SPECIALIZE-FUNCTION-QUANTIFICATION function
+(let ((typenv (waql::add-typenv 'x :int
+                (waql::empty-typenv))))
+  (is-error (waql::specialize-function-quantification
+              '(waql:<- (a b) x) nil '(a b) typenv)
+            simple-error))
+
+
+;;;
 ;;; test Function specialization - Lisp form
 ;;;
 
