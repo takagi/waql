@@ -37,7 +37,7 @@
 
 (defun relation->list (relation)
   ;; CAUTION: relation has no order naturally
-  (alexandria:hash-table-keys (%relation-body relation)))
+  (hash-table-keys (%relation-body relation)))
 
 (defun relation-member (item relation)
   (check-type item tuple)
@@ -269,7 +269,7 @@
   (%make-pattern-matcher :patenv patenv))
 
 (defmacro with-%pattern-matcher (((vars patenv preds) matcher) &body form)
-  (alexandria:with-gensyms (vars1 patenv1 preds1)
+  (with-gensyms (vars1 patenv1 preds1)
     `(let ((,vars   (%pattern-matcher-vars ,matcher))
            (,patenv (%pattern-matcher-patenv ,matcher))
            (,preds  (%pattern-matcher-preds ,matcher)))
@@ -494,7 +494,7 @@
   (let ((vars (quantification-vars qual))
         (rel  (quantification-relation qual)))
     ;; error if any variables already exist in environment
-    (let ((%lookup-typenv (alexandria:rcurry #'lookup-typenv typenv)))
+    (let ((%lookup-typenv (rcurry #'lookup-typenv typenv)))
       (unless (notany %lookup-typenv vars)
         (error "variables ~S already exist in environment" vars)))
     (destructuring-bind (rel1 rel-type) (specialize-function rel typenv)
@@ -554,8 +554,7 @@
       (t (error "undefined function: ~S" operator)))))
 
 (defun specialize-function-function-in-typenv (operator operands typenv)
-  (let ((%specialize-function
-          (alexandria:rcurry #'specialize-function typenv)))
+  (let ((%specialize-function (rcurry #'specialize-function typenv)))
     (let* ((pairs         (mapcar %specialize-function operands))
            (operands1     (mapcar #'car pairs))
            (operand-types (mapcar #'cadr pairs)))
@@ -564,7 +563,7 @@
              (return-type (function-type-return-type type)))
         (unless (function-type-p type)
           (error "symbol ~S is bound to variable" operator))
-        (unless (alexandria:length= arg-types operand-types)
+        (unless (length= arg-types operand-types)
           (error "invalid number of arguments: ~S" (length operands)))
         (unless (equal arg-types operand-types)
           (error "invalid type of arguments: ~S" `(,operator ,@operands)))
@@ -572,8 +571,7 @@
               return-type)))))
 
 (defun specialize-function-generic-function (operator operands typenv)
-  (let ((%specialize-function
-          (alexandria:rcurry #'specialize-function typenv)))
+  (let ((%specialize-function (rcurry #'specialize-function typenv)))
       (let* ((pairs         (mapcar %specialize-function operands))
              (operands1     (mapcar #'car pairs))
              (operand-types (mapcar #'cadr pairs)))
@@ -598,7 +596,7 @@
     user-id (((:user)         :int  user-id))))
 
 (defparameter +generic-functions+
-  (let ((alist (alexandria:plist-alist +function-table+)))
+  (let ((alist (plist-alist +function-table+)))
     (mapcar #'car alist)))
 
 (defun lookup-generic-function (operator operand-types)
@@ -742,8 +740,7 @@
     (t (compile-predicate qual rest exprs compenv scope))))
 
 (defun compile-query-exprs (exprs compenv scope)
-  (let ((%compile-expression (alexandria:rcurry #'compile-expression
-                                                 compenv scope)))
+  (let ((%compile-expression (rcurry #'compile-expression compenv scope)))
     (let ((compiled-exprs (mapcar %compile-expression exprs)))
       `(iterate:in outermost
          (collect-relation (tuple ,@compiled-exprs))))))
@@ -754,7 +751,7 @@
 ;;;
 
 (defun compile-quantification (qual rest exprs compenv scope outermost)
-  (let ((%scoped-symbol (alexandria:rcurry #'scoped-symbol scope)))
+  (let ((%scoped-symbol (rcurry #'scoped-symbol scope)))
     (let ((vars (quantification-vars qual))
           (rel  (quantification-relation qual)))
       (let ((vars1 (mapcar %scoped-symbol vars))
@@ -802,15 +799,15 @@
        (compile-function-built-in operator operands compenv scope)))))
 
 (defun compile-function-letfun (operator operands compenv scope)
-  (let ((%compile-expression (alexandria:rcurry #'compile-expression
-                                                compenv scope)))
+  (let ((%compile-expression (rcurry #'compile-expression compenv scope)))
     (cl-pattern:match (lookup-compenv operator compenv)
       ((:letfun args expr compenv1)
        ;; add args and operands compiled with compenv to compenv1 as
        ;; :argvar, then compile expr1 with new compenv1 and new scope
        (let ((compiled-operands (mapcar %compile-expression operands)))
-         (unless (alexandria:length= args compiled-operands)
-           (error "invalid number of arguments: ~S" (length compiled-operands)))
+         (unless (length= args compiled-operands)
+           (error "invalid number of arguments: ~S"
+                  (length compiled-operands)))
          (let ((pairs (mapcar #'cons args compiled-operands)))
            (let ((compenv2
                   (reduce #'(lambda (%compenv pair)
@@ -823,8 +820,7 @@
       (_ (error "symbol ~S is bound to variable" operator)))))
 
 (defun compile-function-built-in (operator operands compenv scope)
-  (let ((%compile-expression (alexandria:rcurry #'compile-expression
-                                                compenv scope)))
+  (let ((%compile-expression (rcurry #'compile-expression compenv scope)))
     `(,operator ,@(mapcar %compile-expression operands))))
 
 
@@ -1236,7 +1232,7 @@
 
 (defmacro defrelation (var types &body body)
   (assert (single body))
-  (alexandria:with-gensyms (relation)
+  (with-gensyms (relation)
     `(eval-when (:compile-toplevel :load-toplevel :execute)
        (let ((,relation ,(car body)))
          ;; currently, does not check relation type validity, just check-type
@@ -1253,7 +1249,7 @@
 
 (defun percent-symbol-p (symbol)
   (and (symbolp symbol)
-       (alexandria:starts-with #\% (princ-to-string symbol))
+       (starts-with #\% (princ-to-string symbol))
        t))
 
 (defun flip (function)
