@@ -1238,10 +1238,10 @@
 
 
 ;;;
-;;; test Parser
+;;; test Parser - backtracking version
 ;;;
 
-(diag "test Parser")
+(diag "test Parser - backtracking version")
 
 (is (parser-combinators:parse-string* (waql::expr?) "1") 1)
 (is (parser-combinators:parse-string* (waql::expr?) "-1") -1)
@@ -1258,12 +1258,15 @@
 (is (parser-combinators:parse-string* (waql::expr?) "let x := 1
                                                      in x")
     '(let (x 1) x))
+(is (parser-combinators:parse-string* (waql::expr?) "let x := y
+                                                     in x")
+    '(let (x y) x))
 
 (is (parser-combinators:parse-string* (waql::expr?) "let f i:int := i
                                                      in f 1")
     '(let (f ((i :int)) i) (f 1)))
 (is (parser-combinators:parse-string* (waql::expr?) "let f i := i
-                                                           in f 1")
+                                                     in f 1")
     nil)
 ;; (is (parser-combinators:parse-string* (waql::expr?) "let f () := 1
 ;;                                                      in f ()")
@@ -1299,6 +1302,74 @@
     1)
 
 (is (parser-combinators:parse-string* (waql::expr-top?) "     ;")
+    nil)
+
+
+;;;
+;;; test Parser - non-backtracking version
+;;;
+
+(diag "test Parser - non-backtracking version")
+
+(is (parser-combinators:parse-string* (waql::expr*) "1") 1)
+(is (parser-combinators:parse-string* (waql::expr*) "-1") -1)
+
+(is (parser-combinators:parse-string* (waql::expr*) "x")
+    'x)
+(is (parser-combinators:parse-string* (waql::expr*) "+x+")
+    '+x+)
+(is (parser-combinators:parse-string* (waql::expr*) "user-id")
+    'user-id)
+(isnt (parser-combinators:parse-string* (waql::expr*) "0x")
+      '0x)
+
+(is (parser-combinators:parse-string* (waql::expr*) "let x := 1
+                                                     in x")
+    '(let (x 1) x))
+(is (parser-combinators:parse-string* (waql::expr*) "let x := y
+                                                     in x")
+    '(let (x y) x))
+
+(is (parser-combinators:parse-string* (waql::expr*) "let f i:int := i
+                                                     in f 1")
+    '(let (f ((i :int)) i) (f 1)))
+(is (parser-combinators:parse-string* (waql::expr*) "let f i := i
+                                                     in f 1")
+    nil)
+;; (is (parser-combinators:parse-string* (waql::expr*) "let f () := 1
+;;                                                      in f ()")
+;;     '(let (f () 1) (f)))
+
+(is (parser-combinators:parse-string* (waql::expr*) "{ <a, b> | <a, b> <- R
+                                                              , a = 1}")
+    '(query (a b) (<- (a b) r)
+                  (= a 1)))
+(is (parser-combinators:parse-string* (waql::expr*) "{ <a> | <a, _> <- R }")
+    '(query (a) (<- (a _) r)))
+
+(is (parser-combinators:parse-string* (waql::expr*) "f i j")
+    '(f i j))
+(is (parser-combinators:parse-string* (waql::expr*) "f f i")
+    '(f f i))
+(is (parser-combinators:parse-string* (waql::expr*) "f (f i)")
+    '(f (f i)))
+(is (parser-combinators:parse-string* (waql::expr*) "let")
+    nil)
+
+(is (parser-combinators:parse-string* (waql::expr*) "1 = 1")
+    '(= 1 1))
+(is (parser-combinators:parse-string* (waql::expr*) "1 = f i = 1")
+    '(= (= 1 (f i)) 1))
+
+(is (parser-combinators:parse-string* (waql::expr*) "let x := 1
+                                                     in -- x is bound to 1
+                                                        x")
+    '(let (x 1) x))
+
+(is (parser-combinators:parse-string* (waql::expr-top*) "     1;")
+    1)
+
+(is (parser-combinators:parse-string* (waql::expr-top*) "     ;")
     nil)
 
 

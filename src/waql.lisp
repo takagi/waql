@@ -142,13 +142,13 @@
         (error "invalid command: ~S" (trim line)))
       ;; if comment or semilocon only, continue
       (multiple-value-setq (result suffix success front)
-        (parse-string* (choice (comment?) #\;) trimed-line :complete t))
+        (parse-string* (choice1 (comment?) #\;) trimed-line :complete t))
       (when success
         (iterate:next-iteration))
       ;; if semicolon-terminated line, evaluate and continue
       (when (semicolon-terminated-p trimed-line)
         (multiple-value-setq (result suffix success front)
-          (parse-string* (expr-top?) trimed-line :complete t))
+          (parse-string* (expr-top*) trimed-line :complete t))
         (unless success
           (error "parse error: ~S" line))
         (setf sexp (compile-waql result))
@@ -158,7 +158,7 @@
       ;; if not semicolon-terminated but valid expression,
       ;; evaluate and continue
       (multiple-value-setq (result suffix success front)
-        (parse-string* (expr?) trimed-line :complete t))
+        (parse-string* (expr*) trimed-line :complete t))
       (when success
         (setf sexp (compile-waql result))
         (princ (eval sexp))
@@ -173,7 +173,7 @@
         ;; if semicolon-terminated line, evaluate and continue outer loop
         (when (semicolon-terminated-p line)
           (multiple-value-setq (result suffix success front)
-            (parse-string* (expr-top?) trimed-line :complete t))
+            (parse-string* (expr-top*) trimed-line :complete t))
           (unless success
             (error "parse error: ~S" line))
           (setf sexp (compile-waql result))
@@ -183,7 +183,7 @@
         ;; if not semicolon-terminated but valid expression,
         ;; evaluate and continue outer loop
         (multiple-value-setq (result suffix success front)
-          (parse-string* (expr?) trimed-line :complete t))
+          (parse-string* (expr*) trimed-line :complete t))
         (when success
           (setf sexp (compile-waql result))
           (princ (eval sexp))
@@ -211,7 +211,7 @@
             (fresh-line)))
         ;; if semicolon-terminated, evaluate and continue
         (multiple-value-setq (result suffix success front)
-          (parse-string* (expr-top?) code :complete t))
+          (parse-string* (expr-top*) code :complete t))
         (unless (and success (null front))
           (error "parse error: ~S" code))
         (fresh-line)
@@ -1385,15 +1385,31 @@
               (many? (choice (whitespace?) (comment?)))
               result))
 
+(defun ~ws* (Q)
+  ;; skip whitespaces and comments
+  (named-seq* (parser-combinators:<- result Q)
+              (many* (choice1 (whitespace?) (comment*)))
+              result))
+
 (defun tuple? (Q)
   (bracket? (~ws? #\<)
             (sepby1? Q (~ws? #\,))
             (~ws? #\>)))
 
+(defun tuple* (Q)
+  (bracket? (~ws* #\<)
+            (sepby1* Q (~ws* #\,))
+            (~ws* #\>)))
+
 (defun comment? ()
   (seq-list? "--"
              (many? (any?))
              (choice #\Newline (end?))))
+
+(defun comment* ()
+  (seq-list* "--"
+             (many* (any?))
+             (choice1  #\Newline (end?))))
 
 (defun any? ()
   (sat #'graphic-char-p))
@@ -1404,22 +1420,45 @@
               (~ws? #\;)
               result))
 
+(defun expr-top* ()
+  (named-seq* (many* (choice1 (whitespace?) (comment*)))
+              (parser-combinators:<- result (expr*))
+              (~ws* #\;)
+              result))
+
 (defun expr? ()
   (choices (let?)
            (query?)
            (fexpr?)
            (literal?)))
 
+(defun expr* ()
+  (choices1 (let-*)
+            (query*)
+            (fexpr*)
+            (literal*)))
+
 (defun enclosed-expr? ()
   (bracket? (~ws? #\()
             (delayed? (expr?))
             (~ws? #\))))
 
+(defun enclosed-expr* ()
+  (bracket? (~ws* #\()
+            (delayed? (expr*))
+            (~ws* #\))))
+
 (defun literal? ()
   (~ws? (int?)))
 
+(defun literal* ()
+  (~ws* (int*)))
+
 (defun reserved? ()
-  (choices "let" "quit"))
+  (choices "let" "in" "bool" "int"))
+
+(defun reserved* ()
+  (choices1 "let" "in" "bool" "int"))
 
 (defun symbol? ()
   (~ws? (except?
@@ -1431,19 +1470,43 @@
                             (cons head tail)))))
           (reserved?))))
 
+(defun symbol* ()
+  (~ws* (except?
+          (named-seq* (parser-combinators:<- head (symbol-head*))
+                      (parser-combinators:<- tail (many* (symbol-tail*)))
+                      (alexandria:symbolicate
+                        (string-upcase
+                          (concatenate 'string
+                            (cons head tail)))))
+          (reserved*))))
+
 (defun symbol-head? ()
   (choices (letter?)
            #\+ #\-))
+
+(defun symbol-head* ()
+  (choices1 (letter?)
+            #\+ #\-))
 
 (defun symbol-tail? ()
   (choices (alphanum?)
            #\+ #\-))
 
+(defun symbol-tail* ()
+  (choices1 (alphanum?)
+            #\+ #\-))
+
 (defun underscore? ()
   (~ws? (named-seq? #\_ '_)))
 
+(defun underscore* ()
+  (~ws* (named-seq* #\_ '_)))
+
 (defun let? ()
   (choice (let-var?) (let-fun?)))
+
+(defun let-* ()
+  (choice1 (let-var*) (let-fun*)))
 
 (defun let-var? ()
   (named-seq? (~ws? "let")
@@ -1452,6 +1515,15 @@
               (parser-combinators:<- expr (delayed? (expr?)))
               (~ws? "in")
               (parser-combinators:<- body (delayed? (expr?)))
+              (make-let-var var expr body)))
+
+(defun let-var* ()
+  (named-seq* (~ws* "let")
+              (parser-combinators:<- var (symbol*))
+              (~ws* ":=")
+              (parser-combinators:<- expr (delayed? (expr*)))
+              (~ws* "in")
+              (parser-combinators:<- body (delayed? (expr*)))
               (make-let-var var expr body)))
 
 (defun let-fun? ()
@@ -1464,10 +1536,26 @@
               (parser-combinators:<- body (delayed? (expr?)))
               (make-let-fun var largs expr body)))
 
+(defun let-fun* ()
+  (named-seq* (~ws* "let")
+              (parser-combinators:<- var (symbol*))
+              (parser-combinators:<- largs (many1* (larg*)))
+              (~ws* ":=")
+              (parser-combinators:<- expr (delayed? (expr*)))
+              (~ws* "in")
+              (parser-combinators:<- body (delayed? (expr*)))
+              (make-let-fun var largs expr body)))
+
 (defun larg? ()
   (named-seq? (parser-combinators:<- var (symbol?))
               (~ws? ":")
               (parser-combinators:<- type (type?))
+              (list var type)))
+
+(defun larg* ()
+  (named-seq* (parser-combinators:<- var (symbol*))
+              (~ws* ":")
+              (parser-combinators:<- type (type*))
               (list var type)))
 
 (defun query? ()
@@ -1478,8 +1566,19 @@
               (~ws? "}")
               (make-query exprs quals)))
 
+(defun query* ()
+  (named-seq* (~ws* "{")
+              (parser-combinators:<- exprs (expr-tuple*))
+              (~ws* "|")
+              (parser-combinators:<- quals (sepby1* (qual*) (~ws* #\,)))
+              (~ws* "}")
+              (make-query exprs quals)))
+
 (defun qual? ()
   (choice (quantification?) (delayed? (expr?))))
+
+(defun qual* ()
+  (choice1 (quantification*) (delayed? (expr*))))
 
 (defun quantification? ()
   (named-seq? (parser-combinators:<- symbols (symbol-or-underscore-tuple?))
@@ -1487,20 +1586,49 @@
               (parser-combinators:<- rel (delayed? (expr?)))
               (make-quantification symbols rel)))
 
+(defun quantification* ()
+  (named-seq* (parser-combinators:<- symbols (symbol-or-underscore-tuple*))
+              (~ws* "<-")
+              (parser-combinators:<- rel (delayed? (expr*)))
+              (make-quantification symbols rel)))
+
 (defun expr-tuple? ()
   (tuple? (delayed? (expr?))))
+
+(defun expr-tuple* ()
+  (tuple* (delayed? (expr*))))
 
 (defun symbol-or-underscore-tuple? ()
   (tuple? (choice (symbol?)
                   (underscore?))))
 
+(defun symbol-or-underscore-tuple* ()
+  (tuple* (choice1 (symbol*)
+                   (underscore*))))
+
 (defun fexpr? ()
   (choice (infix-fexpr?)
           (prefix-fexpr?)))
 
+(defun fexpr* ()
+  (choice1 (infix-fexpr*)
+           (prefix-fexpr*)))
+
 (defun infix-fexpr? ()
   (expression? (infix-aexpr?)
                `((,(comparison-op?) :left))))
+
+(defun infix-fexpr* ()
+  (expression* (infix-aexpr*)
+               `((,(comparison-op*) :left))))
+
+(def-cached-parser comparison-op?
+  (choice (mdo (~ws? #\<) (result (curry #'list '<)))
+          (mdo (~ws? #\=) (result (curry #'list '=)))))
+
+(def-cached-parser comparison-op*
+  (choice1 (mdo (~ws* #\<) (result (curry #'list '<)))
+           (mdo (~ws* #\=) (result (curry #'list '=)))))
 
 (defun infix-aexpr? ()
   (choices (enclosed-expr?)
@@ -1509,6 +1637,13 @@
            (query?)
            (prefix-fexpr?)))
 
+(defun infix-aexpr* ()
+  (choices1 (enclosed-expr*)
+            (literal*)
+            (let-*)
+            (query*)
+            (prefix-fexpr*)))
+
 (defun prefix-fexpr? ()
   (named-seq? (parser-combinators:<- symbol (symbol?))
               (parser-combinators:<- aexprs (many? (prefix-aexpr?)))
@@ -1516,8 +1651,12 @@
                   symbol
                   (make-function symbol aexprs))))
 
-(def-cached-parser comparison-op?
-  (mdo (~ws? #\=) (result (curry #'list '=))))
+(defun prefix-fexpr* ()
+  (named-seq* (parser-combinators:<- symbol (symbol*))
+              (parser-combinators:<- aexprs (many* (prefix-aexpr*)))
+              (if (null aexprs)
+                  symbol
+                  (make-function symbol aexprs))))
 
 (defun prefix-aexpr? ()
   (choices (enclosed-expr?)
@@ -1526,22 +1665,46 @@
            (query?)
            (symbol?)))
 
+(defun prefix-aexpr* ()
+  (choices1 (enclosed-expr*)
+            (literal*)
+            (let-*)
+            (query*)
+            (symbol*)))
+
 (defun type? ()
   (choices (ty-bool?)
            (ty-int?)
            (ty-relation?)))
 
+(defun type* ()
+  (choices1 (ty-bool*)
+            (ty-int*)
+            (ty-relation*)))
+
 (defun ty-bool? ()
   (named-seq? (~ws? "bool") :bool))
+
+(defun ty-bool* ()
+  (named-seq* (~ws* "bool") :bool))
 
 (defun ty-int? ()
   (named-seq? (~ws? "int") :int))
 
+(defun ty-int* ()
+  (named-seq* (~ws* "int") :int))
+
 (defun ty-relation? ()
   (bracket? (~ws? #\{) (type-tuple?) (~ws? #\})))
 
+(defun ty-relation* ()
+  (bracket? (~ws* #\{) (type-tuple*) (~ws* #\})))
+
 (defun type-tuple? ()
   (tuple? (delayed? (type?))))
+
+(defun type-tuple* ()
+  (tuple* (delayed? (type*))))
 
 
 ;;;
