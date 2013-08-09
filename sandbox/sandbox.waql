@@ -1,16 +1,34 @@
-
 -- conversion per advertises by times
-{ < ad
-  , count { <ae> | <_, ae, _> <- +uf1+
-                 , <ae, ad> <- +ad+ }
-  >
-| <_, ad> <- +ad+ };
+let +eua+ := -- Event, User, Advertise
+             { <ev, u, ad> | <ev, u>  <- +ev+
+                           , <ev, ad> <- +ad+ } in
+let +euc+ := -- Event, User, Conversion
+             { <ev, u, cv> | <ev, u>  <- +ev+
+                           , <ev, cv> <- +cv+ } in
+let +uf1+ := -- User, Action Event, Conversion Event
+             { <u, ae, ce> | <ae, u, ad> <- +eua+
+                           , <ce, u, cv> <- +euc+
+                           , ae < ce }
+in { < ad
+     , count { <ae> | <_, ae, _> <- +uf1+
+                    , <ae, ad> <- +ad+ }
+     >
+   | <_, ad> <- +ad+ };
+
 
 -- conversion per advertises by UUs
-{ < ad
-  , count { <u> | <u, ae, _> <- +uf1+
-                , <ae, ad> <- +ad+ }
-  >
-| <_, ad> <- +ad+ };
-
-aa
+let +eua+ := -- Event, User, Advertise
+             { <ev, u, ad> | <ev, u>  <- +ev+
+                           , <ev, ad> <- +ad+ } in
+let +euc+ := -- Event, User, Conversion
+             { <ev, u, cv> | <ev, u>  <- +ev+
+                           , <ev, cv> <- +cv+ } in
+let +uf1+ := -- User, Action Event, Conversion Event
+             { <u, ae, ce> | <ae, u, ad> <- +eua+
+                           , <ce, u, cv> <- +euc+
+                           , ae < ce }
+in { < ad
+     , count { <u> | <u, ae, _> <- +uf1+
+                   , <ae, ad> <- +ad+ }
+     >
+   | <_, ad> <- +ad+ };
