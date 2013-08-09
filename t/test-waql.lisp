@@ -247,7 +247,7 @@
         '(query (a c) (<- (a _) r1)
                       (<- (a c) r2))
         patenv)
-      '(query (a c) (<- (a %_1) r1)
+      '(query (a c) (<- (a waql::%_1) r1)
                     (<- (%a1 c) r2)
                     (= a %a1))))
 
@@ -278,7 +278,7 @@
                                           (query (a b) (<- (a i) x))))
                                      (waql::empty-patenv))
       '(let (x (query (a b) (<- (a b) r1)
-                            (<- (%a1 %_1) r2)
+                            (<- (%a1 waql::%_1) r2)
                             (= a %a1)))
          (let (i 1)
            (query (a b) (<- (a %i1) x)
@@ -354,7 +354,7 @@
       (waql::*underscore-count* 1))
   (is (waql::solve-pattern-match-quantification '(<- (_ _) r2) nil '(a b)
                                                 patenv)
-      '((<- (%_1 %_2) r2) nil (a b))))
+      '((<- (waql::%_1 waql::%_2) r2) nil (a b))))
 
 ;;; error if trying to use variable starting with "%"
 (let ((patenv (waql::empty-patenv)))
@@ -419,7 +419,7 @@
                             (waql::make-pattern-matcher patenv))))))))
     (destructuring-bind (vars patenv1 preds)
         (waql::pattern-matcher-result matcher)
-      (is vars '(%a1 %b1 c %_1 %_2))
+      (is vars '(%a1 %b1 c waql::%_1 waql::%_2))
       (is (waql::lookup-patenv 'a patenv1) '(a . 2))
       (is (waql::lookup-patenv 'b patenv1) '(b . 2))
       (is (waql::lookup-patenv 'c patenv1) '(c . 1))
@@ -1235,6 +1235,71 @@
 (let ((waql::*predefined-relations* (waql::make-predefined-relations)))
   (ok (defrelation r (:int) (waql::empty-relation)))
   (is-error (defrelation r (:int) 1) type-error))
+
+
+;;;
+;;; test Parser
+;;;
+
+(diag "test Parser")
+
+(is (parser-combinators:parse-string* (waql::expr?) "1") 1)
+(is (parser-combinators:parse-string* (waql::expr?) "-1") -1)
+
+(is (parser-combinators:parse-string* (waql::expr?) "x")
+    'x)
+(is (parser-combinators:parse-string* (waql::expr?) "+x+")
+    '+x+)
+(is (parser-combinators:parse-string* (waql::expr?) "user-id")
+    'user-id)
+(isnt (parser-combinators:parse-string* (waql::expr?) "0x")
+      '0x)
+
+(is (parser-combinators:parse-string* (waql::expr?) "let x := 1
+                                                     in x")
+    '(let (x 1) x))
+
+(is (parser-combinators:parse-string* (waql::expr?) "let f i:int := i
+                                                     in f 1")
+    '(let (f ((i :int)) i) (f 1)))
+(is (parser-combinators:parse-string* (waql::expr?) "let f i := i
+                                                           in f 1")
+    nil)
+;; (is (parser-combinators:parse-string* (waql::expr?) "let f () := 1
+;;                                                      in f ()")
+;;     '(let (f () 1) (f)))
+
+(is (parser-combinators:parse-string* (waql::expr?) "{ <a, b> | <a, b> <- R
+                                                              , a = 1}")
+    '(query (a b) (<- (a b) r)
+                  (= a 1)))
+(is (parser-combinators:parse-string* (waql::expr?) "{ <a> | <a, _> <- R }")
+    '(query (a) (<- (a _) r)))
+
+(is (parser-combinators:parse-string* (waql::expr?) "f i j")
+    '(f i j))
+(is (parser-combinators:parse-string* (waql::expr?) "f f i")
+    '(f f i))
+(is (parser-combinators:parse-string* (waql::expr?) "f (f i)")
+    '(f (f i)))
+(is (parser-combinators:parse-string* (waql::expr?) "let")
+    nil)
+
+(is (parser-combinators:parse-string* (waql::expr?) "1 = 1")
+    '(= 1 1))
+(is (parser-combinators:parse-string* (waql::expr?) "1 = f i = 1")
+    '(= (= 1 (f i)) 1))
+
+(is (parser-combinators:parse-string* (waql::expr?) "let x := 1
+                                                     in -- x is bound to 1
+                                                        x")
+    '(let (x 1) x))
+
+(is (parser-combinators:parse-string* (waql::expr-top?) "     1;")
+    1)
+
+(is (parser-combinators:parse-string* (waql::expr-top?) "     ;")
+    nil)
 
 
 ;;;

@@ -1,0 +1,16 @@
+
+-- conversion per advertises by times
+{ < ad
+  , count { <ae> | <_, ae, _> <- +uf1+
+                 , <ae, ad> <- +ad+ }
+  >
+| <_, ad> <- +ad+ };
+
+-- conversion per advertises by UUs
+{ < ad
+  , count { <u> | <u, ae, _> <- +uf1+
+                , <ae, ad> <- +ad+ }
+  >
+| <_, ad> <- +ad+ };
+
+aa

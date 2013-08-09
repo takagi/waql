@@ -95,6 +95,135 @@
 
 
 ;;;
+;;; WAQL Language interface
+;;;
+
+(defun repl-trim (string)
+  (left-trim (trim-after-semicolon string)))
+
+(defun trim-after-semicolon (string)
+  (let ((pos (position #\; string)))
+    (if pos
+        (subseq string 0 (1+ pos))
+        string)))
+
+(defun semicolon-terminated-p (string)
+  (if (string/= string "")
+      (char= #\; (aref string (1- (length string))))
+      nil))
+
+(defparameter +load-command-regexp+
+  "^:load\\s+(\\S+)$")
+
+(defun repl-waql ()
+  (let (line trimed-line result suffix success front sexp)
+    (iterate:iter
+      (princ ">>> ")
+      (force-output)
+      (setf line (read-line)
+            trimed-line (repl-trim line))
+      ;; if empty line, continue
+      (when (string= "" trimed-line)
+        (iterate:next-iteration))
+      ;; ":" starts command parsing
+      (when (starts-with #\: trimed-line)
+        ;; if :quit command, exit
+        (when (string= ":quit" (trim line))
+          (return))
+        ;; if :load command, load waql file
+        (let ((%line (trim line)))
+          (when (cl-ppcre:scan +load-command-regexp+ %line)
+            (cl-ppcre:register-groups-bind (filespec)
+                (+load-command-regexp+ %line)
+              (load-waql filespec)
+              (fresh-line)
+              (iterate:next-iteration))))
+        ;; invalid command
+        (error "invalid command: ~S" (trim line)))
+      ;; if comment or semilocon only, continue
+      (multiple-value-setq (result suffix success front)
+        (parse-string* (choice (comment?) #\;) trimed-line :complete t))
+      (when success
+        (iterate:next-iteration))
+      ;; if semicolon-terminated line, evaluate and continue
+      (when (semicolon-terminated-p trimed-line)
+        (multiple-value-setq (result suffix success front)
+          (parse-string* (expr-top?) trimed-line :complete t))
+        (unless success
+          (error "parse error: ~S" line))
+        (setf sexp (compile-waql result))
+        (princ (eval sexp))
+        (fresh-line)
+        (iterate:next-iteration))
+      ;; if not semicolon-terminated but valid expression,
+      ;; evaluate and continue
+      (multiple-value-setq (result suffix success front)
+        (parse-string* (expr?) trimed-line :complete t))
+      (when success
+        (setf sexp (compile-waql result))
+        (princ (eval sexp))
+        (fresh-line)
+        (iterate:next-iteration))
+      ;; if invalid expression, try multi line input
+      (iterate:iter
+        (princ "... ")
+        (force-output)
+        (setf line (concatenate 'string line (string #\Newline) (read-line))
+              trimed-line (repl-trim line))
+        ;; if semicolon-terminated line, evaluate and continue outer loop
+        (when (semicolon-terminated-p line)
+          (multiple-value-setq (result suffix success front)
+            (parse-string* (expr-top?) trimed-line :complete t))
+          (unless success
+            (error "parse error: ~S" line))
+          (setf sexp (compile-waql result))
+          (princ (eval sexp))
+          (fresh-line)
+          (return))
+        ;; if not semicolon-terminated but valid expression,
+        ;; evaluate and continue outer loop
+        (multiple-value-setq (result suffix success front)
+          (parse-string* (expr?) trimed-line :complete t))
+        (when success
+          (setf sexp (compile-waql result))
+          (princ (eval sexp))
+          (fresh-line)
+          (return))))))
+
+(defun load-waql (filespec)
+  (with-open-file (stream filespec :direction :input)
+    (let (code result suffix success front sexp)
+      (iterate:iter
+        (iterate:for line in-file filespec using #'read-line)
+        (setf code (if (null code)
+                       (trim-after-semicolon line)
+                       (concatenate 'string code (string #\Newline)
+                                            (trim-after-semicolon line))))
+        ;; not semicolon-terminated, continue to read next line
+        (unless (semicolon-terminated-p code)
+          (iterate:next-iteration))
+        ;; print code with ">" leaded
+        (with-input-from-string (stream1 code)
+          (iterate:iter
+            (iterate:for line1 in-stream stream1 using #'read-line)
+            (princ "> ")
+            (princ line1)
+            (fresh-line)))
+        ;; if semicolon-terminated, evaluate and continue
+        (multiple-value-setq (result suffix success front)
+          (parse-string* (expr-top?) code :complete t))
+        (unless (and success (null front))
+          (error "parse error: ~S" code))
+        (fresh-line)
+        (setf sexp (compile-waql result))
+        (princ (eval sexp))
+        (fresh-line)
+        (terpri)
+        ;; reset code to null
+        (setf code nil)))))
+
+
+;;;
 ;;; Evaluating WAQL
 ;;;
 
@@ -1247,6 +1376,175 @@
 
 
 ;;;
+;;; Parser
+;;;
+
+(defun ~ws? (Q)
+  ;; skip whitespaces and comments
+  (named-seq? (parser-combinators:<- result Q)
+              (many? (choice (whitespace?) (comment?)))
+              result))
+
+(defun tuple? (Q)
+  (bracket? (~ws? #\<)
+            (sepby1? Q (~ws? #\,))
+            (~ws? #\>)))
+
+(defun comment? ()
+  (seq-list? "--"
+             (many? (any?))
+             (choice #\Newline (end?))))
+
+(defun any? ()
+  (sat #'graphic-char-p))
+
+(defun expr-top? ()
+  (named-seq? (many? (choice (whitespace?) (comment?)))
+              (parser-combinators:<- result (expr?))
+              (~ws? #\;)
+              result))
+
+(defun expr? ()
+  (choices (let?)
+           (query?)
+           (fexpr?)
+           (literal?)))
+
+(defun enclosed-expr? ()
+  (bracket? (~ws? #\()
+            (delayed? (expr?))
+            (~ws? #\))))
+
+(defun literal? ()
+  (~ws? (int?)))
+
+(defun reserved? ()
+  (choices "let" "quit"))
+
+(defun symbol? ()
+  (~ws? (except?
+          (named-seq? (parser-combinators:<- head (symbol-head?))
+                      (parser-combinators:<- tail (many? (symbol-tail?)))
+                      (alexandria:symbolicate
+                        (string-upcase
+                          (concatenate 'string
+                            (cons head tail)))))
+          (reserved?))))
+
+(defun symbol-head? ()
+  (choices (letter?)
+           #\+ #\-))
+
+(defun symbol-tail? ()
+  (choices (alphanum?)
+           #\+ #\-))
+
+(defun underscore? ()
+  (~ws? (named-seq? #\_ '_)))
+
+(defun let? ()
+  (choice (let-var?) (let-fun?)))
+
+(defun let-var? ()
+  (named-seq? (~ws? "let")
+              (parser-combinators:<- var (symbol?))
+              (~ws? ":=")
+              (parser-combinators:<- expr (delayed? (expr?)))
+              (~ws? "in")
+              (parser-combinators:<- body (delayed? (expr?)))
+              (make-let-var var expr body)))
+
+(defun let-fun? ()
+  (named-seq? (~ws? "let")
+              (parser-combinators:<- var (symbol?))
+              (parser-combinators:<- largs (many1? (larg?)))
+              (~ws? ":=")
+              (parser-combinators:<- expr (delayed? (expr?)))
+              (~ws? "in")
+              (parser-combinators:<- body (delayed? (expr?)))
+              (make-let-fun var largs expr body)))
+
+(defun larg? ()
+  (named-seq? (parser-combinators:<- var (symbol?))
+              (~ws? ":")
+              (parser-combinators:<- type (type?))
+              (list var type)))
+
+(defun query? ()
+  (named-seq? (~ws? "{")
+              (parser-combinators:<- exprs (expr-tuple?))
+              (~ws? "|")
+              (parser-combinators:<- quals (sepby1? (qual?) (~ws? #\,)))
+              (~ws? "}")
+              (make-query exprs quals)))
+
+(defun qual? ()
+  (choice (quantification?) (delayed? (expr?))))
+
+(defun quantification? ()
+  (named-seq? (parser-combinators:<- symbols (symbol-or-underscore-tuple?))
+              (~ws? "<-")
+              (parser-combinators:<- rel (delayed? (expr?)))
+              (make-quantification symbols rel)))
+
+(defun expr-tuple? ()
+  (tuple? (delayed? (expr?))))
+
+(defun symbol-or-underscore-tuple? ()
+  (tuple? (choice (symbol?)
+                  (underscore?))))
+
+(defun fexpr? ()
+  (choice (infix-fexpr?)
+          (prefix-fexpr?)))
+
+(defun infix-fexpr? ()
+  (expression? (infix-aexpr?)
+               `((,(comparison-op?) :left))))
+
+(defun infix-aexpr? ()
+  (choices (enclosed-expr?)
+           (literal?)
+           (let?)
+           (query?)
+           (prefix-fexpr?)))
+
+(defun prefix-fexpr? ()
+  (named-seq? (parser-combinators:<- symbol (symbol?))
+              (parser-combinators:<- aexprs (many? (prefix-aexpr?)))
+              (if (null aexprs)
+                  symbol
+                  (make-function symbol aexprs))))
+
+(def-cached-parser comparison-op?
+  (mdo (~ws? #\=) (result (alexandria:curry #'list '=))))
+
+(defun prefix-aexpr? ()
+  (choices (enclosed-expr?)
+           (literal?)
+           (let?)
+           (query?)
+           (symbol?)))
+
+(defun type? ()
+  (choices (ty-bool?)
+           (ty-int?)
+           (ty-relation?)))
+
+(defun ty-bool? ()
+  (named-seq? (~ws? "bool") :bool))
+
+(defun ty-int? ()
+  (named-seq? (~ws? "int") :int))
+
+(defun ty-relation? ()
+  (bracket? (~ws? #\{) (type-tuple?) (~ws? #\})))
+
+(defun type-tuple? ()
+  (tuple? (delayed? (type?))))
+
+
+;;;
 ;;; Utilities
 ;;;
 
@@ -1270,3 +1568,9 @@
   (and (listp list)
        (car list)
        (null (cdr list))))
+
+(defun left-trim (string)
+  (string-left-trim '(#\Space #\Tab #\Newline) string))
+
+(defun trim (string)
+  (string-trim '(#\Space #\Tab #\Newline) string))

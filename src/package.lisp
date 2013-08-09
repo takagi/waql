@@ -5,7 +5,7 @@
 
 (in-package :cl-user)
 (defpackage waql
-  (:use :cl)
+  (:use :cl :parser-combinators)
   (:import-from :anaphora
                 :acond
                 :it)
@@ -13,6 +13,7 @@
                 :with-gensyms
                 :plist-alist
                 :starts-with
+                :starts-with-subseq
                 :length=
                 :hash-table-keys
                 :rcurry)
@@ -41,11 +42,15 @@
            #:for-tuple
            #:in-relation
            #:collect-relation
+           ;; Language interface
+           #:repl-waql
+           #:load-waql
            ;; Querying
            #:eval-waql
            #:compile-waql
            #:query
            #:<-
+           #:_
            #:lisp
            #:defrelation
            ))
