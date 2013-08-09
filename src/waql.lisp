@@ -1517,7 +1517,7 @@
                   (make-function symbol aexprs))))
 
 (def-cached-parser comparison-op?
-  (mdo (~ws? #\=) (result (alexandria:curry #'list '=))))
+  (mdo (~ws? #\=) (result (curry #'list '=))))
 
 (defun prefix-aexpr? ()
   (choices (enclosed-expr?)

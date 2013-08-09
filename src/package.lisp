@@ -16,6 +16,7 @@
                 :starts-with-subseq
                 :length=
                 :hash-table-keys
+                :curry
                 :rcurry)
   (:export ;; User
            #:user
