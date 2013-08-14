@@ -241,7 +241,7 @@
 ;;;
 
 (defun solve-pattern-match-top (expr)
-  (solve-pattern-match expr (empty-patenv)))
+  (solve-pattern-match expr (initial-patenv)))
 
 (defun solve-pattern-match (expr patenv)
   (cond
@@ -261,10 +261,9 @@
 (defun solve-pattern-match-symbol (expr patenv)
   (unless (null (percent-symbol-p expr))
     (error "symbol beginning with \"%\" is reserved: ~S" expr))
-  (cond
-    ((lookup-patenv expr patenv) expr)
-    ((lookup-predefined-relations expr) expr)
-    (t (error "The variable ~A is unbound." expr))))
+  (unless (lookup-patenv expr patenv)
+    (error "The variable ~A is unbound." expr))
+  expr)
 
 
 ;;;
@@ -463,13 +462,19 @@
 (defun empty-patenv ()
   (%make-patenv))
 
+(defun initial-patenv ()
+  (bulk-add-patenv (predefined-relations-vars) (empty-patenv)))
+
 (defun patenv (vars)
-  (reduce (flip #'add-patenv) vars
-          :initial-value (empty-patenv)))
+  (bulk-add-patenv vars (initial-patenv)))
 
 (defmacro with-%patenv-elements ((elems patenv) &body form)
   `(let ((,elems (%patenv-elements ,patenv)))
      (%make-patenv :elements (progn ,@form))))
+
+(defun bulk-add-patenv (vars patenv)
+  (reduce (flip #'add-patenv) vars
+          :initial-value patenv))
 
 (defun add-patenv (var patenv)
   (assert (symbolp var))
@@ -754,6 +759,10 @@
 
 (defun empty-typenv ()
   nil)
+
+(defun %typenv-vars (typenv)
+  ;; for predefined-relations' use
+  (mapcar #'car typenv))
 
 (defun add-typenv (var type typenv)
   (assert (symbolp var))
@@ -1358,6 +1367,10 @@
   (empty-typenv))
 
 (defvar *predefined-relations* (make-predefined-relations))
+
+(defun predefined-relations-vars (&optional (predefined-relations
+                                             *predefined-relations*))
+  (%typenv-vars predefined-relations))
 
 (defun add-predefined-relations (var types predefined-relations)
   (assert (symbolp var))

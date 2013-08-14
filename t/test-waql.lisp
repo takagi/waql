@@ -255,7 +255,12 @@
 ;;; test SOLVE-PATTERN-MATCH-SYMBOL function
 (is (waql::solve-pattern-match-symbol 'a (waql::patenv '(a))) 'a)
 
-(is (waql::solve-pattern-match-symbol '+r1+ (waql::empty-patenv)) '+r1+)
+;;; predefined relations exist in initial pattern match environment
+(is (waql::solve-pattern-match-symbol '+r1+ (waql::initial-patenv)) '+r1+)
+
+;;; error if lookup any symbols in empty pattern match environment
+(is-error (waql::solve-pattern-match-symbol '+r1+ (waql::empty-patenv))
+          simple-error)
 
 ;;; error if symbol does not exist in pattern match environment
 (is-error (waql::solve-pattern-match-symbol 'a (waql::empty-patenv))
@@ -354,16 +359,14 @@
       '((<- (waql::%_1 waql::%_2) r1) nil (a b))))
 
 ;;; error if trying to use variable starting with "%"
-(let ((patenv (waql::empty-patenv)))
-  (is-error (waql::solve-pattern-match-quantification '(<- (%a) r1) nil nil
-                                                      patenv)
-            simple-error))
+(is-error (waql::solve-pattern-match-quantification '(<- (%a) a) nil nil
+                                                    (waql::patenv '(a)))
+          simple-error)
 
 ;; error if trying to use duplicated variables
-(let ((patenv (waql::empty-patenv)))
-  (is-error (waql::solve-pattern-match-quantification '(<- (a a) r) nil nil
-                                                      patenv)
-            simple-error))
+(is-error (waql::solve-pattern-match-quantification '(<- (a a) r) nil nil
+                                                    (waql::patenv '(r)))
+          simple-error)
 
 
 ;;;
@@ -421,6 +424,15 @@
       (is preds '((= a %a1)
                   (= b %b1))))))
 
+(let* ((patenv (waql::initial-patenv))
+       (matcher (waql::pattern-matcher-match '+r1+
+                  (waql::make-pattern-matcher patenv))))
+  (destructuring-bind (vars patenv1 preds)
+      (waql::pattern-matcher-result matcher)
+    (is vars '(%+r1+1))
+    (is (waql::lookup-patenv '+r1+ patenv1) '(+r1+ . 2))
+    (is preds '((= +r1+ %+r1+1)))))
+
 ;;; error if matched form is not symbol
 (is-error (waql::pattern-matcher-match '(f i)
             (waql::make-pattern-matcher (waql::empty-patenv)))
@@ -454,6 +466,10 @@
 
 ;;; test EMPTY-PATENV constructor and LOOKUP-PATENV function
 (ok (null (waql::lookup-patenv 'a (waql::empty-patenv))))
+
+;;; test INITIAL-PATENV function
+(ok (waql::lookup-patenv '+r1+ (waql::initial-patenv)))
+(ok (null (waql::lookup-patenv '+r1+ (waql::empty-patenv))))
 
 ;;; test ADD-PATENV function
 (let ((patenv (waql::add-patenv 'b
