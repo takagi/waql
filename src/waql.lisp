@@ -463,6 +463,10 @@
 (defun empty-patenv ()
   (%make-patenv))
 
+(defun patenv (vars)
+  (reduce (flip #'add-patenv) vars
+          :initial-value (empty-patenv)))
+
 (defmacro with-%patenv-elements ((elems patenv) &body form)
   `(let ((,elems (%patenv-elements ,patenv)))
      (%make-patenv :elements (progn ,@form))))

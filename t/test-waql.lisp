@@ -189,64 +189,58 @@
 (diag "test Solving pattern match")
 
 ;;; test SOLVE-PATTERN-MATCH function
-(let ((patenv (waql::empty-patenv)))
-  (is (waql::solve-pattern-match '(query (a b c d) (<- (a b c) r1)
-                                                   (<- (a d) r2))
-                                 patenv)
-      '(query (a b c d) (<- (a b c) r1)
-                        (<- (%a1 d) r2)
-                        (= a %a1))))
+(is (waql::solve-pattern-match '(query (a b c d) (<- (a b c) r1)
+                                                 (<- (a d) r2))
+                               (waql::patenv '(r1 r2)))
+    '(query (a b c d) (<- (a b c) r1)
+                      (<- (%a1 d) r2)
+                      (= a %a1)))
 
 ;;; test pattern matching in join
-(let ((patenv (waql::empty-patenv)))
-  (is (waql::solve-pattern-match
-        '(query (a b c1) (<- (a b) r1)
-                         (<- (a1 c1) (query (a c) (<- (a c) r2))))
-        patenv)
+(is (waql::solve-pattern-match
       '(query (a b c1) (<- (a b) r1)
-                       (<- (a1 c1) (query (a c) (<- (%a1 c) r2)
-                                                (= a %a1))))))
+                       (<- (a1 c1) (query (a c) (<- (a c) r2))))
+      (waql::patenv '(r1 r2)))
+    '(query (a b c1) (<- (a b) r1)
+                     (<- (a1 c1) (query (a c) (<- (%a1 c) r2)
+                                              (= a %a1)))))
 
 ;;; test pattern matching in selection
-(let ((patenv (waql::empty-patenv)))
-  (is (waql::solve-pattern-match
-        '(query (a b c) (<- (a b) r1)
-                        (= (count (query (a c) (<- (a c) r2)))
-                           1))
-        patenv)
-      '(query (a b c) (<- (a b) r1)
-                      (= (count (query (a c) (<- (%a1 c) r2)
-                                             (= a %a1)))
-                         1))))
+(is (waql::solve-pattern-match
+      '(query (a b) (<- (a b) r1)
+                    (= (count (query (a c) (<- (a c) r2)))
+                       1))
+      (waql::patenv '(r1 r2)))
+    '(query (a b) (<- (a b) r1)
+                  (= (count (query (a c) (<- (%a1 c) r2)
+                                         (= a %a1)))
+                     1)))
 
 ;;; test pattern matching in projection
-(let ((patenv (waql::empty-patenv)))
-  (is (waql::solve-pattern-match
-        '(query (a (count (query (a c) (<- (a c) r2))))
-                (<- (a b) r1))
-        patenv)
-      '(query (a (count (query (a c) (<- (%a1 c) r2)
-                                     (= a %a1))))
-              (<- (a b) r1))))
+(is (waql::solve-pattern-match
+      '(query (a (count (query (a c) (<- (a c) r2))))
+              (<- (a b) r1))
+      (waql::patenv '(r1 r2)))
+    '(query (a (count (query (a c) (<- (%a1 c) r2)
+                                   (= a %a1))))
+            (<- (a b) r1)))
 
 
 ;;; test count aggregation
-(let ((patenv (waql::empty-patenv)))
-  (is (waql::solve-pattern-match
-        '(query (a (count (query (a c) (<- (a c) r2))))
-                (<- (a b) r1))
-        patenv)
-      '(query (a (count (query (a c) (<- (%a1 c) r2)
-                                     (= a %a1))))
-              (<- (a b) r1))))
+(is (waql::solve-pattern-match
+      '(query (a (count (query (a c) (<- (a c) r2))))
+              (<- (a b) r1))
+      (waql::patenv '(r1 r2)))
+    '(query (a (count (query (a c) (<- (%a1 c) r2)
+                                   (= a %a1))))
+            (<- (a b) r1)))
 
 ;;; test underscore notation
-(let ((waql::*underscore-count* 1)
-      (patenv (waql::empty-patenv)))
+(let ((waql::*underscore-count* 1))
   (is (waql::solve-pattern-match
         '(query (a c) (<- (a _) r1)
                       (<- (a c) r2))
-        patenv)
+        (waql::patenv '(r1 r2)))
       '(query (a c) (<- (a waql::%_1) r1)
                     (<- (%a1 c) r2)
                     (= a %a1))))
@@ -259,20 +253,17 @@
 (diag "test Solving pattern match - Symbol")
 
 ;;; test SOLVE-PATTERN-MATCH-SYMBOL function
-(let ((patenv (waql::add-patenv 'a
-                (waql::empty-patenv))))
-  (is (waql::solve-pattern-match-symbol 'a patenv) 'a))
+(is (waql::solve-pattern-match-symbol 'a (waql::patenv '(a))) 'a)
 
-(let ((patenv (waql::empty-patenv)))
-  (is (waql::solve-pattern-match-symbol '+r1+ patenv) '+r1+))
+(is (waql::solve-pattern-match-symbol '+r1+ (waql::empty-patenv)) '+r1+)
 
 ;;; error if symbol does not exist in pattern match environment
-(let ((patenv (waql::empty-patenv)))
-  (is-error (waql::solve-pattern-match-symbol 'a patenv) simple-error))
+(is-error (waql::solve-pattern-match-symbol 'a (waql::empty-patenv))
+          simple-error)
 
 ;;; symbols starting with "%" are reserved
-(let ((patenv (waql::empty-patenv)))
-  (is-error (waql::solve-pattern-match-symbol '%a patenv) simple-error))
+(is-error (waql::solve-pattern-match-symbol '%a (waql::empty-patenv))
+          simple-error)
 
 
 ;;;
@@ -287,25 +278,25 @@
   (is (waql::solve-pattern-match-let '(let (x (query (a b) (<- (a b) r1)
                                                            (<- (a _) r2)))
                                         (let (i 1)
-                                          (query (a b) (<- (a i) x))))
-                                     (waql::empty-patenv))
+                                          (query (a) (<- (a i) x))))
+                                     (waql::patenv '(r1 r2)))
       '(let (x (query (a b) (<- (a b) r1)
                             (<- (%a1 waql::%_1) r2)
                             (= a %a1)))
          (let (i 1)
-           (query (a b) (<- (a %i1) x)
+           (query (a) (<- (a %i1) x)
                         (= i %i1))))))
 
 (is (waql::solve-pattern-match-let '(let (f ((i :int))
-                                            (query (a b) (<- (a b) r1)
-                                                         (<- (a i) r2)))
-                                      (query (a b) (<- (a b) (f i))))
-                                   (waql::empty-patenv))
+                                          (query (a b) (<- (a b) r1)
+                                                       (<- (a i) r2)))
+                                     (query (a b) (<- (a b) (f 1))))
+                                   (waql::patenv '(r1 r2)))
     '(let (f ((i :int)) (query (a b) (<- (a b) r1)
                                      (<- (%a1 %i1) r2)
                                      (= a %a1)
                                      (= i %i1)))
-       (query (a b) (<- (a b) (f i)))))
+       (query (a b) (<- (a b) (f 1)))))
 
 ;;; error if trying to use expression other than symbol on pattern matching
 (is-error (waql::solve-pattern-match-let '(let (f ((i :int)) i)
@@ -321,27 +312,24 @@
 (diag "test Solving pattern match - Query")
 
 ;;; test SOLVE-PATTERN-MATCH-QUERY function
-(let ((patenv (waql::empty-patenv)))
-  (is (waql::solve-pattern-match-query '(query (a b c d) (<- (a b c) r1)
-                                                         (<- (a d) r2))
-                                       patenv)
-      '(query (a b c d) (<- (a b c) r1)
-                        (<- (%a1 d) r2)
-                        (= a %a1))))
+(is (waql::solve-pattern-match-query '(query (a b c d) (<- (a b c) r1)
+                                                       (<- (a d) r2))
+                                     (waql::patenv '(r1 r2)))
+    '(query (a b c d) (<- (a b c) r1)
+                      (<- (%a1 d) r2)
+                      (= a %a1)))
 
 ;;; test SOLVE-PATTERN-MATCH-QUALS function
-(let ((patenv (waql::empty-patenv)))
-  (is (waql::solve-pattern-match-quals
-        '((<- (a b c) r1) (<- (a d) r2)) '(a b c d)
-        patenv)
-      '(((<- (a b c) r1) (<- (%a1 d) r2) (= a %a1)) (a b c d))))
+(is (waql::solve-pattern-match-quals
+      '((<- (a b c) r1) (<- (a d) r2)) '(a b c d)
+      (waql::patenv '(r1 r2)))
+    '(((<- (a b c) r1) (<- (%a1 d) r2) (= a %a1)) (a b c d)))
 
 ;;; test SOLVE-PATTERN-MATCH-QUAL function
-(let ((patenv (waql::empty-patenv)))
-  (is (waql::solve-pattern-match-qual
-        '(<- (a b c) r1) '((<- (a d) r2)) '(a b c d)
-        patenv)
-    '((<- (a b c) r1) ((<- (%a1 d) r2) (= a %a1)) (a b c d))))
+(is (waql::solve-pattern-match-qual
+      '(<- (a b c) r1) '((<- (a d) r2)) '(a b c d)
+      (waql::patenv '(r1 r2)))
+  '((<- (a b c) r1) ((<- (%a1 d) r2) (= a %a1)) (a b c d)))
 
 
 ;;;
@@ -351,22 +339,19 @@
 (diag "test Solving pattern match - Query - Quantification")
 
 ;;; test SOLVE-PATTERN-MATCH-QUANTIFICATION function
-(let ((patenv (waql::empty-patenv)))
-  (is (waql::solve-pattern-match-quantification
-        '(<- (a b c) r1) '((<- (a d) r2)) '(a b c d)
-        patenv)
-      '((<- (a b c) r1) ((<- (%a1 d) r2) (= a %a1)) (a b c d))))
+(is (waql::solve-pattern-match-quantification
+      '(<- (a b c) r1) '((<- (a d) r2)) '(a b c d)
+      (waql::patenv '(r1 r2)))
+    '((<- (a b c) r1) ((<- (%a1 d) r2) (= a %a1)) (a b c d)))
 
-(let ((patenv (waql::add-patenv 'a (waql::empty-patenv))))
-  (is (waql::solve-pattern-match-quantification '(<- (a d) r2) nil '(a b c d)
-                                                patenv)
-      '((<- (%a1 d) r2) ((= a %a1)) (a b c d))))
+(is (waql::solve-pattern-match-quantification '(<- (a d) r2) nil '(a b c d)
+                                              (waql::patenv '(r1 r2 a b c)))
+    '((<- (%a1 d) r2) ((= a %a1)) (a b c d)))
 
-(let ((patenv (waql::empty-patenv))
-      (waql::*underscore-count* 1))
-  (is (waql::solve-pattern-match-quantification '(<- (_ _) r2) nil '(a b)
-                                                patenv)
-      '((<- (waql::%_1 waql::%_2) r2) nil (a b))))
+(let ((waql::*underscore-count* 1))
+  (is (waql::solve-pattern-match-quantification '(<- (_ _) r1) nil '(a b)
+                                                (waql::patenv '(r1 a b)))
+      '((<- (waql::%_1 waql::%_2) r1) nil (a b))))
 
 ;;; error if trying to use variable starting with "%"
 (let ((patenv (waql::empty-patenv)))
@@ -395,13 +380,11 @@
 (diag "test Solving pattern match - Function application")
 
 ;;; test SOLVE-PATTERN-MATCH-FUNCTION function
-(let ((patenv (waql::empty-patenv)))
-  (is (waql::solve-pattern-match-function '(= u u1) patenv)
-      '(= u u1)))
+(is (waql::solve-pattern-match-function '(= u u1) (waql::patenv '(u u1)))
+    '(= u u1))
 
-(let ((patenv (waql::empty-patenv)))
-  (is (waql::solve-pattern-match-function '(count r) patenv)
-      '(count r)))
+(is (waql::solve-pattern-match-function '(count r) (waql::patenv '(r)))
+    '(count r))
 
 
 ;;;
