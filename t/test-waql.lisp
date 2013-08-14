@@ -358,6 +358,10 @@
                                                 (waql::patenv '(r1 a b)))
       '((<- (waql::%_1 waql::%_2) r1) nil (a b))))
 
+(is (waql::solve-pattern-match-quantification '(<- (+r1+) +r1+) nil '(+r1+)
+                                              (waql::initial-patenv))
+    '((<- (%+r1+1) +r1+) ((= +r1+ %+r1+1)) (+r1+)))
+
 ;;; error if trying to use variable starting with "%"
 (is-error (waql::solve-pattern-match-quantification '(<- (%a) a) nil nil
                                                     (waql::patenv '(a)))
