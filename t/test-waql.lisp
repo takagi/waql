@@ -259,8 +259,20 @@
 (diag "test Solving pattern match - Symbol")
 
 ;;; test SOLVE-PATTERN-MATCH-SYMBOL function
-(is (waql::solve-pattern-match-symbol 'a) 'a)
-(is-error (waql::solve-pattern-match-symbol '%a) simple-error)
+(let ((patenv (waql::add-patenv 'a
+                (waql::empty-patenv))))
+  (is (waql::solve-pattern-match-symbol 'a patenv) 'a))
+
+(let ((patenv (waql::empty-patenv)))
+  (is (waql::solve-pattern-match-symbol '+r1+ patenv) '+r1+))
+
+;;; error if symbol does not exist in pattern match environment
+(let ((patenv (waql::empty-patenv)))
+  (is-error (waql::solve-pattern-match-symbol 'a patenv) simple-error))
+
+;;; symbols starting with "%" are reserved
+(let ((patenv (waql::empty-patenv)))
+  (is-error (waql::solve-pattern-match-symbol '%a patenv) simple-error))
 
 
 ;;;

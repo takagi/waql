@@ -246,7 +246,7 @@
 (defun solve-pattern-match (expr patenv)
   (cond
     ((literal-p expr) expr)
-    ((symbol-p expr) (solve-pattern-match-symbol expr))
+    ((symbol-p expr) (solve-pattern-match-symbol expr patenv))
     ((let-p expr) (solve-pattern-match-let expr patenv))
     ((query-p expr) (solve-pattern-match-query expr patenv))
     ((lisp-form-p expr) expr)
@@ -258,10 +258,13 @@
 ;;; Solving pattern match - Symbol
 ;;;
 
-(defun solve-pattern-match-symbol (expr)
+(defun solve-pattern-match-symbol (expr patenv)
   (unless (null (percent-symbol-p expr))
     (error "symbol beginning with \"%\" is reserved: ~S" expr))
-  expr)
+  (cond
+    ((lookup-patenv expr patenv) expr)
+    ((lookup-predefined-relations expr) expr)
+    (t (error "The variable ~A is unbound." expr))))
 
 
 ;;;
