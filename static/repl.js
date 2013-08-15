@@ -70,6 +70,7 @@ function printInput( input, first ) {
 }
 
 function printError( message ) {
+  message = message.replace( /\n$/g, "" );
   dojo.forEach( message.split('\n'), function( line ) {
     insertLine( "   ", line, "error" );
   } );  
@@ -77,6 +78,7 @@ function printError( message ) {
 }
 
 function printOutput( message ) {
+  message = message.replace( /\n$/g, "" );
   dojo.forEach( message.split('\n'), function( line ) {
     insertLine( "   ", line, "output" );
   } );
