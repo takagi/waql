@@ -82,5 +82,4 @@
   (hunchentoot:start *acceptor*))
 
 (defun stop ()
-  (setf *repl-server* nil)
   (hunchentoot:stop *acceptor*))
