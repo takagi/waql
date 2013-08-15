@@ -213,7 +213,9 @@ function Client( inputCallback
         }
       },
       function( error ) {
-        // noop
+          isFirst = true;
+          errorCallback( "Could not connect to the server." );
+          readyCallback( isFirst );
       } );
   }
   
