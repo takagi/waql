@@ -187,7 +187,7 @@
 ;;;
 
 (defun repl-waql ()
-  (let ((repl-server (repl-server)))
+  (let ((repl-server (make-coroutine 'repl-server)))
     (princ ">>> ")
     (iterate:iter
       (let ((response (funcall repl-server (read-line))))
