@@ -4,28 +4,10 @@
  */
 
 
-// Utilities
-
-function error( message ) {
-  var error = new Error();
-  error.message = message;
-  throw error;
-}
-
-function toEntityReference( str ) {
-  str = str.replace(/&/g,"&amp;");
-  str = str.replace(/"/g,"&quot;");
-  str = str.replace(/'/g,"&#039;");
-  str = str.replace(/</g,"&lt;");
-  str = str.replace(/>/g,"&gt;");
-  str = str.replace(/ /g,"&nbsp;");
-  return str;
-}
-
-
 // Managing DOM
 
 function scrollToBottom() {
+
   // query container
   var container = dojo.query( "#container" )[0];
   if ( ! container )
@@ -35,7 +17,9 @@ function scrollToBottom() {
   container.scrollTop = container.scrollHeight;
 }
 
+
 function insertLine( prompt, message, decorationClass ) {
+
   // query container
   var container = dojo.query( "#container" )[0];
   if ( ! container )
@@ -61,31 +45,41 @@ function insertLine( prompt, message, decorationClass ) {
 }
 
 
-function printInput( input, first ) {
-  if ( first )
+function printInput( input, isFirst ) {
+
+  if ( isFirst )
     insertLine( ">>>", input, "" );
   else
     insertLine( "...", input, "" );
+
   scrollToBottom();
 }
 
+
 function printError( message ) {
+
   message = message.replace( /\n$/g, "" );
   dojo.forEach( message.split('\n'), function( line ) {
     insertLine( "   ", line, "error" );
   } );  
+
   scrollToBottom();
 }
 
+
 function printOutput( message ) {
+
   message = message.replace( /\n$/g, "" );
   dojo.forEach( message.split('\n'), function( line ) {
     insertLine( "   ", line, "output" );
   } );
+
   scrollToBottom();
 }
 
-function showInputArea( first ) {
+
+function showInputArea( isFirst ) {
+
   // query container
   var container = dojo.query( "#container" )[0];
   if ( ! container )
@@ -99,7 +93,7 @@ function showInputArea( first ) {
     error( "fail to create input-area DIV." );
   
   // show prompt
-  if ( first )
+  if ( isFirst )
     dojo.create( "SPAN", { className: "line-prompt"
                          , innerHTML: "&gt;&gt;&gt;" }
                        , line, "last" );
@@ -113,33 +107,37 @@ function showInputArea( first ) {
   if ( ! textarea )
     error( "fail to create text area." );
   textarea.focus();
-  textarea.onkeydown = inputAreaOnKeyDown;
-  textarea.onpaste   = inputAreaOnPaste;
-}
+  textarea.onkeydown = function ( event ) {
+    if ( event.keyCode != 13 )
+      return true;
+    hideInputArea();
+    client.input( event.target.value, isFirst );
+    return false;
+  };
+  textarea.onpaste = function ( event ) {
+    setTimeout( function () {
+      hideInputArea();
+      client.input( event.target.value, isFirst );
+    }, 0 );
+  };
 
-function inputAreaOnKeyDown( event ) {
-  if ( event.keyCode != 13 )
-    return true;
-  hideInputArea();
-  client.input( event.target.value );
-  return false;
-}
+  return true;
 
-function inputAreaOnPaste( event ) {
-  return false;
 }
   
 function hideInputArea() {
+
   // query input-area DIV
   var inputArea = dojo.query( "#input-area" )[0];
   if ( ! inputArea )
     error( "input-area is not found." );
+
   // hide input area
   dojo.destroy( inputArea );
 }
 
-function ready( first ) {
-  showInputArea( first );
+function ready( isFirst ) {
+  showInputArea( isFirst );
 }
 
 
@@ -151,8 +149,11 @@ var RESPONSE_CODE_QUIT     = 2;
 var RESPONSE_CODE_OUTPUT   = 3;
 var RESPONSE_CODE_ERROR    = 4;
 
-function Response( data ) {
+function Response ( data ) {
   
+  if ( typeof data != "string" )
+    error( "Response data is not string." );
+
   var code    = parseInt( data.substring( 0, 1 ), 10 );
   var message = "," == data.substring( 1, 2 )
               ? data.substring( 2 )
@@ -172,56 +173,101 @@ function Client( inputCallback
                , errorCallback
                , readyCallback )
 {
-  
-  var isFirst = true;
-  
-  this.input = function( input ) {
-    inputCallback( input, isFirst );
-    
+
+  var queue = new Array();
+
+  this.input = function ( string, isFirst ) {
+
+    if ( typeof string != "string" )
+      error( "Input is not string." );
+
+    var lines = string.split( '\n' );
+    dojo.forEach( lines, function( line ) {
+      queue.push( line );
+    } );
+
+    this.startProcessing( isFirst );
+  }
+
+  this.startProcessing = function ( isFirst ) {
+
+    this.processLine( queue.shift(), isFirst );
+
+  }
+
+  this.processLine = function ( line, isFirst ) {
+
+    inputCallback( line, isFirst );
+
+    var url = "http://kamonama.mydns.jp:8080/repl?i="
+            + encodeURIComponent( line );
     var xhrArgs = {
-      url: "http://kamonama.mydns.jp:8080/repl?i="
-           + encodeURIComponent( input ),
+      url: url,
       handleAs: "text"
-    };
-    
+    }
     var deferred = dojo.xhrGet( xhrArgs );
-    
+
+    var currentClient = this;
     deferred.then(
-      function( data ) {
+      function ( data ) {
         var response = new Response( data );
-        switch( response.code() ) {
+        switch ( response.code() ) {
         case RESPONSE_CODE_BLANK:
-          isFirst = true;
-          readyCallback( isFirst );
-          break;
+          currentClient.processed( true );
+          return;
         case RESPONSE_CODE_CONTINUE:
-          isFirst = false;
-          readyCallback( isFirst );
-          break;
+          currentClient.processed( false );
+          return;
         case RESPONSE_CODE_QUIT:
-          isFirst = true;
-          readyCallback( isFirst );
-          break;
+          currentClient.processed( true );
+          return;
         case RESPONSE_CODE_OUTPUT:
-          isFirst = true;
           outputCallback( response.message() );
-          readyCallback( isFirst );
-          break;
+          currentClient.processed( true );
+          return;
         case RESPONSE_CODE_ERROR:
-          isFirst = true;
           errorCallback( response.message() );
-          readyCallback( isFirst );
-          break;
+          currentClient.processed( true );
+          return;
+        default:
+          error( "Invalid response code." );
         }
       },
-      function( error ) {
-          isFirst = true;
-          errorCallback( "Could not connect to the server." );
-          readyCallback( isFirst );
-      } );
+      function ( error ) {
+        errorCallback( "Could not connect to the server." );
+        currentClient.processed( true );
+        return;
+      }
+    );
   }
-  
-  readyCallback( isFirst );
+
+  this.processed = function ( isFirst ) {
+    if ( queue.length > 0 )
+      this.startProcessing( isFirst );
+    else
+      readyCallback( isFirst );
+  }
+
+  readyCallback( true );
+}
+
+
+// Utilities
+
+function error( message ) {
+  var error = new Error();
+  error.message = message;
+  throw error;
+}
+
+function toEntityReference( str ) {
+  str = str.replace(/&/g,"&amp;");
+  str = str.replace(/"/g,"&quot;");
+  str = str.replace(/'/g,"&#039;");
+  str = str.replace(/</g,"&lt;");
+  str = str.replace(/>/g,"&gt;");
+  str = str.replace(/ /g,"&nbsp;");
+  return str;
 }
 
 
