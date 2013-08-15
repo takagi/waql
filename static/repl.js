@@ -42,17 +42,17 @@ function insertLine( prompt, message, decorationClass ) {
     error( "container is not found." );
   
   // create new line
-  var line = dojo.create( "DIV", { class: "line" }, container, "last" );
+  var line = dojo.create( "DIV", { className: "line" }, container, "last" );
   if ( ! line )
     error( "fail to create line DIV." );
   
   // add prompt to line
-  dojo.create( "SPAN", { class: "line-prompt"
+  dojo.create( "SPAN", { className: "line-prompt"
                        , innerHTML: toEntityReference( prompt ) }
                      , line, "last" );
   
   // add body to line
-  dojo.create( "SPAN", { class: "line-body " + decorationClass
+  dojo.create( "SPAN", { className: "line-body " + decorationClass
                        , innerHTML: toEntityReference( message ) }
                      , line, "last" );
   
@@ -91,18 +91,18 @@ function showInputArea( first ) {
   
   // create input-area DIV
   var line = dojo.create( "DIV", { id: "input-area"
-                                 , class: "line" }
+                                 , className: "line" }
                                , container, "last" );
   if ( ! line )
     error( "fail to create input-area DIV." );
   
   // show prompt
   if ( first )
-    dojo.create( "SPAN", { class: "line-prompt"
+    dojo.create( "SPAN", { className: "line-prompt"
                          , innerHTML: "&gt;&gt;&gt;" }
                        , line, "last" );
   else
-    dojo.create( "SPAN", { class: "line-prompt"
+    dojo.create( "SPAN", { className: "line-prompt"
                          , innerHTML: "..." }
                        , line, "last" );
   
