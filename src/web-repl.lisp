@@ -18,18 +18,23 @@
 
 (hunchentoot:define-easy-handler (repl :uri "/repl") (i)
   (setf (hunchentoot:content-type*) "text/plain")
-  (let ((response (funcall *repl-server* i)))
-    (cl-pattern:match response
-      (:blank
-       (princ-to-string +response-code-blank+))
-      (:continue
-       (princ-to-string +response-code-continue+))
-      (:quit
-       (princ-to-string +response-code-quit+))
-      ((:output message)
-       (format nil "~A,~A" +response-code-output+ message))
-      ((:error message)
-       (format nil "~A,~A" +response-code-error+ message)))))
+  (cond
+    ((cl-ppcre:scan +quit-command-regexp+ (trim i))
+     (format nil "~A,The :quit command is not allowed in Web REPL."
+                 +response-code-error+))
+    (t
+     (let ((response (funcall *repl-server* i)))
+       (cl-pattern:match response
+         (:blank
+          (princ-to-string +response-code-blank+))
+         (:continue
+          (princ-to-string +response-code-continue+))
+         (:quit
+          (princ-to-string +response-code-quit+))
+         ((:output message)
+          (format nil "~A,~A" +response-code-output+ message))
+         ((:error message)
+          (format nil "~A,~A" +response-code-error+ message)))))))
 
 
 ;;;

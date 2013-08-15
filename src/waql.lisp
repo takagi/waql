@@ -193,7 +193,7 @@
   "^:quit$")
 
 (defparameter +load-command-regexp+
-  "^:load\\s+(\\S+)$")
+  "^:load(\\s+(\\S*))?$")
 
 (defmacro repl-loop (&body body)
   (alexandria:with-gensyms (break-block continue-block)
