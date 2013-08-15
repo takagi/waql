@@ -12,8 +12,8 @@
 
 (defmacro defcor (name args &body body)
   (assert (and (listp args)
-               (or (car args)
-                   (cadr args))))
+               (or (null (car args))
+                   (null (cadr args)))))
      (if (car args)
        (defcor/arg name (car args) body)
        (defcor/no-arg name body)))
