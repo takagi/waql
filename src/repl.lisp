@@ -59,10 +59,12 @@
         (yield :blank)
         (continue-loop))
       ;; if comment or semicolon only, continue
-      (when-parse-string (result suffix success front)
-          ((choice1 (comment?) #\;) trimed-line :complete t)
-        (yield :blank)
-        (continue-loop))
+      (multiple-value-bind (result suffix success front)
+          (parse-string* (choice1 (comment?) #\;) trimed-line :complete t)
+        (declare (ignorable result suffix front))
+        (when success
+          (yield :blank)
+          (ceontinue-loop)))
      ;; ":" make command parsing start
      (when (starts-with #\: trimed-line)
        ;; :quit command
