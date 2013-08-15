@@ -23,7 +23,8 @@
                 :components
                 ((:file "package")
                  (:file "data")
-                 (:file "waql"))))
+                 (:file "waql")
+                 (:file "sandbox"))))
   :description ""
   :long-description
   #.(with-open-file (stream (merge-pathnames
