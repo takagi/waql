@@ -54,4 +54,7 @@
            #:_
            #:lisp
            #:defrelation
+           ;; Web REPL
+           #:start
+           #:stop
            ))

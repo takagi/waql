@@ -17,14 +17,16 @@
   :author "Masayuki Takagi"
   :license "LLGPL"
   :depends-on (:alexandria :iterate :cl-pattern :optima :anaphora
-               :parser-combinators :cl-ppcre)
+               :parser-combinators :cl-ppcre :cl-cont :hunchentoot)
   :components ((:module "src"
                 :serial t
                 :components
-                ((:file "package")
+                ((:file "hunchentoot")
+                 (:file "package")
                  (:file "data")
                  (:file "waql")
-                 (:file "sandbox"))))
+                 (:file "sandbox")
+                 (:file "web-repl"))))
   :description ""
   :long-description
   #.(with-open-file (stream (merge-pathnames

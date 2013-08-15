@@ -95,6 +95,83 @@
 
 
 ;;;
+;;; Coroutine
+;;;
+
+(defmacro defcor (name args &body body)
+  (assert (and (listp args)
+               (or (car args)
+                   (cadr args))))
+     (if (car args)
+       (defcor/arg name (car args) body)
+       (defcor/no-arg name body)))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun defcor/arg (name arg body)
+    (alexandria:with-gensyms (cont)
+      `(setf (get ',name 'make-coroutine)
+             #'(lambda ()
+                 (let (,cont)
+                   #'(lambda (,arg)
+                       (declare (ignorable ,arg))
+                       (if ,cont
+                         (funcall ,cont ,arg)
+                         (cl-cont:with-call/cc
+                           (macrolet ((yield (&rest args)
+                                        (let ((cc (gensym)))
+                                          `(setf ,',arg
+                                                 (cl-cont:let/cc ,cc
+                                                   (setf ,',cont ,cc)
+                                                   (values ,@args)))))
+                                      (coexit (&rest args)
+                                        `(cl-cont:let/cc _
+                                           (declare (ignorable _))
+                                           (setf ,',cont
+                                                 #'(lambda (_)
+                                                     (declare (ignorable _))
+                                                     (values)))
+                                           (values ,@args))))
+                             ,@body
+                             (coexit nil)))))))))))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun defcor/no-arg (name body)
+    (alexandria:with-gensyms (cont)
+      `(setf (get ',name 'make-coroutine)
+             #'(lambda ()
+                 (let (,cont)
+                   #'(lambda ()
+                       (if ,cont
+                         (funcall ,cont)
+                         (cl-cont:with-call/cc
+                           (macrolet ((yield (&rest args)
+                                        (let ((cc (gensym)))
+                                          `(cl-cont:let/cc ,cc
+                                             (setf ,',cont ,cc)
+                                             (values ,@args))))
+                                      (coexit (&rest args)
+                                        `(cl-cont:let/cc _
+                                           (declare (ignorable _))
+                                           (setf ,',cont
+                                                 #'(lambda (_)
+                                                     (declare (ignorable _))
+                                                     (values)))
+                                           (values ,@args))))
+                             ,@body
+                             (coexit nil)))))))))))
+
+(defun make-coroutine (name)
+  (funcall (get name 'make-coroutine)))
+
+(defmacro with-coroutine ((name) &body body)
+  (alexandria:with-gensyms (coroutine)
+    `(let ((,coroutine (make-coroutine ',name)))
+       (flet ((,name (&rest args)
+                 (apply ,coroutine args)))
+         ,@body))))
+
+
+;;;
 ;;; WAQL Language interface
 ;;;
 
@@ -112,83 +189,155 @@
       (char= #\; (aref string (1- (length string))))
       nil))
 
+(defparameter +quit-command-regexp+
+  "^:quit$")
+
 (defparameter +load-command-regexp+
   "^:load\\s+(\\S+)$")
 
-(defun repl-waql ()
-  (let (line trimed-line result suffix success front sexp)
-    (iterate:iter
-      (princ ">>> ")
-      (force-output)
-      (setf line (read-line)
-            trimed-line (repl-trim line))
+(defmacro repl-loop (&body body)
+  (alexandria:with-gensyms (break-block continue-block)
+    `(macrolet ((break-loop ()
+                  `(return-from ,',break-block))
+                (continue-loop ()
+                  `(return-from ,',continue-block)))
+       (block ,break-block
+         (loop do
+            (block ,continue-block
+              ,@body))))))
+
+(defmacro with-parse-string ((result suffix success front)
+                             (parser string &key complete)
+                             &body body)
+  `(multiple-value-bind (,result ,suffix ,success ,front)
+       (parse-string* ,parser ,string :complete ,complete)
+     (declare (ignorable ,result ,suffix ,success ,front))
+     ,@body))
+
+(defmacro when-parse-string ((result suffix success front)
+                             (parser string &key complete)
+                             &body body)
+  `(with-parse-string (,result ,suffix ,success ,front)
+       (,parser ,string :complete ,complete)
+     (when ,success
+       ,@body)))
+
+(defmacro handler-case-without-call/cc (expression &rest error-clauses)
+  `(cl-cont:without-call/cc
+     (handler-case ,expression
+       ,@error-clauses)))
+
+(defun make-response (type expr)
+  (ecase type
+    (:output (list :output (princ-to-string expr)))
+    (:error (list :error (princ-to-string expr)))))
+
+(defcor repl-server (line)
+  (repl-loop
+    (let ((trimed-line (repl-trim line)))
       ;; if empty line, continue
       (when (string= "" trimed-line)
-        (iterate:next-iteration))
-      ;; ":" starts command parsing
-      (when (starts-with #\: trimed-line)
-        ;; if :quit command, exit
-        (when (string= ":quit" (trim line))
-          (return))
-        ;; if :load command, load waql file
-        (let ((%line (trim line)))
-          (when (cl-ppcre:scan +load-command-regexp+ %line)
-            (cl-ppcre:register-groups-bind (filespec)
-                (+load-command-regexp+ %line)
-              (load-waql filespec)
-              (fresh-line)
-              (iterate:next-iteration))))
-        ;; invalid command
-        (error "invalid command: ~S" (trim line)))
-      ;; if comment or semilocon only, continue
-      (multiple-value-setq (result suffix success front)
-        (parse-string* (choice1 (comment?) #\;) trimed-line :complete t))
-      (when success
-        (iterate:next-iteration))
-      ;; if semicolon-terminated line, evaluate and continue
-      (when (semicolon-terminated-p trimed-line)
-        (multiple-value-setq (result suffix success front)
-          (parse-string* (expr-top*) trimed-line :complete t))
-        (unless success
-          (error "parse error: ~S" line))
-        (setf sexp (compile-waql result))
-        (princ (eval sexp))
-        (fresh-line)
-        (iterate:next-iteration))
-      ;; if not semicolon-terminated but valid expression,
-      ;; evaluate and continue
-      (multiple-value-setq (result suffix success front)
-        (parse-string* (expr*) trimed-line :complete t))
-      (when success
-        (setf sexp (compile-waql result))
-        (princ (eval sexp))
-        (fresh-line)
-        (iterate:next-iteration))
-      ;; if invalid expression, try multi line input
-      (iterate:iter
-        (princ "... ")
-        (force-output)
-        (setf line (concatenate 'string line (string #\Newline) (read-line))
-              trimed-line (repl-trim line))
-        ;; if semicolon-terminated line, evaluate and continue outer loop
-        (when (semicolon-terminated-p line)
-          (multiple-value-setq (result suffix success front)
-            (parse-string* (expr-top*) trimed-line :complete t))
-          (unless success
-            (error "parse error: ~S" line))
-          (setf sexp (compile-waql result))
-          (princ (eval sexp))
-          (fresh-line)
-          (return))
-        ;; if not semicolon-terminated but valid expression,
-        ;; evaluate and continue outer loop
-        (multiple-value-setq (result suffix success front)
-          (parse-string* (expr*) trimed-line :complete t))
-        (when success
-          (setf sexp (compile-waql result))
-          (princ (eval sexp))
-          (fresh-line)
-          (return))))))
+        (yield :blank)
+        (continue-loop))
+      ;; if comment or semicolon only, continue
+      (when-parse-string (result suffix success front)
+          ((choice1 (comment?) #\;) trimed-line :complete t)
+        (yield :blank)
+        (continue-loop))
+     ;; ":" make command parsing start
+     (when (starts-with #\: trimed-line)
+       ;; :quit command
+       (when (cl-ppcre:scan +quit-command-regexp+ (trim line))
+         (coexit :quit))
+       ;; :load command
+       (when (cl-ppcre:scan +load-command-regexp+ (trim line))
+         (yield (list :error ":load command is not suppoted"))
+         (continue-loop))
+       ;; invalid command
+       (yield (list :error
+                    (format nil "invalid command: ~A" (trim line))))
+       (continue-loop))
+     ;; if semicolon-terminated line, evaluate and continue
+     (when (semicolon-terminated-p trimed-line)
+       (with-parse-string (result suffix success front)
+           ((expr-top*) trimed-line :complete t)
+         (if success
+             (let ((response (handler-case-without-call/cc
+                               (let ((sexp (compile-waql result)))
+                                 (make-response :output (eval sexp)))
+                               (error (e) (make-response :error e)))))
+               (yield response)
+               (continue-loop))
+             (progn
+               (yield (make-response :error
+                                     (format nil "parse error: ~A" line)))
+               (continue-loop)))))
+     ;; if not semicolon-terminated but valid expression,
+     ;; evaluate and continue
+     (when-parse-string (result suffix success front)
+         ((expr*) trimed-line :complete t)
+       (let ((response (handler-case-without-call/cc
+                         (let ((sexp (compile-waql result)))
+                           (make-response :output (eval sexp)))
+                         (error (e) (make-response :error e)))))
+         (yield response)
+         (continue-loop)))
+     ;; if invalid expression, require further lines
+     (let ((lines line) trimed-line)
+       (repl-loop
+         (yield :continue)
+         (setf lines (concatenate 'string lines (string #\Newline) line)
+               trimed-line (repl-trim lines))
+         ;; if semicolon-terminated lines, evaluate and continue
+         (when (semicolon-terminated-p trimed-line)
+           (with-parse-string (result suffix success front)
+               ((expr-top*) trimed-line :complete t)
+             (if success
+                 (let ((response (handler-case-without-call/cc
+                                   (let ((sexp (compile-waql result)))
+                                     (make-response :output (eval sexp)))
+                                   (error (e) (make-response :error e)))))
+                   (yield response)
+                   (break-loop))
+                 (progn
+                   (yield (make-response :error
+                                         (format nil "parse error: ~A" lines)))
+                   (break-loop)))))
+       ;; if not semicolon-terminated but valid expression,
+       ;; evaluate and continue outer loop
+       (when-parse-string (result suffix success front)
+           ((expr*) trimed-line :complete t)
+         (let ((response (handler-case-without-call/cc
+                           (let ((sexp (compile-waql result)))
+                             (make-response :output (eval sexp)))
+                           (error (e) (make-response :error e)))))
+           (yield response)
+           (break-loop))))))))
+
+
+(defun repl-waql ()
+  (let ((repl-server (repl-server)))
+    (princ ">>> ")
+    (iterate:iter
+      (let ((response (funcall repl-server (read-line))))
+        (cl-pattern:match response
+          (:blank
+           (princ ">>> "))
+          (:continue
+           (princ "... "))
+          (:quit
+           (return))
+          ((:output message)
+           (princ message)
+           (fresh-line)
+           (princ ">>> "))
+          ((:error message)
+           (princ message)
+           (fresh-line)
+           (princ ">>> "))
+          (_
+           (error "Invalid response: ~A." response)))))))
+
 
 (defun load-waql (filespec)
   (with-open-file (stream filespec :direction :input)
