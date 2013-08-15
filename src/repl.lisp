@@ -41,22 +41,6 @@
             (block ,continue-block
               ,@body))))))
 
-(defmacro with-parse-string ((result suffix success front)
-                             (parser string &key complete)
-                             &body body)
-  `(multiple-value-bind (,result ,suffix ,success ,front)
-       (parse-string* ,parser ,string :complete ,complete)
-     (declare (ignorable ,result ,suffix ,success ,front))
-     ,@body))
-
-(defmacro when-parse-string ((result suffix success front)
-                             (parser string &key complete)
-                             &body body)
-  `(with-parse-string (,result ,suffix ,success ,front)
-       (,parser ,string :complete ,complete)
-     (when ,success
-       ,@body)))
-
 (defmacro handler-case-without-call/cc (expression &rest error-clauses)
   `(cl-cont:without-call/cc
      (handler-case ,expression
@@ -90,7 +74,7 @@
              (+load-command-regexp+ (trim line))
            (let ((response (handler-case-without-call/cc
                              (let ((output (load-waql filespec)))
-                               (make-respconse :output output))
+                               (make-response :output output))
                              (error (e) (make-response :error e)))))
              (yield response)))
          (continue-loop))
@@ -100,29 +84,28 @@
        (continue-loop))
      ;; if semicolon-terminated line, evaluate and continue
      (when (semicolon-terminated-p trimed-line)
-       (with-parse-string (result suffix success front)
-           ((expr-top*) trimed-line :complete t)
-         (if success
-             (let ((response (handler-case-without-call/cc
-                               (let ((sexp (compile-waql result)))
-                                 (make-response :output (eval sexp)))
-                               (error (e) (make-response :error e)))))
-               (yield response)
-               (continue-loop))
-             (progn
-               (yield (make-response :error
-                                     (format nil "parse error: ~A" line)))
-               (continue-loop)))))
-     ;; if not semicolon-terminated but valid expression,
-     ;; evaluate and continue
-     (when-parse-string (result suffix success front)
-         ((expr*) trimed-line :complete t)
        (let ((response (handler-case-without-call/cc
-                         (let ((sexp (compile-waql result)))
-                           (make-response :output (eval sexp)))
-                         (error (e) (make-response :error e)))))
+                         (make-response :output
+                           (eval (compile-waql (parse-waql trimed-line))))
+                       (waql-parse-error (e) (make-response :error e))
+                       (waql-compile-error (e) (make-response :error e))
+                       (error (e) (make-response :error e)))))
          (yield response)
          (continue-loop)))
+     ;; if not semicolon-terminated but valid expression,
+     ;; evaluate and continue
+     (destructuring-bind (result success)
+         (handler-case-without-call/cc
+           (list (parse-waql trimed-line :top-expr-p nil) t)
+           (waql-parse-error (e) (list e nil)))
+       (when success
+         (let ((response (handler-case-without-call/cc
+                           (make-response :output
+                             (eval (compile-waql result)))
+                           (waql-compile-error (e) (make-response :error e))
+                           (error (e) (make-response :error e)))))
+           (yield response)
+           (continue-loop))))
      ;; if invalid expression, require further lines
      (let ((lines line) trimed-line)
        (repl-loop
@@ -131,29 +114,30 @@
                trimed-line (repl-trim lines))
          ;; if semicolon-terminated lines, evaluate and continue
          (when (semicolon-terminated-p trimed-line)
-           (with-parse-string (result suffix success front)
-               ((expr-top*) trimed-line :complete t)
-             (if success
-                 (let ((response (handler-case-without-call/cc
-                                   (let ((sexp (compile-waql result)))
-                                     (make-response :output (eval sexp)))
-                                   (error (e) (make-response :error e)))))
-                   (yield response)
-                   (break-loop))
-                 (progn
-                   (yield (make-response :error
-                                         (format nil "parse error: ~A" lines)))
-                   (break-loop)))))
-       ;; if not semicolon-terminated but valid expression,
-       ;; evaluate and continue outer loop
-       (when-parse-string (result suffix success front)
-           ((expr*) trimed-line :complete t)
-         (let ((response (handler-case-without-call/cc
-                           (let ((sexp (compile-waql result)))
-                             (make-response :output (eval sexp)))
-                           (error (e) (make-response :error e)))))
-           (yield response)
-           (break-loop))))))))
+           (let ((response
+                   (handler-case-without-call/cc
+                     (make-response :output
+                       (eval (compile-waql (parse-waql trimed-line))))
+                     (waql-parse-error (e) (make-response :error e))
+                     (waql-compile-error (e) (make-response :error e)))
+                     (error (e) (make-response :error e))))
+             (yield response)
+             (break-loop)))
+         ;; if not semicolon-terminated but valid expression,
+         ;; evaluate and continue outer loop
+         (destructuring-bind (result success)
+             (handler-case-without-call/cc
+               (list (parse-waql trimed-line :top-expr-p nil) t)
+               (waql-parse-error (e) (list e nil)))
+           (when success
+             (let ((response
+                     (handler-case-without-call/cc
+                       (make-response :output
+                         (eval (compile-waql result)))
+                       (waql-compile-error (e) (make-response :error e))
+                       (error (e) (make-response :error e)))))
+               (yield response)
+               (break-loop)))))))))
 
 (defun load-waql-error-printer (condition stream)
   (princ (load-waql-message condition) stream))
@@ -190,23 +174,22 @@
           (unless (semicolon-terminated-p trimed-line)
             (iterate:next-iteration))
           ;; if semicolon-terminated, evaluate and continue
-          (multiple-value-bind (result suffix success front)
-              (parse-string* (expr-top*) code :complete t)
-            (declare (ignorable suffix))
-            (unless (and success (null front))
-              (let ((message (format nil "Parse error: ~A" code)))
-                (error 'load-waql-parse-error
-                       :output output :message message)))
-            (let* ((sexp (handler-case (compile-waql result)
-                           (simple-error (e)
-                             (error 'load-waql-compile-error
-                                    :output output :message (princ e)))))
-                   (value (handler-case (eval sexp)
-                            (error (e)
-                              (error 'load-waql-runtime-error
-                                     :output output :message (princ e))))))
-              (setf output (concatenate 'string output
-                                        (format nil "~A~%~%" value))))))
+          (let ((value (handler-case
+                           (eval (compile-waql (parse-waql code)))
+                         (waql-parse-error (e)
+                           (error 'load-waql-parse-error
+                                  :output output
+                                  :message (princ-to-string e)))
+                         (waql-compile-error (e)
+                           (error 'load-waql-compile-error
+                                  :output output
+                                  :message (princ-to-string e)))
+                         (error (e)
+                           (error 'load-waql-runtime-error
+                                  :output output
+                                  :message (princ-to-string e))))))
+            (setf output (concatenate 'string output
+                                      (format nil "~A~%~%" value)))))
         (setf code "")))
     output))
 

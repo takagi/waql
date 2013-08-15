@@ -98,13 +98,30 @@
 ;;; Evaluating WAQL
 ;;;
 
-(defmacro eval-waql (expr)
-  (compile-waql expr))
+(defmacro eval-waql (expr &key sexp-p)
+  (if (not sexp-p)
+    (compile-waql (parse-waql expr))
+    (compile-waql expr)))
+
+
+;;;
+;;; Compiling WAQL in S-expression
+;;;
+
+(define-condition waql-compile-error (error)
+  ((message :reader waql-compile-error-message
+            :initarg :message
+            :type string))
+  (:report waql-compile-error-printer))
+
+(defun waql-compile-error-printer (condition stream)
+  (princ (waql-compile-error-message condition) stream))
 
 (defun compile-waql (expr)
-  (compile-expression-top
-    (specialize-function-top
-      (solve-pattern-match-top expr))))
+  (handler-case (compile-expression-top
+                 (specialize-function-top
+                  (solve-pattern-match-top expr)))
+    (error (e) (error 'waql-compile-error :message (princ-to-string e)))))
 
 
 ;;;
@@ -1269,6 +1286,27 @@
 ;;;
 ;;; Parser
 ;;;
+
+(define-condition waql-parse-error (error)
+  ((string :reader waql-parse-error-string
+           :initarg :string
+           :type string))
+  (:report waql-parse-error-printer))
+
+(defun waql-parse-error-printer (condition stream)
+  (let ((string (waql-parse-error-string condition)))
+    (format stream "Parse error: ~A" string)))
+
+(defun parse-waql (string &key (top-expr-p t))
+  (let ((parser (if top-expr-p
+                  (expr-top*)
+                  (expr*))))
+    (multiple-value-bind (result suffix success front)
+        (parse-string* parser string :complete t)
+      (declare (ignorable suffix front))
+      (unless success
+        (error 'waql-parse-error :string string))
+      result)))
 
 (defun ~ws? (Q)
   ;; skip whitespaces and comments

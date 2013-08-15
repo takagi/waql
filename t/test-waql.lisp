@@ -118,14 +118,15 @@
 
 ;;; test projection
 (let ((cl-test-more:*default-test-function* #'equalp)
-      (result (eval-waql (query (u) (<- (u ev) +r1+)))))
+      (result (eval-waql (query (u) (<- (u ev) +r1+)) :sexp-p t)))
   (ok (relation-member (tuple (user 1)) result))
   (is (relation-count result) 2))
 
 ;;; test selection
 (let ((cl-test-more:*default-test-function* #'equalp)
       (result (eval-waql (query (u ev) (<- (u ev) +r1+)
-                                       (= (waql::user-id u) 1)))))
+                                       (= (waql::user-id u) 1))
+                         :sexp-p t)))
   (ok (relation-member (tuple (user 1) (event 1)) result))
   (ok (null (relation-member (tuple (user 2) (event 3)) result)))
   (is (relation-count result) 2))
@@ -133,7 +134,8 @@
 ;;; test Cartesian product
 (let ((cl-test-more:*default-test-function* #'equalp)
       (result (eval-waql (query (u1 ev1 u2 ev2) (<- (u1 ev1) +r1+)
-                                                (<- (u2 ev2) +r1+)))))
+                                                (<- (u2 ev2) +r1+))
+                         :sexp-p t)))
   (ok (relation-member (tuple (user 1) (event 1) (user 2) (event 3))
                        result))
   (is (relation-count result) 9))
@@ -144,14 +146,16 @@
                 (query (u1 ev1 ev2) (<- (u1 ev1) +r1+)
                                     (<- (u2 ev2) +r1+)
                                     (= u1 u2)
-                                    (< ev1 ev2)))))
+                                    (< ev1 ev2))
+                :sexp-p t)))
   (ok (relation-member (tuple (user 1) (event 1) (event 2)) result))
   (is (relation-count result) 1))
 
 ;;; test count aggregation
 (let ((result (eval-waql
                 (query (u (count (query (ev1) (<- (u ev1) +r1+))))
-                       (<- (u ev) +r1+)))))
+                       (<- (u ev) +r1+))
+                :sexp-p t)))
   (ok (relation-member (tuple (user 1) 2) result))
   (ok (relation-member (tuple (user 2) 1) result))
   (is (relation-count result) 2))
@@ -159,7 +163,8 @@
 ;;; test underscore notation
 (let ((result (eval-waql
                 (query (u) (<- (u _) +r1+)
-                           (<- (u _) +r1+)))))
+                           (<- (u _) +r1+))
+                :sexp-p t)))
   (ok (relation-member (tuple (user 1)) result))
   (ok (relation-member (tuple (user 2)) result))
   (is (relation-count result) 2))
@@ -170,7 +175,8 @@
                   (let (f ((u :user) (i :int))
                           (= (waql::user-id u) i))
                     (query (u) (<- (u e) x)
-                               (f u 1)))))))
+                               (f u 1))))
+                :sexp-p t)))
   (ok (relation-member (tuple (user 1)) result))
   (is (relation-count result) 1))
 
