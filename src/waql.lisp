@@ -139,7 +139,7 @@
     ((query-p expr) (solve-pattern-match-query expr patenv))
     ((lisp-form-p expr) expr)
     ((function-p expr) (solve-pattern-match-function expr patenv))
-    (t (error "invalid expression: ~S" expr))))
+    (t (error "invalid expression: ~A" expr))))
 
 
 ;;;
@@ -148,7 +148,7 @@
 
 (defun solve-pattern-match-symbol (expr patenv)
   (unless (null (percent-symbol-p expr))
-    (error "symbol beginning with \"%\" is reserved: ~S" expr))
+    (error "symbol beginning with \"%\" is reserved: ~A" expr))
   (unless (lookup-patenv expr patenv)
     (error "The variable ~A is unbound." expr))
   expr)
@@ -162,7 +162,7 @@
   (cond
     ((let-var-p expr) (solve-pattern-match-let-var expr patenv))
     ((let-fun-p expr) (solve-pattern-match-let-fun expr patenv))
-    (t (error "invalid expression: ~S" expr))))
+    (t (error "invalid expression: ~A" expr))))
 
 (defun solve-pattern-match-let-var (expr patenv)
   (let ((lvar  (let-var expr))
@@ -227,9 +227,9 @@
   (let ((vars (quantification-vars qual))
         (rel  (quantification-relation qual)))
     (unless (notany #'percent-symbol-p vars)
-      (error "symbol beginning with \"%\" is reserved: ~S" vars))
+      (error "symbol beginning with \"%\" is reserved: ~A" vars))
     (unless (individual-variables-p vars)
-      (error "duplicated variables: ~S" vars))
+      (error "duplicated variables: ~A" vars))
     ;; do pattern matching recursively on rel
     (let ((rel1 (solve-pattern-match rel patenv)))
       ;; do main pattern matching in this quantification
@@ -271,7 +271,7 @@
     ((op . args) `(,op ,@(mapcar #'(lambda (x)
                                      (solve-pattern-match x patenv))
                                  args)))
-    (_ (error "invalid expression: ~S" expr))))
+    (_ (error "invalid expression: ~A" expr))))
 
 
 ;;;
@@ -367,7 +367,7 @@
 (defun add-patenv (var patenv)
   (assert (symbolp var))
   (unless (null (lookup-patenv var patenv))
-    (error "variable ~S already exists" var))
+    (error "variable ~A already exists" var))
   (with-%patenv-elements (elems patenv)
     (acons var 1 elems)))
 
@@ -379,7 +379,7 @@
                 (if (eq var1 var)
                     (acons var1 (1+ cnt) rest)
                     (acons var1 cnt (%inc-patenv var rest))))
-               (_ (error "variable ~S does not exist" var)))))
+               (_ (error "variable ~A does not exist" var)))))
     (with-%patenv-elements (elems patenv)
       (%inc-patenv var elems))))
 
@@ -405,7 +405,7 @@
     ((query-p expr) (specialize-function-query expr typenv))
     ((lisp-form-p expr) (specialize-function-lisp-form expr))
     ((function-p expr) (specialize-function-function expr typenv))
-    (t (error "invalid expression: ~S" expr))))
+    (t (error "invalid expression: ~A" expr))))
 
 
 ;;;
@@ -414,7 +414,7 @@
 
 (defun specialize-function-literal (expr)
   (unless (literal-p expr)
-    (error "invalid expression: ~S" expr))
+    (error "invalid expression: ~A" expr))
   (list expr :int))
 
 ;;;
@@ -423,15 +423,15 @@
 
 (defun specialize-function-symbol (expr typenv)
   (unless (symbol-p expr)
-    (error "invalid expression: ~S" expr))
+    (error "invalid expression: ~A" expr))
   (acond
     ((lookup-typenv expr typenv)
      (unless (not (function-type-p it))
-       (error "symbol ~S is bound to function" expr))
+       (error "symbol ~A is bound to function" expr))
      (list expr it))
     ((lookup-predefined-relations expr)
      (list expr it))
-    (t (error "unbound variable: ~S" expr))))
+    (t (error "unbound variable: ~A" expr))))
 
 
 ;;;
@@ -442,7 +442,7 @@
   (cond
     ((let-var-p expr) (specialize-function-let-var expr typenv))
     ((let-fun-p expr) (specialize-function-let-fun expr typenv))
-    (t (error "invalid expression: ~S" expr))))
+    (t (error "invalid expression: ~A" expr))))
 
 (defun specialize-function-let-var (expr typenv)
   (let ((lvar  (let-var expr))
@@ -525,11 +525,11 @@
     ;; error if any variables already exist in environment
     (let ((%lookup-typenv (rcurry #'lookup-typenv typenv)))
       (unless (notany %lookup-typenv vars)
-        (error "variables ~S already exist in environment" vars)))
+        (error "variables ~A already exist in environment" vars)))
     (destructuring-bind (rel1 rel-type) (specialize-function rel typenv)
       ;; error if quantification binder is not of relation type
       (unless (relation-type-p rel-type)
-        (error "quantification binder must be of relation type: ~S" rel))
+        (error "quantification binder must be of relation type: ~A" rel))
       ;; error if relation dimension does not match
       (unless (= (length vars) (relation-type-dim rel-type))
         (error "variables do not match to relation dimension"))
@@ -553,7 +553,7 @@
 (defun specialize-function-predicate (pred rest exprs typenv)
   (destructuring-bind (pred1 pred-type) (specialize-function pred typenv)
     (unless (eq pred-type :bool)
-      (error "predicate must have :bool reutrn type: ~S" pred))
+      (error "predicate must have :bool reutrn type: ~A" pred))
     (destructuring-bind (rest1 exprs1 type1)
         (specialize-function-quals rest exprs typenv)
       (list pred1 rest1 exprs1 type1))))
@@ -565,7 +565,7 @@
 
 (defun specialize-function-lisp-form (expr)
   (unless (lisp-form-p expr)
-    (error "invalid expression: ~S" expr))
+    (error "invalid expression: ~A" expr))
   ;; lisp form has no information about its type in WAQL layer,
   ;; so assume that returned type of lisp form always :bool
   (list expr :bool))
@@ -583,7 +583,7 @@
        (specialize-function-function-in-typenv operator operands typenv))
       ((generic-function-p expr)
        (specialize-function-generic-function operator operands typenv))
-      (t (error "undefined function: ~S" operator)))))
+      (t (error "undefined function: ~A" operator)))))
 
 (defun specialize-function-function-in-typenv (operator operands typenv)
   (let ((%specialize-function (rcurry #'specialize-function typenv)))
@@ -594,11 +594,11 @@
              (arg-types   (function-type-arg-types type))
              (return-type (function-type-return-type type)))
         (unless (function-type-p type)
-          (error "symbol ~S is bound to variable" operator))
+          (error "symbol ~A is bound to variable" operator))
         (unless (length= arg-types operand-types)
-          (error "invalid number of arguments: ~S" (length operands)))
+          (error "invalid number of arguments: ~A" (length operands)))
         (unless (equal arg-types operand-types)
-          (error "invalid type of arguments: ~S" `(,operator ,@operands)))
+          (error "invalid type of arguments: ~A" `(,operator ,@operands)))
         (list (make-function operator operands1)
               return-type)))))
 
@@ -636,7 +636,7 @@
     (when candidates
       (let ((func (assoc operand-types candidates :test #'match-types-p)))
         (unless func
-          (error "invalid argument types for function ~S : ~S"
+          (error "invalid argument types for function ~A : ~A"
                  operator operand-types))
         (cdr func)))))
 
@@ -681,7 +681,7 @@
     ((query-p expr) (compile-query expr compenv scope))
     ((lisp-form-p expr) (compile-lisp-form expr))
     ((function-p expr) (compile-function expr compenv scope))
-    (t (error "invalid expression: ~S" expr))))
+    (t (error "invalid expression: ~A" expr))))
 
 
 ;;;
@@ -690,7 +690,7 @@
 
 (defun compile-literal (expr)
   (unless (literal-p expr)
-    (error "invalid expression: ~S" expr))
+    (error "invalid expression: ~A" expr))
   expr)
 
 
@@ -700,13 +700,13 @@
 
 (defun compile-symbol (expr compenv scope)
   (unless (symbol-p expr)
-    (error "invalid expression: ~S" expr))
+    (error "invalid expression: ~A" expr))
   (cond
     ((lookup-compenv expr compenv)
      (compile-symbol-in-compenv expr compenv scope))
     ((lookup-predefined-relations expr)
      (compile-symbol-in-predefined-relations expr))
-    (t (error "unbound variable: ~S" expr))))
+    (t (error "unbound variable: ~A" expr))))
 
 (defun compile-symbol-in-compenv (expr compenv scope)
   (cl-pattern:match (lookup-compenv expr compenv)
@@ -718,7 +718,7 @@
      (let ((scope1 (scoping-symbol expr)))
        (compile-expression expr1 compenv1 scope1)))
     ((:letfun . _)
-     (error "symbol ~S is bound to function" expr))))
+     (error "symbol ~A is bound to function" expr))))
 
 (defun compile-symbol-in-predefined-relations (expr)
   expr)
@@ -732,7 +732,7 @@
   (cond
     ((let-var-p expr) (compile-let-var expr compenv scope))
     ((let-fun-p expr) (compile-let-fun expr compenv scope))
-    (t (error "invalid expression: ~S" expr))))
+    (t (error "invalid expression: ~A" expr))))
 
 (defun compile-let-var (expr compenv scope)
   (let ((lvar  (let-var expr))
@@ -842,7 +842,7 @@
        ;; :argvar, then compile expr1 with new compenv1 and new scope
        (let ((compiled-operands (mapcar %compile-expression operands)))
          (unless (length= args compiled-operands)
-           (error "invalid number of arguments: ~S"
+           (error "invalid number of arguments: ~A"
                   (length compiled-operands)))
          (let ((pairs (mapcar #'cons args compiled-operands)))
            (let ((compenv2
@@ -853,7 +853,7 @@
                           :initial-value compenv1)))
              (compile-expression expr compenv2
                                  (scoping-symbol operator))))))
-      (_ (error "symbol ~S is bound to variable" operator)))))
+      (_ (error "symbol ~A is bound to variable" operator)))))
 
 (defun compile-function-built-in (operator operands compenv scope)
   (let ((%compile-expression (rcurry #'compile-expression compenv scope)))
@@ -980,12 +980,12 @@
   (optima:match expr
     ((list 'let (list var _) _) var)
     ((list 'let (list var _ _) _) var)
-    (_ (error "invalid expression~S" expr))))
+    (_ (error "invalid expression~A" expr))))
 
 (defun let-args (expr)
   (cl-pattern:match expr
     (('let (_ args _) _) args)
-    (_ (error "invalid expression: ~S" expr))))
+    (_ (error "invalid expression: ~A" expr))))
 
 (defun let-arg-vars (expr)
   (mapcar #'car (let-args expr)))
@@ -998,14 +998,14 @@
   (optima:match expr
     ((list 'let (list _ expr1) _) expr1)
     ((list 'let (list _ _ expr1) _) expr1)
-    (_ (error "invalid expression: ~S" expr))))
+    (_ (error "invalid expression: ~A" expr))))
 
 (defun let-body (expr)
   ;; use optima instead of cl-pattern because of uncapability in this case
   (optima:match expr
     ((list 'let (list _ _) body) body)
     ((list 'let (list _ _ _) body) body)
-    (_ (error "invalid expression: ~S" expr))))
+    (_ (error "invalid expression: ~A" expr))))
 
 
 ;;;
@@ -1023,12 +1023,12 @@
 (defun query-exprs (expr)
   (cl-pattern:match expr
     (('query exprs . _) exprs)
-    (_ (error "invalid expression: ~S" expr))))
+    (_ (error "invalid expression: ~A" expr))))
 
 (defun query-quals (expr)
   (cl-pattern:match expr
     (('query _ . quals) quals)
-    (_ (error "invalid expression: ~S" expr))))
+    (_ (error "invalid expression: ~A" expr))))
 
 
 ;;;
@@ -1048,14 +1048,14 @@
     (('<- vars _)
      (unless (and (listp vars)
                   (every #'symbol-p vars))
-       (error "invalid expression: ~S" qual))
+       (error "invalid expression: ~A" qual))
      vars)
-    (_ (error "invalid expression: ~S" qual))))
+    (_ (error "invalid expression: ~A" qual))))
 
 (defun quantification-relation (qual)
   (cl-pattern:match qual
     (('<- _ rel) rel)
-    (_ (error "invalid expression: ~S" qual))))
+    (_ (error "invalid expression: ~A" qual))))
 
 
 ;;;
@@ -1070,7 +1070,7 @@
 (defun lisp-form (expr)
   (cl-pattern:match expr
     (('lisp form) form)
-    (_ (error "invalid expression: ~S" expr))))
+    (_ (error "invalid expression: ~A" expr))))
 
 
 ;;;
@@ -1083,12 +1083,12 @@
 (defun function-operator (expr)
   (cl-pattern:match expr
     ((operator . _) operator)
-    (_ (error "invalid expression: ~S" expr))))
+    (_ (error "invalid expression: ~A" expr))))
 
 (defun function-operands (expr)
   (cl-pattern:match expr
     ((_ . operands) operands)
-    (_ (error "invalid expression: ~S" expr))))
+    (_ (error "invalid expression: ~A" expr))))
 
 (defun function-p (expr)
   (and (consp expr)
@@ -1135,13 +1135,13 @@
   (cl-pattern:match pattern
     (:relation t)
     ((:relation)
-     (error "invalid relation type pattern: ~S" pattern))
+     (error "invalid relation type pattern: ~A" pattern))
     ((:relation '_ . attrs)
      (or (every #'wildcard-p attrs)
-         (error "invalid relation type pattern: ~S" pattern)))
+         (error "invalid relation type pattern: ~A" pattern)))
     ((:relation . attrs)
      (or (notany #'wildcard-p attrs)
-         (error "invalid relation type pattern: ~S" pattern)))
+         (error "invalid relation type pattern: ~A" pattern)))
     (_ nil)))
 
 (defun relation-type-pattern-general-p (pattern)
@@ -1168,9 +1168,9 @@
 
 (defun relation-type-pattern-attrs (pattern)
   (unless (relation-type-pattern-p pattern)
-    (error "pattern ~S is not relation type pattern" pattern))
+    (error "pattern ~A is not relation type pattern" pattern))
   (cl-pattern:match pattern
-    (:relation (error "relation type pattern of general does not have explicit attributes: ~S" pattern))
+    (:relation (error "relation type pattern of general does not have explicit attributes: ~A" pattern))
     ((:relation . attrs) attrs)
     (_ (error "must not be reached"))))
 
@@ -1213,7 +1213,7 @@
 
 (defun relation-type-attrs (type)
   (unless (relation-type-p type)
-    (error "invalid relation type: ~S" type))
+    (error "invalid relation type: ~A" type))
   (cdr type))
 
 (defun relation-type-dim (type)
@@ -1226,9 +1226,9 @@
 
 (defun make-function-type (arg-types return-type)
   (unless (every #'scalar-type-p arg-types)
-    (error "invalid types: ~S" arg-types))
+    (error "invalid types: ~A" arg-types))
   (unless (scalar-type-p return-type)
-    (error "invalid type: ~S" return-type))
+    (error "invalid type: ~A" return-type))
   `(:function ,arg-types ,return-type))
 
 (defun function-type-p (type)
@@ -1238,12 +1238,12 @@
 
 (defun function-type-arg-types (type)
   (unless (function-type-p type)
-    (error "invalid function type: ~S" type))
+    (error "invalid function type: ~A" type))
   (cadr type))
 
 (defun function-type-return-type (type)
   (unless (function-type-p type)
-    (error "invalid function type: ~S" type))
+    (error "invalid function type: ~A" type))
   (caddr type))
 
 
