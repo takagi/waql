@@ -25,6 +25,8 @@
                  (:file "package")
                  (:file "data")
                  (:file "waql")
+                 (:file "coroutine")
+                 (:file "repl")
                  (:file "sandbox")
                  (:file "web-repl"))))
   :description ""
