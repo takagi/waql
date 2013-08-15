@@ -19,6 +19,8 @@
 (hunchentoot:define-easy-handler (repl :uri "/repl") (i)
   (setf (hunchentoot:content-type*) "text/plain")
   (cond
+    ((null i)
+     (format nil "~A,No input." +response-code-error+))
     ((cl-ppcre:scan +quit-command-regexp+ (trim i))
      (format nil "~A,The :quit command is not allowed in Web REPL."
                  +response-code-error+))
