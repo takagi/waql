@@ -28,7 +28,7 @@
   "^:quit$")
 
 (defparameter +load-command-regexp+
-  "^:load(\\s+(\\S*))?$")
+  "^:load\\s+(\\S+)$")
 
 (defmacro repl-loop (&body body)
   (alexandria:with-gensyms (break-block continue-block)
@@ -86,7 +86,13 @@
          (coexit :quit))
        ;; :load command
        (when (cl-ppcre:scan +load-command-regexp+ (trim line))
-         (yield (list :error ":load command is not suppoted"))
+         (cl-ppcre:register-groups-bind (filespec)
+             (+load-command-regexp+ (trim line))
+           (let ((response (handler-case-without-call/cc
+                             (let ((output (load-waql filespec)))
+                               (make-respconse :output output))
+                             (error (e) (make-response :error e)))))
+             (yield response)))
          (continue-loop))
        ;; invalid command
        (yield (list :error
@@ -149,37 +155,60 @@
            (yield response)
            (break-loop))))))))
 
+(defun load-waql-error-printer (condition stream)
+  (princ (load-waql-message condition) stream))
+
+(define-condition load-waql-error (error)
+  ((output :reader load-waql-output
+           :initarg :output
+           :type string)
+   (message :reader load-waql-message
+            :initarg :message
+            :type string))
+  (:report load-waql-error-printer))
+
+(define-condition load-waql-parse-error (load-waql-error) ()
+  (:report load-waql-error-printer))
+
+(define-condition load-waql-compile-error (load-waql-error) ()
+  (:report load-waql-error-printer))
+
+(define-condition load-waql-runtime-error (load-waql-error) ()
+  (:report load-waql-error-printer))
+
 (defun load-waql (filespec)
-  (with-open-file (stream filespec :direction :input)
-    (let (code result suffix success front sexp)
+  (let ((output "") (code ""))
+    (with-open-file (stream filespec :direction :input)
       (iterate:iter
         (iterate:for line in-file filespec using #'read-line)
-        (setf code (if (null code)
-                       (trim-after-semicolon line)
-                       (concatenate 'string code (string #\Newline)
-                                            (trim-after-semicolon line))))
-        ;; not semicolon-terminated, continue to read next line
-        (unless (semicolon-terminated-p code)
-          (iterate:next-iteration))
-        ;; print code with ">" leaded
-        (with-input-from-string (stream1 code)
-          (iterate:iter
-            (iterate:for line1 in-stream stream1 using #'read-line)
-            (princ "> ")
-            (princ line1)
-            (fresh-line)))
-        ;; if semicolon-terminated, evaluate and continue
-        (multiple-value-setq (result suffix success front)
-          (parse-string* (expr-top*) code :complete t))
-        (unless (and success (null front))
-          (error "parse error: ~S" code))
-        (fresh-line)
-        (setf sexp (compile-waql result))
-        (princ (eval sexp))
-        (fresh-line)
-        (terpri)
-        ;; reset code to null
-        (setf code nil)))))
+        (let ((trimed-line (format nil (trim-after-semicolon line))))
+          (setf code   (concatenate 'string code
+                                            (format nil "~A~%" trimed-line))
+                output (concatenate 'string output
+                                            (format nil "> ~A~%" line)))
+          ;; not semicolon-terminated, continue to read next line
+          (unless (semicolon-terminated-p trimed-line)
+            (iterate:next-iteration))
+          ;; if semicolon-terminated, evaluate and continue
+          (multiple-value-bind (result suffix success front)
+              (parse-string* (expr-top*) code :complete t)
+            (declare (ignorable suffix))
+            (unless (and success (null front))
+              (let ((message (format nil "Parse error: ~A" code)))
+                (error 'load-waql-parse-error
+                       :output output :message message)))
+            (let* ((sexp (handler-case (compile-waql result)
+                           (simple-error (e)
+                             (error 'load-waql-compile-error
+                                    :output output :message (princ e)))))
+                   (value (handler-case (eval sexp)
+                            (error (e)
+                              (error 'load-waql-runtime-error
+                                     :output output :message (princ e))))))
+              (setf output (concatenate 'string output
+                                        (format nil "~A~%~%" value))))))
+        (setf code "")))
+    output))
 
 
 ;;;
