@@ -64,7 +64,7 @@
         (declare (ignorable result suffix front))
         (when success
           (yield :blank)
-          (ceontinue-loop)))
+          (continue-loop)))
      ;; ":" make command parsing start
      (when (starts-with #\: trimed-line)
        ;; :quit command
