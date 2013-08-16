@@ -1284,7 +1284,7 @@
 
 
 ;;;
-;;; Parser
+;;; Parsing WAQL
 ;;;
 
 (define-condition waql-parse-error (error)
