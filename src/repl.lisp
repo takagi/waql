@@ -74,22 +74,11 @@
        (when (cl-ppcre:scan +load-command-regexp+ (trim line))
          (cl-ppcre:register-groups-bind (filespec)
              (+load-command-regexp+ (trim line))
-           (let ((response (handler-case-without-call/cc
-                             (let ((output (load-waql filespec)))
-                               (make-response :output output))
-                             (load-waql-parse-error (e)
-                               (let ((output  (load-waql-error-output e)))
-                                 (make-response :error
-                                   (concatenate 'string
-                                                output "Parse error."))))
-                             (load-waql-error (e)
-                               (let ((output  (load-waql-error-output e))
-                                     (message (load-waql-error-message e)))
-                                 (make-response :error
-                                   (concatenate 'string
-                                                output message)))))))
-             (yield response)))
-         (continue-loop))
+           (multiple-value-bind (output success) (load-in-repl filespec)
+             (if success
+               (yield (make-response :output output))
+               (yield (make-response :error output))))
+           (continue-loop)))
        ;; invalid command
        (yield (list :error
                     (format nil "invalid command: ~A" (trim line))))
@@ -122,7 +111,7 @@
      (let ((lines line) trimed-line)
        (repl-loop
          (yield :continue)
-         (setf lines (concatenate 'string lines (string #\Newline) line)
+         (setf lines (format nil "~A~%~A" lines line)
                trimed-line (repl-trim lines))
          ;; if semicolon-terminated lines, evaluate and continue
          (when (semicolon-terminated-p trimed-line)
@@ -172,38 +161,35 @@
 (define-condition load-waql-runtime-error (load-waql-error) ()
   (:report load-waql-error-printer))
 
-(defun load-waql (filespec)
+(defun load-in-repl (filespec)
   (let ((output "") (code ""))
     (with-open-file (stream filespec :direction :input)
       (iterate:iter
         (iterate:for line in-file filespec using #'read-line)
         (let ((trimed-line (format nil (trim-after-semicolon line))))
-          (setf code   (concatenate 'string code
-                                            (format nil "~A~%" trimed-line))
-                output (concatenate 'string output
-                                            (format nil "> ~A~%" line)))
+          (setf code   (format nil "~A~A~%" code trimed-line)
+                output (format nil "~A> ~A~%" output line))
           ;; not semicolon-terminated, continue to read next line
           (unless (semicolon-terminated-p trimed-line)
             (iterate:next-iteration))
           ;; if semicolon-terminated, evaluate and continue
-          (let ((value (handler-case
-                           (eval (compile-waql (parse-waql code)))
-                         (waql-parse-error (e)
-                           (error 'load-waql-parse-error
-                                  :output output
-                                  :message (princ-to-string e)))
-                         (waql-compile-error (e)
-                           (error 'load-waql-compile-error
-                                  :output output
-                                  :message (princ-to-string e)))
-                         (error (e)
-                           (error 'load-waql-runtime-error
-                                  :output output
-                                  :message (princ-to-string e))))))
-            (setf output (concatenate 'string output
-                                      (format nil "~A~%~%" value)))))
+          (let ((value
+                  (handler-case
+                      (eval (compile-waql (parse-waql code)))
+                    (waql-parse-error (_)
+                      (declare (ignorable _))
+                      (let ((output1 (format nil "~A~A~%~%"
+                                                 output "Parse error.")))
+                        (return-from load-in-repl (values output1 nil))))
+                    (waql-compile-error (e)
+                      (let ((output1 (format nil "~A~A~%~%" output e)))
+                        (return-from load-in-repl (values output1 nil))))
+                    (error (e)
+                      (let ((output1 (format nil "~A~A~%~%" output e)))
+                        (return-from load-in-repl (values output1 nil)))))))
+            (setf output (format nil "~A~A~%~%" output value))))
         (setf code "")))
-    output))
+    (values output t)))
 
 
 ;;;
