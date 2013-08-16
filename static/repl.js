@@ -78,7 +78,7 @@ function printOutput( message ) {
 }
 
 
-function showInputArea( isFirst ) {
+function showInputArea( isFirst, rest ) {
 
   // query container
   var container = dojo.query( "#container" )[0];
@@ -107,6 +107,7 @@ function showInputArea( isFirst ) {
   if ( ! textarea )
     error( "fail to create text area." );
   textarea.focus();
+  textarea.value = rest;
   textarea.onkeydown = function ( event ) {
     if ( event.keyCode != 13 )
       return true;
@@ -116,8 +117,11 @@ function showInputArea( isFirst ) {
   };
   textarea.onpaste = function ( event ) {
     setTimeout( function () {
-      hideInputArea();
-      client.input( event.target.value, isFirst );
+      var str = event.target.value;
+      if ( -1 != str.indexOf( '\n' ) ) {
+        hideInputArea();
+        client.input( event.target.value, isFirst );
+      }
     }, 0 );
   };
 
@@ -136,8 +140,8 @@ function hideInputArea() {
   dojo.destroy( inputArea );
 }
 
-function ready( isFirst ) {
-  showInputArea( isFirst );
+function ready( isFirst, rest ) {
+  showInputArea( isFirst, rest );
 }
 
 
@@ -241,13 +245,15 @@ function Client( inputCallback
   }
 
   this.processed = function ( isFirst ) {
-    if ( queue.length > 0 )
+    if ( queue.length > 1 )
       this.startProcessing( isFirst );
+    else if ( queue.length == 1 )
+      readyCallback( isFirst, queue.shift() );
     else
-      readyCallback( isFirst );
+      readyCallback( isFirst, "" );
   }
 
-  readyCallback( true );
+  readyCallback( true, "" );
 }
 
 
