@@ -140,27 +140,6 @@
                (yield response)
                (break-loop)))))))))
 
-(defun load-waql-error-printer (condition stream)
-  (princ (load-waql-error-message condition) stream))
-
-(define-condition load-waql-error (error)
-  ((output :reader load-waql-error-output
-           :initarg :output
-           :type string)
-   (message :reader load-waql-error-message
-            :initarg :message
-            :type string))
-  (:report load-waql-error-printer))
-
-(define-condition load-waql-parse-error (load-waql-error) ()
-  (:report load-waql-error-printer))
-
-(define-condition load-waql-compile-error (load-waql-error) ()
-  (:report load-waql-error-printer))
-
-(define-condition load-waql-runtime-error (load-waql-error) ()
-  (:report load-waql-error-printer))
-
 (defun load-in-repl (filespec)
   (let ((output "") (code ""))
     (with-open-file (stream filespec :direction :input)
