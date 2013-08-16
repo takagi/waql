@@ -48,7 +48,6 @@
            #:load-waql
            ;; Querying
            #:eval-waql
-           #:compile-waql
            #:query
            #:<-
            #:_
