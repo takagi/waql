@@ -77,7 +77,17 @@
            (let ((response (handler-case-without-call/cc
                              (let ((output (load-waql filespec)))
                                (make-response :output output))
-                             (error (e) (make-response :error e)))))
+                             (load-waql-parse-error (e)
+                               (let ((output  (load-waql-error-output e)))
+                                 (make-response :error
+                                   (concatenate 'string
+                                                output "Parse error."))))
+                             (load-waql-error (e)
+                               (let ((output  (load-waql-error-output e))
+                                     (message (load-waql-error-message e)))
+                                 (make-response :error
+                                   (concatenate 'string
+                                                output message)))))))
              (yield response)))
          (continue-loop))
        ;; invalid command
@@ -145,10 +155,10 @@
   (princ (load-waql-message condition) stream))
 
 (define-condition load-waql-error (error)
-  ((output :reader load-waql-output
+  ((output :reader load-waql-error-output
            :initarg :output
            :type string)
-   (message :reader load-waql-message
+   (message :reader load-waql-error-message
             :initarg :message
             :type string))
   (:report load-waql-error-printer))
