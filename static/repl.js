@@ -199,8 +199,7 @@ function Client( inputCallback
 
     inputCallback( line, isFirst );
 
-    var url = "http://kamonama.mydns.jp:8080/repl?i="
-            + encodeURIComponent( line );
+    var url = "./repl?i=" + encodeURIComponent( line );
     var xhrArgs = {
       url: url,
       handleAs: "text"
