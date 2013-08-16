@@ -45,7 +45,6 @@
            #:collect-relation
            ;; Language interface
            #:repl-waql
-           #:load-waql
            ;; Querying
            #:eval-waql
            #:query
