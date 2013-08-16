@@ -152,7 +152,7 @@
                (break-loop)))))))))
 
 (defun load-waql-error-printer (condition stream)
-  (princ (load-waql-message condition) stream))
+  (princ (load-waql-error-message condition) stream))
 
 (define-condition load-waql-error (error)
   ((output :reader load-waql-error-output
