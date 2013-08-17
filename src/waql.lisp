@@ -583,7 +583,7 @@
        (specialize-function-function-in-typenv operator operands typenv))
       ((generic-function-p expr)
        (specialize-function-generic-function operator operands typenv))
-      (t (error "undefined function: ~A" operator)))))
+      (t (error "The function ~A is undefined." operator)))))
 
 (defun specialize-function-function-in-typenv (operator operands typenv)
   (let ((%specialize-function (rcurry #'specialize-function typenv)))
