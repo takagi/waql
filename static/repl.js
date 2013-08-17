@@ -31,12 +31,12 @@ function insertLine( prompt, message, decorationClass ) {
     error( "fail to create line DIV." );
   
   // add prompt to line
-  dojo.create( "SPAN", { className: "line-prompt"
+  dojo.create( "CODE", { className: "line-prompt"
                        , innerHTML: toEntityReference( prompt ) }
                      , line, "last" );
   
   // add body to line
-  dojo.create( "SPAN", { className: "line-body " + decorationClass
+  dojo.create( "CODE", { className: "line-body " + decorationClass
                        , innerHTML: toEntityReference( message ) }
                      , line, "last" );
   
@@ -100,11 +100,11 @@ function showInputArea( isFirst, rest ) {
   
   // show prompt
   if ( isFirst )
-    dojo.create( "SPAN", { className: "line-prompt"
+    dojo.create( "CODE", { className: "line-prompt"
                          , innerHTML: "&gt;&gt;&gt;" }
                        , line, "last" );
   else
-    dojo.create( "SPAN", { className: "line-prompt"
+    dojo.create( "CODE", { className: "line-prompt"
                          , innerHTML: "..." }
                        , line, "last" );
   

@@ -12,20 +12,18 @@
              ; height: 21px
              }
     div.hidden { visibility: hidden }
-    span.line-prompt { font-family: monospace
-                     ; margin: 0px
+    code.line-prompt { margin: 0px
                      ; border: 0px
                      ; padding: 3px 2px 1px 2px
                      ; float: left
                      }
-    span.line-body { font-family: monospace
-                   ; margin: 0px
+    code.line-body { margin: 0px
                    ; border: 0px
                    ; padding: 3px 2px 1px 2px
                    ; float: left
                    }
-    span.output { color: #808080 }
-    span.error { color: #FF0000 }
+    code.output { color: #808080 }
+    code.error { color: #FF0000 }
     textarea { outline: none
              ; resize: none
              ; font-family: monospace
@@ -43,20 +41,20 @@
   <h1>The WAQL Interactive Environment</h1>
   <div id="container">
     <div class="line">
-      <span class="line-prompt">&gt;&gt;&gt;</span>
-      <span class="line-body">foo</span>
+      <code class="line-prompt">&gt;&gt;&gt;</code>
+      <code class="line-body">foo</code>
     </div>
     <div class="line">
-      <span class="line-prompt">...</span>
-      <span class="line-body">;</span>
+      <code class="line-prompt">...</code>
+      <code class="line-body">;</code>
     </div>
     <div class="line">
-      <span class="line-prompt">&nbsp;&nbsp;&nbsp;</span>
-      <span class="line-body error">The variable FOO is unbound.</span>
+      <code class="line-prompt">&nbsp;&nbsp;&nbsp;</code>
+      <code class="line-body error">The variable FOO is unbound.</code>
     </div>
 <!--
     <div class="line">
-      <span class="line-prompt">&gt;&gt;&gt;</span>
+      <code class="line-prompt">&gt;&gt;&gt;</code>
       <textarea></textarea>
     </div>
 -->
