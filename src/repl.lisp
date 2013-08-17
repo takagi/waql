@@ -81,7 +81,7 @@
            (continue-loop)))
        ;; invalid command
        (yield (list :error
-                    (format nil "invalid command: ~A" (trim line))))
+                    (format nil "The command ~A is invalid." (trim line))))
        (continue-loop))
      ;; if semicolon-terminated line, evaluate and continue
      (when (semicolon-terminated-p trimed-line)
