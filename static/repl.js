@@ -47,33 +47,39 @@ function insertLine( prompt, message, decorationClass ) {
 
 function printInput( input, isFirst ) {
 
+  // show input line
   if ( isFirst )
     insertLine( ">>>", input, "" );
   else
     insertLine( "...", input, "" );
 
+  // scroll to bottom
   scrollToBottom();
 }
 
 
 function printError( message ) {
 
+  // show error messages per line
   message = message.replace( /\n$/g, "" );
   dojo.forEach( message.split('\n'), function( line ) {
     insertLine( "   ", line, "error" );
-  } );  
+  } );
 
+  // scroll to bottom
   scrollToBottom();
 }
 
 
 function printOutput( message ) {
 
+  // show output messages per line
   message = message.replace( /\n$/g, "" );
   dojo.forEach( message.split('\n'), function( line ) {
     insertLine( "   ", line, "output" );
   } );
 
+  // scroll to bottom
   scrollToBottom();
 }
 
@@ -108,6 +114,8 @@ function showInputArea( isFirst, rest ) {
     error( "fail to create text area." );
   textarea.focus();
   textarea.value = rest;
+
+  // set onkeydown event to textarea
   textarea.onkeydown = function ( event ) {
     if ( event.keyCode != 13 )
       return true;
@@ -115,6 +123,8 @@ function showInputArea( isFirst, rest ) {
     client.input( event.target.value, isFirst );
     return false;
   };
+
+  // set onpaste event to textarea
   textarea.onpaste = function ( event ) {
     setTimeout( function () {
       var str = event.target.value;
@@ -154,19 +164,25 @@ var RESPONSE_CODE_OUTPUT   = 3;
 var RESPONSE_CODE_ERROR    = 4;
 
 function Response ( data ) {
-  
+
+  // unless data is string, error
   if ( typeof data != "string" )
     error( "Response data is not string." );
 
+  // get response code
   var code    = parseInt( data.substring( 0, 1 ), 10 );
+
+  // get response message if has
   var message = "," == data.substring( 1, 2 )
               ? data.substring( 2 )
               : "";
   
+  // response code selector (read only)
   this.code = function() {
     return code;
   }
-  
+
+  // response message selector (read only)
   this.message = function() {
     return message;
   }
@@ -180,29 +196,34 @@ function Client( inputCallback
 
   var queue = new Array();
 
-  this.input = function ( string, isFirst ) {
+  this.input = function ( str, isFirst ) {
 
-    if ( typeof string != "string" )
+    // unless str is string, error
+    if ( typeof str != "string" )
       error( "Input is not string." );
 
-    var lines = string.split( '\n' );
+    // split str into lines and enqueue them
+    var lines = str.split( '\n' );
     dojo.forEach( lines, function( line ) {
       queue.push( line );
     } );
 
+    // start processing
     this.startProcessing( isFirst );
   }
 
   this.startProcessing = function ( isFirst ) {
 
+    // process one line
     this.processLine( queue.shift(), isFirst );
-
   }
 
   this.processLine = function ( line, isFirst ) {
 
+    // input-callback
     inputCallback( line, isFirst );
 
+    // connect to the server asynchronously
     var url = "./repl?i=" + encodeURIComponent( line );
     var xhrArgs = {
       url: url,
@@ -210,6 +231,7 @@ function Client( inputCallback
     }
     var deferred = dojo.xhrGet( xhrArgs );
 
+    // set response handler
     var currentClient = this;
     deferred.then(
       function ( data ) {
@@ -234,6 +256,7 @@ function Client( inputCallback
           return;
         default:
           error( "Invalid response code." );
+          return;
         }
       },
       function ( error ) {
@@ -245,14 +268,21 @@ function Client( inputCallback
   }
 
   this.processed = function ( isFirst ) {
+
+    // if queue has more than one, process another
     if ( queue.length > 1 )
       this.startProcessing( isFirst );
+
+    // if queue has only one, ready-callback passing the last line
     else if ( queue.length == 1 )
       readyCallback( isFirst, queue.shift() );
+
+    // if queue has nothing, ready-callback
     else
       readyCallback( isFirst, "" );
   }
 
+  // initial ready-callback
   readyCallback( true, "" );
 }
 
