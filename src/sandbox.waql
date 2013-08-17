@@ -1,34 +1,34 @@
 -- conversion per advertises by times
-let +eua+ := -- Event, User, Advertise
-             { <ev, u, ad> | <ev, u>  <- +ev+
-                           , <ev, ad> <- +ad+ } in
-let +euc+ := -- Event, User, Conversion
-             { <ev, u, cv> | <ev, u>  <- +ev+
-                           , <ev, cv> <- +cv+ } in
-let +uf1+ := -- User, Action Event, Conversion Event
-             { <u, ae, ce> | <ae, u, ad> <- +eua+
-                           , <ce, u, cv> <- +euc+
+let +eua2+ := -- Event, User, Advertise
+              { <ev, u, ad> | <ev, u>  <- +ev+
+                            , <ev, ad> <- +ad+ } in
+let +euc2+ := -- Event, User, Conversion
+              { <ev, u, cv> | <ev, u>  <- +ev+
+                            , <ev, cv> <- +cv+ } in
+let +uf2+ := -- User, Action Event, Conversion Event
+             { <u, ae, ce> | <ae, u, ad> <- +eua2+
+                           , <ce, u, cv> <- +euc2+
                            , ae < ce }
 in { < ad
-     , count { <ae> | <_, ae, _> <- +uf1+
+     , count { <ae> | <_, ae, _> <- +uf2+
                     , <ae, ad> <- +ad+ }
      >
    | <_, ad> <- +ad+ };
 
 
 -- conversion per advertises by UUs
-let +eua+ := -- Event, User, Advertise
-             { <ev, u, ad> | <ev, u>  <- +ev+
-                           , <ev, ad> <- +ad+ } in
-let +euc+ := -- Event, User, Conversion
-             { <ev, u, cv> | <ev, u>  <- +ev+
-                           , <ev, cv> <- +cv+ } in
-let +uf1+ := -- User, Action Event, Conversion Event
-             { <u, ae, ce> | <ae, u, ad> <- +eua+
-                           , <ce, u, cv> <- +euc+
-                           , ae < ce }
+let +eua2+ := -- Event, User, Advertise
+              { <ev, u, ad> | <ev, u>  <- +ev+
+                            , <ev, ad> <- +ad+ } in
+let +euc2+ := -- Event, User, Conversion
+              { <ev, u, cv> | <ev, u>  <- +ev+
+                            , <ev, cv> <- +cv+ } in
+let +uf2+ := -- User, Action Event, Conversion Event
+              { <u, ae, ce> | <ae, u, ad> <- +eua2+
+                            , <ce, u, cv> <- +euc2+
+                            , ae < ce }
 in { < ad
-     , count { <u> | <u, ae, _> <- +uf1+
+     , count { <u> | <u, ae, _> <- +uf2+
                    , <ae, ad> <- +ad+ }
      >
    | <_, ad> <- +ad+ };
