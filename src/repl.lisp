@@ -142,37 +142,33 @@
 
 (defun load-in-repl (filespec)
   (let ((output "") (code ""))
-    (handler-case
-      (with-open-file (stream filespec :direction :input)
-        (iterate:iter
-          (iterate:for line in-file filespec using #'read-line)
-          (let ((trimed-line (format nil (trim-after-semicolon line))))
-            (setf code   (format nil "~A~A~%" code trimed-line)
-                  output (format nil "~A> ~A~%" output line))
-            ;; not semicolon-terminated, continue to read next line
-            (unless (semicolon-terminated-p trimed-line)
-              (iterate:next-iteration))
-            ;; if semicolon-terminated, evaluate and continue
-            (let ((value
-                    (handler-case
-                        (eval (compile-waql (parse-waql code)))
-                      (waql-parse-error (_)
-                        (declare (ignorable _))
-                        (let ((output1 (format nil "~A~A~%~%"
-                                                   output "Parse error.")))
-                          (return-from load-in-repl (values output1 nil))))
-                      (waql-compile-error (e)
-                        (let ((output1 (format nil "~A~A~%~%" output e)))
-                          (return-from load-in-repl (values output1 nil))))
-                      (error (e)
-                        (let ((output1 (format nil "~A~A~%~%" output e)))
-                          (return-from load-in-repl (values output1 nil)))))))
-              (setf output (format nil "~A~A~%~%" output value))))
-          (setf code ""))
-        (values output t))
-      (error (e)
-        (let ((output1 (format nil "~A~A~%" output e)))
-          (values output1 nil))))))
+    (with-open-file (stream filespec :direction :input)
+      (iterate:iter
+        (iterate:for line in-file filespec using #'read-line)
+        (let ((trimed-line (format nil (trim-after-semicolon line))))
+          (setf code   (format nil "~A~A~%" code trimed-line)
+                output (format nil "~A> ~A~%" output line))
+          ;; not semicolon-terminated, continue to read next line
+          (unless (semicolon-terminated-p trimed-line)
+            (iterate:next-iteration))
+          ;; if semicolon-terminated, evaluate and continue
+          (let ((value
+                  (handler-case
+                      (eval (compile-waql (parse-waql code)))
+                    (waql-parse-error (_)
+                      (declare (ignorable _))
+                      (let ((output1 (format nil "~A~A~%~%"
+                                                 output "Parse error.")))
+                        (return-from load-in-repl (values output1 nil))))
+                    (waql-compile-error (e)
+                      (let ((output1 (format nil "~A~A~%~%" output e)))
+                        (return-from load-in-repl (values output1 nil))))
+                    (error (e)
+                      (let ((output1 (format nil "~A~A~%~%" output e)))
+                        (return-from load-in-repl (values output1 nil)))))))
+            (setf output (format nil "~A~A~%~%" output value))))
+        (setf code "")))
+    (values output t)))
 
 
 ;;;
