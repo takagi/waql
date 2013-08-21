@@ -68,21 +68,24 @@
 
 ;;; driver for relation
 
-(defun %relation-elt-tuple-elements (relation index)
-  (%tuple-elements (elt (relation->list relation) index)))
+;; (defun %relation-elt-tuple-elements (relation index)
+;;   (%tuple-elements (elt (relation->list relation) index)))
 
-(defun %relation-length (relation)
-  (length (relation->list relation)))
+;; (defun %relation-length (relation)
+;;   (length (relation->list relation)))
 
-(iterate:defclause-sequence in-relation nil
-  :access-fn '%relation-elt-tuple-elements
-  :size-fn '%relation-length
-  :sequence-type 'relation
-  :element-type 'tuple
-  :element-doc-string "Tuples of a relation")
+;; (iterate:defclause-sequence in-relation nil
+;;   :access-fn '%relation-elt-tuple-elements
+;;   :size-fn '%relation-length
+;;   :sequence-type 'relation
+;;   :element-type 'tuple
+;;   :element-doc-string "Tuples of a relation")
 
-(defmacro for-tuple (&rest args)
-  `(for ,@args))
+(defmacro for-tuple (vars IN-RELATION relation)
+  (unless (eq IN-RELATION 'in-relation)
+    (error "Invalid FOR-TUPLE clause."))
+  `(iterate:for ,vars in (mapcar #'%tuple-elements
+                                 (relation->list ,relation))))
 
 ;;; gatherer for relation
 
