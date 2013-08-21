@@ -36,7 +36,6 @@
   (body (make-hash-table :test #'equalp) :type hash-table :read-only t))
 
 (defun relation->list (relation)
-  ;; CAUTION: relation has no order naturally
   (hash-table-keys (%relation-body relation)))
 
 (defun relation-member (item relation)
