@@ -443,15 +443,24 @@
     (is (waql::lookup-patenv '+r1+ patenv1) '(+r1+ . 2))
     (is preds '((= +r1+ %+r1+1)))))
 
-;;; error if matched form is not symbol
+;;; error if matched form is not valid symbol
+(is-error (waql::pattern-matcher-match t
+            (waql::make-pattern-matcher (waql::empty-patenv)))
+          simple-error)
+(is-error (waql::pattern-matcher-match nil
+            (waql::make-pattern-matcher (waql::empty-patenv)))
+          simple-error)
 (is-error (waql::pattern-matcher-match '(f i)
             (waql::make-pattern-matcher (waql::empty-patenv)))
           simple-error)
 
 ;;; test UNIQUE-SYMBOL function
-(is (waql::UNIQUE-SYMBOL 'a 1) '%a1)
-(is-error (waql::UNIQUE-SYMBOL 1 1) simple-type-error)
-(is-error (waql::UNIQUE-SYMBOL 'a 'a) simple-type-error)
+(is (waql::unique-symbol 'a 1) '%a1)
+(is-error (waql::unique-symbol 1 1) simple-error)
+(is-error (waql::unique-symbol 'a 'a) simple-error)
+(is-error (waql::unique-symbol 't 1) simple-error)
+(is-error (waql::unique-symbol nil 1) simple-error)
+(is-error (waql::unique-symbol '() 1) simple-error)
 
 ;;; test PATTERN-MATCHER-MATCH-ALL function
 (let ((patenv (waql::add-patenv 'b

@@ -302,7 +302,10 @@
 (defvar *underscore-count* 1)
 
 (defun pattern-matcher-match (var matcher)
-  (assert (symbolp var))
+  (unless (not (member var '(t nil)))
+    (error "The value ~S is not valid symbol." var))
+  (unless (symbolp var)
+    (error "The value ~S is not symbol." var))
   (with-%pattern-matcher ((vars patenv preds) matcher)
     (cond
       ((underscore-notation-p var)
@@ -324,8 +327,12 @@
             (values vars1 patenv1 preds))))))))
 
 (defun unique-symbol (var count)
-  (check-type var symbol)
-  (check-type count integer)
+  (unless (not (member var '(t nil)))
+    (error "The value ~S is not valid symbol." var))
+  (unless (symbolp var)
+    (error "The value ~S is not valid symbol." var))
+  (unless (integerp count)
+    (error "The value ~S is not integer." count))
   (let ((strs (mapcar #'princ-to-string (list "%" var count))))
     (intern (apply #'concatenate 'string strs)
             (symbol-package var))))
