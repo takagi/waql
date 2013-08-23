@@ -114,7 +114,7 @@
 (defun i-val (key)
   (unless (and (listp key)
                (= 1 (length (remove nil key))))
-    (error "The value ~A is invalid." key))
+    (error "The value ~S must be list with exactly one non-nil element." key))
   (let ((dim (length key)))
     (car (remove-if-not #'cadr
            (mapcar #'list (alexandria:iota dim) key)))))
