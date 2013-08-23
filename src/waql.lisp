@@ -25,41 +25,127 @@
 (defun print-tuple (tuple stream)
   (format stream "#S~W" `(tuple ,@(%tuple-elements tuple))))
 
+(defun tuple-dim (tuple)
+  (let ((elements (%tuple-elements tuple)))
+    (length elements)))
+
+(defun tuple-ref (tuple index)
+  (let ((elements (%tuple-elements tuple)))
+    (unless (<= 0 index)
+      (error "The value ~A is not zero nor positive integer." index))
+    (unless (< index (length elements))
+      (error "The value ~A is too large." index))
+    (elt elements index)))
+
 
 ;;;
 ;;; Relation
 ;;;
 
+(defstruct (relation-index (:constructor make-relation-index ())
+                           (:conc-name %relation-index-))
+  (body (make-hash-table) :type hash-table :read-only t))
+
+(defun add-relation-index (index key value)
+  (symbol-macrolet ((body (%relation-index-body index)))
+    (if (gethash key body)
+      (appendf (gethash key body) (list value))
+      (setf (gethash key body) (list value))))
+  index)
+
+(defun lookup-relation-index (index key)
+  (symbol-macrolet ((body (%relation-index-body index)))
+    (gethash key body)))
+
+
 (defstruct (relation (:constructor empty-relation ())
                      (:conc-name %relation-)
                      (:print-object print-relation))
-  (body (make-hash-table :test #'equalp) :type hash-table :read-only t))
+  (body (make-hash-table :test #'equalp) :type hash-table :read-only t)
+  (indices nil))
+
+(defun %relation-index (relation i)
+  (symbol-macrolet ((indices (%relation-indices relation)))
+    (elt indices i)))
 
 (defun relation->list (relation)
   (hash-table-keys (%relation-body relation)))
 
-(defun relation-member (item relation)
-  (check-type item tuple)
-  (let ((body (%relation-body relation)))
-    (values (gethash item body))))
+(defun relation-member (tuple relation)
+  (unless (tuple-p tuple)
+    (error "The value ~A is not of type TUPLE." tuple))
+  (symbol-macrolet ((body (%relation-body relation)))
+    (gethash tuple body)))
 
 (defun relation-count (relation)
-  (hash-table-count (%relation-body relation)))
+  (symbol-macrolet ((body (%relation-body relation)))
+    (hash-table-count body)))
 
 (defun print-relation (relation stream)
   (format stream "#S~W" `(relation ,(relation-count relation)
                                    ,@(relation->list relation))))
 
-(defun relation-adjoin (item relation)
-  (check-type item tuple)
-  (symbol-macrolet ((body (%relation-body relation)))
-    (setf (gethash item body) t)
-    relation))
+(defun relation-adjoin (tuple relation)
+  (unless (tuple-p tuple)
+    (error "The value ~A is not of type TUPLE." tuple))
+  (symbol-macrolet ((body (%relation-body relation))
+                    (indices (%relation-indices relation)))
+    (unless (gethash tuple body)
+      ;; add item to body hash table
+      (setf (gethash tuple body) t)
+      ;; operations on per-attribute indices
+      (let ((dim (tuple-dim tuple)))
+        ;; if not, prepare indices
+        (unless indices
+          (setf indices (loop for i from 0 below dim
+                           collect (make-relation-index))))
+        ;; add tuple to each index
+        (loop for i from 0 below dim
+           do (let ((val (tuple-ref tuple i))
+                    (index (elt indices i)))
+                (add-relation-index index val tuple))))))
+  relation)
 
-(defun relation-adjoin-all (items relation)
-  (reduce #'relation-adjoin items
+(defun relation-adjoin-all (tuples relation)
+  (reduce #'relation-adjoin tuples
           :initial-value relation
           :from-end t))
+
+(defun i-val (key)
+  (unless (and (listp key)
+               (= 1 (length (remove nil key))))
+    (error "The value ~A is invalid." key))
+  (let ((dim (length key)))
+    (car (remove-if-not #'cadr
+           (mapcar #'list (alexandria:iota dim) key)))))
+
+(defun i-val-cnt (i-val relation)
+  (destructuring-bind (i val) i-val
+    (let ((index (%relation-index relation i)))
+      (list i val (length (lookup-relation-index index val))))))
+
+(defun minimize (list &key (key #'identity) (test #'<))
+  (if list
+    (destructuring-bind (top . rest) list
+      (do ((nlist rest (cdr nlist))
+           (result top))
+          ((null nlist) (return result))
+        (let ((lhs (funcall key (car nlist)))
+              (rhs (funcall key result)))
+          (if (funcall test lhs rhs) (setq result (car nlist))))))
+    nil))
+
+(defun relation-index-lookup (relation keys)
+  (labels ((%i-val-cnt (i-val)
+             (i-val-cnt i-val relation)))
+    (if keys
+      (let ((i-vals (mapcar #'i-val keys)))
+        (let ((i-val-cnts (mapcar #'%i-val-cnt i-vals)))
+          (destructuring-bind (i val _) (minimize i-val-cnts :key #'caddr)
+            (declare (ignorable _))
+            (let ((index (%relation-index relation i)))
+              (lookup-relation-index index val)))))
+      (relation->list relation))))
 
 
 ;;;
@@ -81,11 +167,20 @@
 ;;   :element-type 'tuple
 ;;   :element-doc-string "Tuples of a relation")
 
-(defmacro for-tuple (vars IN-RELATION relation)
+;; (defmacro for-tuple (vars IN-RELATION relation)
+;;   (unless (eq IN-RELATION 'in-relation)
+;;     (error "Invalid FOR-TUPLE clause."))
+;;   `(iterate:for ,vars in (mapcar #'%tuple-elements
+;;                                  (relation->list ,relation))))
+
+(defmacro for-tuple (vars IN-RELATION relation &optional USING keys)
   (unless (eq IN-RELATION 'in-relation)
     (error "Invalid FOR-TUPLE clause."))
+  (when USING
+    (unless (eq USING 'using)
+      (error "Invalid FOR-TUPLE clause.")))
   `(iterate:for ,vars in (mapcar #'%tuple-elements
-                                 (relation->list ,relation))))
+                                 (relation-index-lookup ,relation ,keys))))
 
 ;;; gatherer for relation
 
@@ -334,8 +429,13 @@
   (unless (integerp count)
     (error "The value ~S is not integer." count))
   (let ((strs (mapcar #'princ-to-string (list "%" var count))))
-    (intern (apply #'concatenate 'string strs)
-            (symbol-package var))))
+    (let ((symbol (intern (apply #'concatenate 'string strs)
+                          (symbol-package var))))
+      (setf (get symbol 'original-symbol) var)
+      symbol)))
+
+(defun original-symbol (symbol)
+  (get symbol 'original-symbol))
 
 (defun pattern-matcher-match-all (vars matcher)
   (reduce (flip #'pattern-matcher-match)
@@ -795,6 +895,31 @@
 ;;; Compiler - Query - Quantification
 ;;;
 
+(defun key-for-index-lookup (i expr dim compenv scope)
+  (let ((elems (loop repeat dim
+                  collect nil)))
+    (setf (elt elems i) (compile-expression expr compenv scope))
+    `(list ,@elems)))
+
+(defun original-symbol-but-underscore-notation (var)
+  (let ((orig-var (original-symbol var)))
+    (cond
+      ((underscore-notation-p orig-var) nil)
+      ((null orig-var) nil)
+      (t orig-var))))
+
+(defun keys-for-index-lookup (vars compenv scope)
+  (let ((dim (length vars))
+        (orig-vars (mapcar #'original-symbol-but-underscore-notation vars)))
+    (let ((keys (loop for i from 0
+                      for orig-var in orig-vars
+                   when orig-var
+                   collect (key-for-index-lookup i orig-var dim
+                                                 compenv scope))))
+      `(list ,@keys))))
+
+(defvar *lc* 0)
+
 (defun compile-quantification (qual rest exprs compenv scope outermost)
   (let ((%scoped-symbol (rcurry #'scoped-symbol scope)))
     (let ((vars (quantification-vars qual))
@@ -804,13 +929,17 @@
                               :initial-value compenv)))
         (if outermost
             `(iterate:iter outermost
-               (for-tuple ,vars1 in-relation
-                          ,(compile-expression rel compenv scope))
-                 ,(compile-query-quals rest exprs compenv1 scope))
+               (for-tuple ,vars1
+                  in-relation ,(compile-expression rel compenv scope)
+                  using ,(keys-for-index-lookup vars compenv scope))
+               (incf *lc*)
+               ,(compile-query-quals rest exprs compenv1 scope))
             `(iterate:iter
-               (for-tuple ,vars1 in-relation
-                          ,(compile-expression rel compenv scope))
-                 ,(compile-query-quals rest exprs compenv1 scope)))))))
+               (for-tuple ,vars1
+                  in-relation ,(compile-expression rel compenv scope)
+                  using ,(keys-for-index-lookup vars compenv scope))
+               (incf *lc*)
+               ,(compile-query-quals rest exprs compenv1 scope)))))))
 
 
 ;;;

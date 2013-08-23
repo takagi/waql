@@ -37,15 +37,37 @@
 (is (equalp (tuple 1 2 3) (tuple 1 2 3 4)) nil)
 (ok (equalp (tuple (user 1)) (tuple (user 1))))
 
+;;; test TUPLE-DIM function
+(is (waql::tuple-dim (tuple 1 2 3)) 3)
+(is-error (waql::tuple-dim nil) type-error)
+
+;;; test TUPLE-REF function
+(is (waql::tuple-ref (tuple 1 2 3) 0) 1)
+(is (waql::tuple-ref (tuple 1 2 3) 1) 2)
+(is (waql::tuple-ref (tuple 1 2 3) 2) 3)
+(is-error (waql::tuple-ref (tuple 1 2 3) 3) simple-error)
+(is-error (waql::tuple-ref (tuple 1 2 3) -1) simple-error)
+
 
 ;;;
 ;;; test Relation
 ;;;
 
+(diag "test Relation index")
+
+(let ((index (waql::make-relation-index)))
+  (waql::add-relation-index index 'a 1)
+  (waql::add-relation-index index 'a 2)
+  (waql::add-relation-index index 'b 1)
+  (is (waql::lookup-relation-index index 'a) '(1 2))
+  (is (waql::lookup-relation-index index 'b) '(1))
+  (is (waql::lookup-relation-index index 'c) nil))
+
+
 (diag "test Relation")
 
 ;;; test EMPTY-RELATION constructor
-(ok (empty-relation))
+(is (relation->list (empty-relation)) nil)
 
 ;;; test RELATION->LIST function
 (let ((relation (empty-relation)))
@@ -53,8 +75,16 @@
   (is (relation->list relation) (list (tuple 1)) :test #'equalp))
 
 ;;; test RELATION-MEMBER function
+(let ((relation (empty-relation)))
+  (relation-adjoin (tuple 1) relation)
+  (is (relation-member (tuple 1) relation ) t))
 
 ;;; test RELATION-COUNT function
+(let ((relation (empty-relation)))
+  (relation-adjoin (tuple 1) relation)
+  (relation-adjoin (tuple 2) relation)
+  (relation-adjoin (tuple 2) relation)
+  (is (relation-count relation) 2))
 
 ;;; test PRINT-RELATION function
 (is-print (print-object (relation-adjoin (tuple 4 5 6)
@@ -64,8 +94,7 @@
           "#S(RELATION 2 #S(TUPLE 4 5 6) #S(TUPLE 1 2 3))")
 
 ;;; test RELATION-ADJOIN function
-(let ((cl-test-more:*default-test-function* #'equalp)
-      (relation (empty-relation)))
+(let ((relation (empty-relation)))
   ;; adjoin tuple to relation
   (relation-adjoin (tuple (user 1)) relation)
   (ok (relation-member (tuple (user 1)) relation))
@@ -78,6 +107,37 @@
   (ok (relation-member (tuple (user 1)) relation))
   (ok (relation-member (tuple (user 2)) relation))
   (is (relation-count relation) 2))
+
+;;; test relation index
+(let ((cl-test-more:*default-test-function* #'equalp)
+      (relation (empty-relation)))
+  ;; adjoin tuples to relation
+  (relation-adjoin (tuple 1 1 1) relation)
+  (relation-adjoin (tuple 1 1 2) relation)
+  (relation-adjoin (tuple 1 2 3) relation)
+  (relation-adjoin (tuple 1 2 3) relation)
+  ;; test index of the first attribute
+  (let ((index (waql::%relation-index relation 0)))
+    (is (waql::lookup-relation-index index 1)
+        (list (tuple 1 1 1)
+              (tuple 1 1 2)
+              (tuple 1 2 3)))
+    (is (waql::lookup-relation-index index 2) nil))
+  ;; test index of the second attribute
+  (let ((index (waql::%relation-index relation 1)))
+    (is (waql::lookup-relation-index index 1)
+        (list (tuple 1 1 1)
+              (tuple 1 1 2)))
+    (is (waql::lookup-relation-index index 2)
+        (list (tuple 1 2 3)))
+    (is (waql::lookup-relation-index index 3) nil))
+  ;; test index of the third attribute
+  (let ((index (waql::%relation-index relation 2)))
+    (is (waql::lookup-relation-index index 3)
+        (list (tuple 1 2 3))))
+  ;; test number too large
+  (is-error (waql::%relation-index relation -1) type-error)
+  (is-error (waql::%relation-index relation 4) type-error))
 
 ;;; test RELATION-ADJOIN-ALL function
 (let ((cl-test-more:*default-test-function* #'equalp)
@@ -93,6 +153,60 @@
 (let ((relation (empty-relation)))
   (relation-adjoin (tuple 1) relation)
   (is-error (relation-adjoin (tuple (user 1)) relation) simple-error))
+
+;;; test I-VAL function
+(is (waql::i-val '(1 nil nil)) '(0 1))
+(is (waql::i-val '(nil 1 nil)) '(1 1))
+(is-error (waql::i-val '(nil nil nil)) simple-error)
+(is-error (waql::i-val '(1 1 nil)) simple-error)
+
+;;; test I-VAL-CNT function
+(let ((relation (empty-relation)))
+  ;; adjoin tuples to relation
+  (relation-adjoin (tuple 1 1 1) relation)
+  (relation-adjoin (tuple 1 1 2) relation)
+  (relation-adjoin (tuple 1 2 3) relation)
+  ;; test I-VAL-CNT function
+  (is (waql::i-val-cnt '(0 1) relation) '(0 1 3))
+  (is (waql::i-val-cnt '(0 2) relation) '(0 2 0))
+  (is (waql::i-val-cnt '(1 1) relation) '(1 1 2))
+  (is-error (waql::i-val-cnt '(-1 1) relation) type-error)
+  (is-error (waql::i-val-cnt '(3 1) relation) type-error))
+
+;;; test MINIMIZE function
+(is (waql::minimize '((a 1) (b 2) (c 0)) :key #'cadr) '(c 0))
+(is (waql::minimize '()) '())
+
+;;; test RELATION-INDEX-LOOKUP function
+(let ((cl-test-more:*default-test-function* #'equalp)
+      (relation (empty-relation)))
+  ;; adjoin tuples to relation
+  (relation-adjoin (tuple 1 1 1) relation)
+  (relation-adjoin (tuple 1 1 2) relation)
+  (relation-adjoin (tuple 1 2 3) relation)
+  (relation-adjoin (tuple 1 2 3) relation)
+  ;; test no keys
+  (is (waql::relation-index-lookup relation '())
+      (list (tuple 1 2 3)
+            (tuple 1 1 2)
+            (tuple 1 1 1)))
+  ;; test key (1 nil nil)
+  ;;   order of the result is not assured (compare to above one)
+  (is (waql::relation-index-lookup relation '((1 nil nil)))
+      (list (tuple 1 1 1)
+            (tuple 1 1 2)
+            (tuple 1 2 3)))
+  ;; test key (nil 1 nil)
+  (is (waql::relation-index-lookup relation '((nil 1 nil)))
+      (list (tuple 1 1 1)
+            (tuple 1 1 2)))
+  ;; test key (nil nil 1)
+  (is (waql::relation-index-lookup relation '((nil nil 1)))
+      (list (tuple 1 1 1)))
+  ;; test selective keys returning result using key with least one
+  (is (waql::relation-index-lookup relation '((nil 2 nil)
+                                              (nil nil 2)))
+      (list (tuple 1 2 3))))
 
 ;;; test extension for :ITERATE library on relation
 (let ((relation (relation-adjoin (tuple 4 5 6)
@@ -461,6 +575,15 @@
 (is-error (waql::unique-symbol 't 1) simple-error)
 (is-error (waql::unique-symbol nil 1) simple-error)
 (is-error (waql::unique-symbol '() 1) simple-error)
+
+;;; test ORIGINAL-SYMBOL function
+(let ((a1 (waql::unique-symbol 'a 1)))
+  (is (waql::original-symbol a1) 'a))
+
+(let ((_1 (waql::unique-symbol '_ 1)))
+  (is (waql::original-symbol _1) '_))
+
+(is (waql::original-symbol 'b) nil)
 
 ;;; test PATTERN-MATCHER-MATCH-ALL function
 (let ((patenv (waql::add-patenv 'b
@@ -898,6 +1021,31 @@
 ;;;
 
 (diag "test Compiler - Query - Quantification")
+
+;;; test KEY-FOR-INDEX-LOOKUP function
+(let ((compenv (waql::add-qvar-compenv 'x
+                 (waql::empty-compenv))))
+  (is (waql::key-for-index-lookup 1 'x 3 compenv 'foo) '(list nil foo.x nil)))
+
+;;; test ORIGINAL-SYMBOL-BUT-UNDERSCORE-NOTATION function
+(let ((%a (waql::unique-symbol 'a 1))
+      (%b (waql::unique-symbol 'b 2))
+      (%_ (waql::unique-symbol '_ 3)))
+  (is (waql::original-symbol-but-underscore-notation %a) 'a)
+  (is (waql::original-symbol-but-underscore-notation %b) 'b)
+  (is (waql::original-symbol-but-underscore-notation %_) nil)
+  (is (waql::original-symbol-but-underscore-notation 'foo) nil))
+
+;;; test KEYS-FOR-INDEX-LOOKUP function
+(let ((%a (waql::unique-symbol 'a 1))
+      (%b (waql::unique-symbol 'b 2))
+      (%_ (waql::unique-symbol '_ 3)))
+  (let ((compenv (waql::add-qvar-compenv 'a
+                   (waql::add-letvar-compenv 'b '(let (x 2) x)
+                     (waql::empty-compenv)))))
+    (is (waql::keys-for-index-lookup (list 'x %a %b %_) compenv 'foo)
+        '(list (list nil foo.a nil nil)
+               (list nil nil 2 nil)))))
 
 ;;; test COMPILE-QUANTIFICATION function
 (is (waql::compile-quantification '(<- (a b) +r1+) nil '(a b)

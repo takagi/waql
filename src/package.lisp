@@ -8,6 +8,7 @@
   (:use :cl :parser-combinators)
   (:import-from :anaphora
                 :acond
+                :aand
                 :it)
   (:import-from :alexandria
                 :with-gensyms
@@ -16,6 +17,7 @@
                 :starts-with-subseq
                 :length=
                 :hash-table-keys
+                :appendf
                 :curry
                 :rcurry)
   (:export ;; User
