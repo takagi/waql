@@ -44,7 +44,7 @@
 
 (defstruct (relation-index (:constructor make-relation-index ())
                            (:conc-name %relation-index-))
-  (body (make-hash-table) :type hash-table :read-only t))
+  (body (make-hash-table :test #'equalp) :type hash-table :read-only t))
 
 (defun add-relation-index (index key value)
   (symbol-macrolet ((body (%relation-index-body index)))
@@ -916,7 +916,7 @@
                    when orig-var
                    collect (key-for-index-lookup i orig-var dim
                                                  compenv scope))))
-      `(list ,@keys))))
+      (if keys `(list ,@keys)))))
 
 (defun compile-quantification (qual rest exprs compenv scope outermost)
   (let ((%scoped-symbol (rcurry #'scoped-symbol scope)))
@@ -924,18 +924,13 @@
           (rel  (quantification-relation qual)))
       (let ((vars1 (mapcar %scoped-symbol vars))
             (compenv1 (reduce (flip #'add-qvar-compenv) vars
-                              :initial-value compenv)))
-        (if outermost
-            `(iterate:iter outermost
-               (for-tuple ,vars1
-                  in-relation ,(compile-expression rel compenv scope)
-                  using ,(keys-for-index-lookup vars compenv scope))
-               ,(compile-query-quals rest exprs compenv1 scope))
-            `(iterate:iter
-               (for-tuple ,vars1
-                  in-relation ,(compile-expression rel compenv scope)
-                  using ,(keys-for-index-lookup vars compenv scope))
-               ,(compile-query-quals rest exprs compenv1 scope)))))))
+                              :initial-value compenv))
+            (keys (keys-for-index-lookup vars compenv scope)))
+        `(iterate:iter ,@(if outermost '(outermost))
+           (for-tuple ,vars1
+             in-relation ,(compile-expression rel compenv scope)
+             ,@(if keys `(using ,keys)))
+           ,(compile-query-quals rest exprs compenv1 scope))))))
 
 
 ;;;
