@@ -44,6 +44,7 @@
            ;; Extending :ITERATE library for relation
            #:for-tuple
            #:in-relation
+           #:using
            #:collect-relation
            ;; Language interface
            #:repl-waql
