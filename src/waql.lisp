@@ -918,8 +918,6 @@
                                                  compenv scope))))
       `(list ,@keys))))
 
-(defvar *lc* 0)
-
 (defun compile-quantification (qual rest exprs compenv scope outermost)
   (let ((%scoped-symbol (rcurry #'scoped-symbol scope)))
     (let ((vars (quantification-vars qual))
@@ -932,13 +930,11 @@
                (for-tuple ,vars1
                   in-relation ,(compile-expression rel compenv scope)
                   using ,(keys-for-index-lookup vars compenv scope))
-               (incf *lc*)
                ,(compile-query-quals rest exprs compenv1 scope))
             `(iterate:iter
                (for-tuple ,vars1
                   in-relation ,(compile-expression rel compenv scope)
                   using ,(keys-for-index-lookup vars compenv scope))
-               (incf *lc*)
                ,(compile-query-quals rest exprs compenv1 scope)))))))
 
 
