@@ -208,6 +208,11 @@
                                               (nil nil 2)))
       (list (tuple 1 2 3))))
 
+;; looking-up empty relation returns nil
+(let ((relation (empty-relation)))
+  (is (waql::relation-index-lookup relation '((nil 1 nil)))
+      nil))
+
 ;;; test extension for :ITERATE library on relation
 (let ((relation (relation-adjoin (tuple 4 5 6)
                   (relation-adjoin (tuple 1 2 3)

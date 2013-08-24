@@ -138,14 +138,18 @@
 (defun relation-index-lookup (relation keys)
   (labels ((%i-val-cnt (i-val)
              (i-val-cnt i-val relation)))
-    (if keys
-      (let ((i-vals (mapcar #'i-val keys)))
-        (let ((i-val-cnts (mapcar #'%i-val-cnt i-vals)))
-          (destructuring-bind (i val _) (minimize i-val-cnts :key #'caddr)
-            (declare (ignorable _))
-            (let ((index (%relation-index relation i)))
-              (lookup-relation-index index val)))))
-      (relation->list relation))))
+    (cond
+      ((= 0 (relation-count relation))
+       (relation->list relation))
+      ((null keys)
+       (relation->list relation))
+      (t
+       (let ((i-vals (mapcar #'i-val keys)))
+         (let ((i-val-cnts (mapcar #'%i-val-cnt i-vals)))
+           (destructuring-bind (i val _) (minimize i-val-cnts :key #'caddr)
+             (declare (ignorable _))
+             (let ((index (%relation-index relation i)))
+               (lookup-relation-index index val)))))))))
 
 
 ;;;
