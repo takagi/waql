@@ -11,6 +11,7 @@
                 :aand
                 :it)
   (:import-from :alexandria
+                :format-symbol
                 :with-gensyms
                 :plist-alist
                 :starts-with

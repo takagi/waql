@@ -1001,13 +1001,16 @@
 
 (defun scoping-symbol (symbol)
   (prog1
-      (symbolicate (list "%" symbol *scoping-count*)
-                   :package (symbol-package symbol))
+      (format-symbol (symbol-package symbol) "%~A~A" symbol *scoping-count*)
     (incf *scoping-count*)))
 
 (defun scoped-symbol (symbol scope)
   (if scope
-      (symbolicate (list scope "." symbol))
+      (let ((symbol-package (symbol-package symbol))
+            (scope-package (symbol-package scope)))
+        (unless (eq symbol-package scope-package)
+          (error "The value ~S and ~S are not in same package." symbol scope))
+        (format-symbol symbol-package "~A.~A" scope symbol))
       symbol))
 
 
@@ -1781,13 +1784,6 @@
 (defun flip (function)
   (lambda (x y)
     (funcall function y x)))
-
-(defun symbolicate (things &key package)
-  (let* ((strs (mapcar #'princ-to-string things))
-         (name (apply #'concatenate 'string strs)))
-    (if package
-        (intern name package)
-        (intern name))))
 
 (defun single (list)
   (and (listp list)
