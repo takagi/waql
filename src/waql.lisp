@@ -784,14 +784,14 @@
 ;;;
 
 (defun compile-expression-top (expr)
-  (compile-expression expr (empty-compenv) nil))
+  (compile-expression expr (empty-compenv) nil nil))
 
-(defun compile-expression (expr compenv scope)
+(defun compile-expression (expr compenv scope lookup-keys)
   (cond
     ((literal-p expr) (compile-literal expr))
-    ((symbol-p expr) (compile-symbol expr compenv scope))
+    ((symbol-p expr) (compile-symbol expr compenv scope lookup-keys))
     ((let-p expr) (compile-let expr compenv scope))
-    ((query-p expr) (compile-query expr compenv scope))
+    ((query-p expr) (compile-query expr compenv scope lookup-keys))
     ((lisp-form-p expr) (compile-lisp-form expr))
     ((function-p expr) (compile-function expr compenv scope))
     (t (error "invalid expression: ~A" expr))))
@@ -811,17 +811,18 @@
 ;;; Compiler - Symbol
 ;;;
 
-(defun compile-symbol (expr compenv scope)
+(defun compile-symbol (expr compenv scope lookup-keys)
   (unless (symbol-p expr)
     (error "invalid expression: ~A" expr))
   (cond
     ((lookup-compenv expr compenv)
-     (compile-symbol-in-compenv expr compenv scope))
+     (compile-symbol-in-compenv expr compenv scope lookup-keys))
     ((lookup-predefined-relations expr)
      (compile-symbol-in-predefined-relations expr))
     (t (error "unbound variable: ~A" expr))))
 
-(defun compile-symbol-in-compenv (expr compenv scope)
+
+(defun compile-symbol-in-compenv (expr compenv scope lookup-keys)
   (cl-pattern:match (lookup-compenv expr compenv)
     (:qvar
      (scoped-symbol expr scope))
@@ -829,7 +830,7 @@
      expr1)
     ((:letvar expr1 compenv1)
      (let ((scope1 (scoping-symbol expr)))
-       (compile-expression expr1 compenv1 scope1)))
+       (compile-expression expr1 compenv1 scope1 lookup-keys)))
     ((:letfun . _)
      (error "symbol ~A is bound to function" expr))))
 
@@ -852,7 +853,7 @@
         (lexpr (let-expr expr))
         (lbody (let-body expr)))
     (let ((compenv1 (add-letvar-compenv lvar lexpr compenv)))
-      (compile-expression lbody compenv1 scope))))
+      (compile-expression lbody compenv1 scope nil))))
 
 (defun compile-let-fun (expr compenv scope)
   (let ((lvar  (let-var expr))
@@ -860,36 +861,42 @@
         (lexpr (let-expr expr))
         (lbody (let-body expr)))
     (let ((compenv1 (add-letfun-compenv lvar largs lexpr compenv)))
-      (compile-expression lbody compenv1 scope))))
+      (compile-expression lbody compenv1 scope nil))))
 
 
 ;;;
 ;;; Compiler - Query
 ;;;
 
-(defun compile-query (expr compenv scope)
+(defun compile-query (expr compenv scope lookup-keys)
   (let ((quals (query-quals expr))
         (exprs (query-exprs expr)))
-    (compile-query-quals quals exprs compenv scope :outermost t)))
+    (compile-query-quals quals exprs compenv scope lookup-keys
+                         :outermost t)))
 
-(defun compile-query-quals (quals exprs compenv scope &key outermost)
+
+(defun compile-query-quals (quals exprs compenv scope lookup-keys
+                            &key outermost)
   (assert (or (null outermost)
               (and outermost
                    (quantification-p (car quals)))))
   (if quals
-      (let ((qual (car quals))
-            (rest (cdr quals)))
-        (compile-query-qual qual rest exprs compenv scope outermost))
-      (compile-query-exprs exprs compenv scope)))
+    (let ((qual (car quals))
+          (rest (cdr quals)))
+      (compile-query-qual qual rest exprs compenv scope lookup-keys
+                          outermost))
+    (compile-query-exprs exprs compenv scope)))
 
-(defun compile-query-qual (qual rest exprs compenv scope outermost)
+(defun compile-query-qual (qual rest exprs compenv scope lookup-keys
+                           outermost)
   (cond
     ((quantification-p qual)
-     (compile-quantification qual rest exprs compenv scope outermost))
-    (t (compile-predicate qual rest exprs compenv scope))))
+     (compile-quantification qual rest exprs compenv scope lookup-keys
+                             outermost))
+    (t (compile-predicate qual rest exprs compenv scope lookup-keys))))
 
 (defun compile-query-exprs (exprs compenv scope)
-  (let ((%compile-expression (rcurry #'compile-expression compenv scope)))
+  (let ((%compile-expression (rcurry #'compile-expression compenv scope nil)))
     (let ((compiled-exprs (mapcar %compile-expression exprs)))
       `(iterate:in outermost
          (collect-relation (tuple ,@compiled-exprs))))))
@@ -899,51 +906,165 @@
 ;;; Compiler - Query - Quantification
 ;;;
 
-(defun key-for-index-lookup (i expr dim compenv scope)
-  (let ((elems (loop repeat dim
-                  collect nil)))
-    (setf (elt elems i) (compile-expression expr compenv scope))
-    `(list ,@elems)))
+(defun original-vars (vars)
+  (labels ((underscore-notation->nil (var)
+             (and (not (underscore-notation-p var))
+                  var)))
+    (mapcar #'underscore-notation->nil
+      (mapcar #'original-symbol vars))))
 
-(defun original-symbol-but-underscore-notation (var)
-  (let ((orig-var (original-symbol var)))
-    (cond
-      ((underscore-notation-p orig-var) nil)
-      ((null orig-var) nil)
-      (t orig-var))))
+(defun key-from-current-quantification (var vars compenv scope)
+  (labels ((element (var0)
+             (if (eq var var0) var nil)))
+    (if var
+      (let ((elements (mapcar #'element vars)))
+        (make-lookup-key elements compenv scope))
+      nil)))
 
-(defun keys-for-index-lookup (vars compenv scope)
-  (let ((dim (length vars))
-        (orig-vars (mapcar #'original-symbol-but-underscore-notation vars)))
-    (let ((keys (loop for i from 0
-                      for orig-var in orig-vars
-                   when orig-var
-                   collect (key-for-index-lookup i orig-var dim
-                                                 compenv scope))))
-      (if keys `(list ,@keys)))))
+(defun keys-from-current-quantification (vars compenv scope)
+  (unless vars
+    (error "The value ~S is invalid." vars))
+  (unless (every #'symbol-p vars)
+    (error "Some values in ~S are not valid symbol." vars))
+  (let ((orig-vars (original-vars vars)))
+    (labels ((%key-from-current-quantification (orig-var)
+               (key-from-current-quantification orig-var orig-vars
+                                                compenv scope)))
+      (remove nil
+        (mapcar #'%key-from-current-quantification orig-vars)))))
 
-(defun compile-quantification (qual rest exprs compenv scope outermost)
-  (let ((%scoped-symbol (rcurry #'scoped-symbol scope)))
+(defun key-from-ascent-quantification (lookup-key exprs vars)
+  (let ((pair (symbol-expr-pair exprs lookup-key)))
+    (if pair
+      (let ((compenv (lookup-key-compenv lookup-key))
+            (scope   (lookup-key-scope lookup-key)))
+        (lookup-key-with-symbol-expr-pair pair vars compenv scope))
+      nil)))
+
+(defun keys-from-ascent-quantification (keys exprs vars)
+  (labels ((%key-from-ascent-quantification (key)
+             (key-from-ascent-quantification key exprs vars)))
+    (remove nil
+      (mapcar #'%key-from-ascent-quantification keys))))
+
+(defun compile-quantification (qual rest exprs compenv scope lookup-keys
+                               outermost)
+  (labels ((%scoped-symbol (symbol)
+             (scoped-symbol symbol scope)))
     (let ((vars (quantification-vars qual))
           (rel  (quantification-relation qual)))
-      (let ((vars1 (mapcar %scoped-symbol vars))
+      (let ((vars1 (mapcar #'%scoped-symbol vars))
             (compenv1 (reduce (flip #'add-qvar-compenv) vars
                               :initial-value compenv))
-            (keys (keys-for-index-lookup vars compenv scope)))
+            (lookup-keys1
+              (append
+                (keys-from-ascent-quantification lookup-keys exprs vars)
+                (keys-from-current-quantification vars compenv scope))))
         `(iterate:iter ,@(if outermost '(outermost))
            (for-tuple ,vars1
-             in-relation ,(compile-expression rel compenv scope)
-             ,@(if keys `(using ,keys)))
-           ,(compile-query-quals rest exprs compenv1 scope))))))
+             in-relation ,(compile-expression rel compenv scope lookup-keys1)
+             ,@(if lookup-keys1 `(using ,(compile-lookup-keys lookup-keys1))))
+           ,(compile-query-quals rest exprs compenv1 scope lookup-keys))))))
+
+
+;;;
+;;; Compiler - Query - Quantification - Symbol-Expr pair
+;;;
+
+(defun symbol-expr-pair (exprs lookup-key)
+  (unless (listp exprs)
+    (error "The value ~S is not list." exprs))
+  (unless (lookup-key-p lookup-key)
+    (error "The value ~S is not lookup key." lookup-key))
+  (unless (= (length exprs) (lookup-key-dimension lookup-key))
+    (error "The dimensions of ~S and ~S are inconsistent." exprs lookup-key))
+  (labels ((aux (expr elem)
+             (if (and elem (symbol-p expr))
+               (cons expr elem)
+               nil)))
+    (find-if #'identity
+      (mapcar #'aux exprs (lookup-key-elements lookup-key)))))
+
+(defun lookup-key-with-symbol-expr-pair (symbol-expr-pair vars compenv scope)
+  (unless (listp symbol-expr-pair)
+    (error "The value ~S is not list." symbol-expr-pair))
+  (unless (listp vars)
+    (error "The value ~S is not list." vars))
+  (unless (every #'symbol-p vars)
+    (error "Some values in ~S are not valid symbol." vars))
+  (if symbol-expr-pair
+    (destructuring-bind (symbol . expr) symbol-expr-pair
+      (labels ((aux (var)
+                 (if (and var (eq var symbol))
+                   expr
+                   nil)))
+        (let ((elements (mapcar #'aux vars)))
+          (if (null (every #'null elements))
+            (make-lookup-key elements compenv scope)
+            nil))))))
+
+
+;;;
+;;; Compiler - Query - Quantification - Lookup key
+;;;
+
+(defun lookup-key-elements-p (elements)
+  (and (listp elements)
+       (single (remove nil elements))
+       (symbol-p (find-if #'identity elements))))
+
+(defun make-lookup-key (elements compenv scope)
+  (unless (lookup-key-elements-p elements)
+    (error "The value ~S is invalid for lookup key elements." elements))
+  (check-type compenv compenv)
+  (when scope
+    (unless (symbol-p scope)
+      (error "The value ~S is invalid for scoping symbol." scope)))
+  (list :lookup-key elements compenv scope))
+
+(defun lookup-key-p (lookup-key)
+  (and (consp lookup-key)
+       (eq (car lookup-key) :lookup-key)))
+
+(defun lookup-key-elements (lookup-key)
+  (unless (lookup-key-p lookup-key)
+    (error "The value ~S is not lookup key." lookup-key))
+  (cadr lookup-key))
+
+(defun lookup-key-dimension (lookup-key)
+  (length (lookup-key-elements lookup-key)))
+
+(defun lookup-key-compenv (lookup-key)
+  (unless (lookup-key-p lookup-key)
+    (error "The value ~S is not lookup key." lookup-key))
+  (caddr lookup-key))
+
+(defun lookup-key-scope (lookup-key)
+  (unless (lookup-key-p lookup-key)
+    (error "The value ~S is not lookup key." lookup-key))
+  (cadddr lookup-key))
+
+(defun compile-lookup-key (lookup-key)
+  (let ((elements (lookup-key-elements lookup-key))
+        (compenv  (lookup-key-compenv lookup-key))
+        (scope    (lookup-key-scope lookup-key)))
+    (labels ((%compile-expression (element)
+               (if element
+                 (compile-expression element compenv scope nil)
+                 nil)))
+      `(list ,@(mapcar #'%compile-expression elements)))))
+
+(defun compile-lookup-keys (keys)
+  `(list ,@(mapcar #'compile-lookup-key keys)))
 
 
 ;;;
 ;;; Compiler - Query - Predicate
 ;;;
 
-(defun compile-predicate (pred rest exprs compenv scope)
-  `(when ,(compile-expression pred compenv scope)
-     ,(compile-query-quals rest exprs compenv scope)))
+(defun compile-predicate (pred rest exprs compenv scope lookup-keys)
+  `(when ,(compile-expression pred compenv scope nil)
+     ,(compile-query-quals rest exprs compenv scope lookup-keys)))
 
 
 ;;;
@@ -968,7 +1089,7 @@
        (compile-function-built-in operator operands compenv scope)))))
 
 (defun compile-function-letfun (operator operands compenv scope)
-  (let ((%compile-expression (rcurry #'compile-expression compenv scope)))
+  (let ((%compile-expression (rcurry #'compile-expression compenv scope nil)))
     (cl-pattern:match (lookup-compenv operator compenv)
       ((:letfun args expr compenv1)
        ;; add args and operands compiled with compenv to compenv1 as
@@ -985,11 +1106,11 @@
                           pairs
                           :initial-value compenv1)))
              (compile-expression expr compenv2
-                                 (scoping-symbol operator))))))
+                                 (scoping-symbol operator) nil)))))
       (_ (error "symbol ~A is bound to variable" operator)))))
 
 (defun compile-function-built-in (operator operands compenv scope)
-  (let ((%compile-expression (rcurry #'compile-expression compenv scope)))
+  (let ((%compile-expression (rcurry #'compile-expression compenv scope nil)))
     `(,operator ,@(mapcar %compile-expression operands))))
 
 

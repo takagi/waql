@@ -844,6 +844,132 @@
                        (iterate:in waql::outermost
                          (collect-relation (tuple a1 c))))))
 
+;;; query in binder relation of quantification
+;;;   deriving lookup-keys
+(let ((%u (waql::unique-symbol 'u 1)))
+  (is (waql::compile-expression-top
+       `(let (u (user 1))
+          (query (u e) (<- (,%u e)
+            (query (u2 e) (<- (u2 e)
+              (query (u3 e) (<- (u3 e) +r1+))))))))
+      '(iterate:iter waql::outermost
+         (for-tuple (%u1 e)
+           in-relation (iterate:iter waql::outermost
+                         (for-tuple (u2 e)
+                           in-relation
+                             (iterate:iter waql::outermost
+                               (for-tuple (u3 e) in-relation +r1+
+                                 using (list (list (user 1) nil)))
+                               (iterate:in waql::outermost
+                                 (collect-relation (tuple u3 e))))
+                           using (list (list (user 1) nil)))
+                         (iterate:in waql::outermost
+                           (collect-relation (tuple u2 e))))
+           using (list (list (user 1) nil)))
+        (iterate:in waql::outermost
+          (collect-relation (tuple (user 1) e))))))
+
+;;; symbol in binder relation of quantification
+;;;   deriving lookup-keys
+(let ((waql::*scoping-count* 1)
+      (%u (waql::unique-symbol 'u 1)))
+  (is (waql::compile-expression-top
+       `(let (+r2+ (query (u2 e) (<- (u2 e) +r1+)))
+          (let (u (user 1))
+            (query (u e) (<- (,%u e) +r2+)))))
+      `(iterate:iter waql::outermost
+         (for-tuple (%u1 e)
+           in-relation (iterate:iter waql::outermost
+                         (for-tuple (%+r2+1.u2 %+r2+1.e)
+                           in-relation +r1+
+                           using (list (list (user 1) nil)))
+                         (iterate:in waql::outermost
+                           (collect-relation
+                             (tuple %+r2+1.u2 %+r2+1.e))))
+           using (list (list (user 1) nil)))
+         (iterate:in waql::outermost
+           (collect-relation (tuple (user 1) e))))))
+
+;;; let-binded function application in binder relation of quantification
+;;;   not deriving lookup-keys
+(let ((waql::*scoping-count* 1)
+      (%u (waql::unique-symbol 'u 1)))
+  (is (waql::compile-expression-top
+        `(let (f ((i int)) (query (u2 e) (<- (u2 e) +r1+)))
+           (let (u (user 1))
+             (query (u e) (<- (,%u e) (f 1))))))
+      '(iterate:iter waql::outermost
+         (for-tuple (%u1 e)
+           in-relation (iterate:iter waql::outermost
+                         (for-tuple (%f1.u2 %f1.e) in-relation +r1+)
+                         (iterate:in waql::outermost
+                           (collect-relation (tuple %f1.u2 %f1.e))))
+           using (list (list (user 1) nil)))
+         (iterate:in waql::outermost
+           (collect-relation (tuple (user 1) e))))))
+
+;;; let variable binding in binder relation of quantification
+;;;   not deriving lookup-keys
+(let ((waql::*scoping-count* 1)
+      (%u (waql::unique-symbol 'u 1)))
+  (is (waql::compile-expression-top
+        `(let (u (user 1))
+           (query (u e) (<- (,%u e) (let (x 1)
+                                      (query (u e) (<- (u e) +r1+)))))))
+      '(iterate:iter waql::outermost
+         (for-tuple (%u1 e)
+           in-relation (iterate:iter waql::outermost
+                         (for-tuple (u e) in-relation +r1+)
+                         (iterate:in waql::outermost
+                           (collect-relation (tuple u e))))
+           using (list (list (user 1) nil)))
+         (iterate:in waql::outermost
+           (collect-relation (tuple (user 1) e))))))
+
+;;; let variable binding in expressions of sub query
+;;;   not deriving lookup-keys
+(let ((waql::*scoping-count* 1)
+      (%u (waql::unique-symbol 'u 1)))
+  (is (waql::compile-expression-top
+        `(let (u (user 1))
+           (query (u e) (<- (,%u e) (query ((let (x 1)
+                                          (user 1))
+                                        e)
+                                       (<- (u e) +r1+))))))
+      '(iterate:iter waql::outermost
+        (for-tuple (%u1 e)
+          in-relation (iterate:iter waql::outermost
+                        (for-tuple (u e) in-relation +r1+)
+                        (iterate:in waql::outermost
+                          (collect-relation (tuple (user 1) e))))
+          using (list (list (user 1) nil)))
+        (iterate:in waql::outermost
+          (collect-relation (tuple (user 1) e))))))
+
+;;; case that sub query has several quantifications
+;;;   deriving lookup-keys to each quantification
+(let ((waql::*scoping-count* 1)
+      (%u (waql::unique-symbol 'u 1)))
+  (is (waql::compile-expression-top
+        `(let (u (user 1))
+           (query (u e) (<- (,%u e) (query (u1 e1) (<- (u1 e1) +r1+)
+                                                   (<- (u1 e2) +r1+))))))
+      '(iterate:iter waql::outermost
+         (for-tuple (%u1 e)
+           in-relation (iterate:iter waql::outermost
+                         (for-tuple (u1 e1)
+                           in-relation +r1+
+                           using (list (list (user 1) nil)))
+                         (iterate:iter
+                           (for-tuple (u1 e2)
+                             in-relation +r1+
+                             using (list (list (user 1) nil)))
+                           (iterate:in waql::outermost
+                             (collect-relation (tuple u1 e1)))))
+           using (list (list (user 1) nil)))
+        (iterate:in waql::outermost
+          (collect-relation (tuple (user 1) e))))))
+
 
 ;;;
 ;;; test Compiler - Literal
@@ -862,16 +988,16 @@
 
 (let ((compenv (waql::add-qvar-compenv 'a
                  (waql::empty-compenv))))
-  (is (waql::compile-symbol 'a compenv '%a1) '%a1.a))
+  (is (waql::compile-symbol 'a compenv '%a1 nil) '%a1.a))
 
 (let ((compenv (waql::add-argvar-compenv 'a 1
                  (waql::empty-compenv))))
-  (is (waql::compile-symbol 'a compenv nil) 1))
+  (is (waql::compile-symbol 'a compenv nil nil) 1))
 
 (let ((waql::*scoping-count* 1)
       (compenv (waql::add-letvar-compenv 'a '(query (a b) (<- (a b) +r1+))
                  (waql::empty-compenv))))
-  (is (waql::compile-symbol 'a compenv '%a1)
+  (is (waql::compile-symbol 'a compenv '%a1 nil)
         '(iterate:iter waql::outermost
            (for-tuple (%a1.a %a1.b) in-relation +r1+)
            (iterate:in waql::outermost
@@ -879,10 +1005,10 @@
 
 (let ((compenv (waql::add-letfun-compenv 'f '(i) '(query (a) (<- (a i) +r1+))
                  (waql::empty-compenv))))
-  (is-error (waql::compile-symbol 'f compenv nil) simple-error))
+  (is-error (waql::compile-symbol 'f compenv nil nil) simple-error))
 
 (let ((compenv (waql::empty-compenv)))
-  (is-error (waql::compile-symbol 'a compenv nil) simple-error))
+  (is-error (waql::compile-symbol 'a compenv nil nil) simple-error))
 
 
 ;;;
@@ -937,7 +1063,7 @@
                  (waql::empty-compenv))))
   (is (waql::compile-query '(query (a b) (<- (a b) x)
                                          (<- (c d) x))
-                           compenv nil)
+                           compenv nil nil)
        '(iterate:iter waql::outermost
           (for-tuple (a b) in-relation
               (iterate:iter waql::outermost
@@ -959,7 +1085,7 @@
                    (waql::empty-compenv)))))
   (is (waql::compile-query '(query (a c) (<- (a b) x)
                                          (<- (c d) y))
-                           compenv nil)
+                           compenv nil nil)
       '(iterate:iter waql::outermost
          (for-tuple (a b) in-relation
              (iterate:iter waql::outermost
@@ -983,7 +1109,7 @@
 ;;; test COMPILE-QUERY-QUALS function
 
 (is (waql::compile-query-quals '((<- (a b) +r1+)) '(a b)
-                               (waql::empty-compenv) nil :outermost t)
+                               (waql::empty-compenv) nil nil :outermost t)
     '(iterate:iter waql::outermost
        (for-tuple (a b) in-relation +r1+)
          (iterate:in waql::outermost
@@ -993,7 +1119,7 @@
                                  (<- (c d) +r1+)
                                  (waql::user= a c))
                                '(a b c d)
-                               (waql::empty-compenv) nil :outermost t)
+                               (waql::empty-compenv) nil nil :outermost t)
     `(iterate:iter waql::outermost
        (for-tuple (a b) in-relation +r1+)
          (iterate:iter (for-tuple (c d) in-relation +r1+)
@@ -1003,7 +1129,7 @@
 
 ;;; test COMPILE-QUERY-QUAL function
 (is (waql::compile-query-qual '(<- (a b) +r1+) nil '(a b)
-                              (waql::empty-compenv) nil t)
+                              (waql::empty-compenv) nil nil t)
     '(iterate:iter waql::outermost
        (for-tuple (a b) in-relation +r1+)
          (iterate:in waql::outermost
@@ -1027,49 +1153,322 @@
 
 (diag "test Compiler - Query - Quantification")
 
-;;; test KEY-FOR-INDEX-LOOKUP function
-(let ((compenv (waql::add-qvar-compenv 'x
-                 (waql::empty-compenv))))
-  (is (waql::key-for-index-lookup 1 'x 3 compenv 'foo) '(list nil foo.x nil)))
+;;; test ORIGINAL-VARS function
 
-;;; test ORIGINAL-SYMBOL-BUT-UNDERSCORE-NOTATION function
 (let ((%a (waql::unique-symbol 'a 1))
       (%b (waql::unique-symbol 'b 2))
       (%_ (waql::unique-symbol '_ 3)))
-  (is (waql::original-symbol-but-underscore-notation %a) 'a)
-  (is (waql::original-symbol-but-underscore-notation %b) 'b)
-  (is (waql::original-symbol-but-underscore-notation %_) nil)
-  (is (waql::original-symbol-but-underscore-notation 'foo) nil))
+  (is (waql::original-vars (list 'x %a %b %_)) '(nil a b nil)))
 
-;;; test KEYS-FOR-INDEX-LOOKUP function
+(is-error (waql::original-vars 1) type-error)
+
+(is-error (waql::original-vars '(1)) type-error)
+
+
+;;; test KEYS-FROM-CURRENT-QUANTIFICATION function
+
 (let ((%a (waql::unique-symbol 'a 1))
       (%b (waql::unique-symbol 'b 2))
       (%_ (waql::unique-symbol '_ 3)))
-  (let ((compenv (waql::add-qvar-compenv 'a
-                   (waql::add-letvar-compenv 'b '(let (x 2) x)
-                     (waql::empty-compenv)))))
-    (is (waql::keys-for-index-lookup (list 'x %a %b %_) compenv 'foo)
-        '(list (list nil foo.a nil nil)
-               (list nil nil 2 nil)))))
+  (let ((compenv (waql::empty-compenv)))
+    (let ((keys (waql::keys-from-current-quantification (list 'x %a %b %_)
+                                                        compenv 'foo)))
+      (let ((key (first keys)))
+        (is (waql::lookup-key-elements key) '(nil a nil nil))
+        (is (waql::lookup-key-compenv key) compenv)
+        (is (waql::lookup-key-scope key) 'foo))
+      (let ((key (second keys)))
+        (is (waql::lookup-key-elements key) '(nil nil b nil))
+        (is (waql::lookup-key-compenv key) compenv)
+        (is (waql::lookup-key-scope key) 'foo))
+      (= (length keys) 2))))
+
+(let ((compenv (waql::empty-compenv)))
+  (is-error (waql::keys-from-current-quantification nil compenv 'foo)
+            simple-error))
+
+(let ((compenv (waql::empty-compenv)))
+  (is-error (waql::keys-from-current-quantification 1 compenv 'foo)
+            type-error))
+
+(let ((compenv (waql::empty-compenv)))
+  (is-error (waql::keys-from-current-quantification '(x 1) compenv 'foo)
+            simple-error))
+
+(let ((%a (waql::unique-symbol 'a 1)))
+  (is-error (waql::keys-from-current-quantification (list %a) 1 'foo)
+            type-error))
+
+(let ((%a (waql::unique-symbol 'a 1))
+      (compenv (waql::empty-compenv)))
+  (is-error (waql::keys-from-current-quantification (list %a) compenv 1)
+            simple-error))
+
+
+;;; test KEY-FROM-ASCENT-QUANTIFICATION function
+
+(let ((compenv (waql::empty-compenv)))
+  (let ((key (waql::make-lookup-key '(a nil) compenv nil)))
+    (let ((key1 (waql::key-from-ascent-quantification key '(y x) '(x y))))
+      (is (waql::lookup-key-elements key1) '(nil a))
+      (is (waql::lookup-key-compenv key1) compenv)
+      (is (waql::lookup-key-scope key1) nil))))
+
+(let ((compenv (waql::empty-compenv)))
+  (let ((key (waql::make-lookup-key '(a nil) compenv nil)))
+    (let ((key1 (waql::key-from-ascent-quantification key '(y x) '(a b))))
+      (is key1 nil))))
+
+(let ((compenv (waql::empty-compenv)))
+  (let ((key (waql::make-lookup-key '(a nil) compenv nil)))
+    (let ((key1 (waql::key-from-ascent-quantification key '((let (y 1) y) x)
+                                                      '(x y))))
+      (is key1 nil))))
+
+(let ((compenv (waql::empty-compenv)))
+  (let ((key (waql::make-lookup-key '(a nil) compenv nil)))
+    (is-error (waql::key-from-ascent-quantification key 1 '(x y))
+              simple-error)
+    (is-error (waql::key-from-ascent-quantification key '(y x) 1)
+              simple-error)
+    (is-error (waql::key-from-ascent-quantification key '(y x) '(1))
+              simple-error)))
+
+
+;;; test KEYS-FROM-ASCENT-QUANTIFICATION function
+
+
+(let ((compenv (waql::empty-compenv)))
+  (let ((keys (list (waql::make-lookup-key '(a nil) compenv nil))))
+    (let ((keys1 (waql::keys-from-ascent-quantification keys '(y x) '(x y))))
+      (let ((key1 (first keys1)))
+        (is (waql::lookup-key-elements key1) '(nil a))
+        (is (waql::lookup-key-compenv key1) compenv)
+        (is (waql::lookup-key-scope key1) nil)))))
+
+(let ((compenv (waql::empty-compenv)))
+  (let ((keys (list (waql::make-lookup-key '(a nil) compenv nil))))
+    (let ((keys1 (waql::keys-from-ascent-quantification
+                   keys '((let (y 1) y) x) '(x y))))
+      (is keys1 nil))))
+
+(let ((compenv (waql::empty-compenv)))
+  (let ((keys (list (waql::make-lookup-key '(a nil) compenv nil))))
+    (let ((keys1 (waql::keys-from-ascent-quantification keys '(y x) '(x z))))
+      (is keys1 nil))))
+
 
 ;;; test COMPILE-QUANTIFICATION function
+
 (is (waql::compile-quantification '(<- (a b) +r1+) nil '(a b)
-                                  (waql::empty-compenv) nil t)
+                                  (waql::empty-compenv) nil nil t)
     '(iterate:iter waql::outermost
        (for-tuple (a b) in-relation +r1+)
        (iterate:in waql::outermost
          (collect-relation (tuple a b)))))
 
 (is (waql::compile-quantification '(<- (a b) +r1+) nil '(a b)
-                                  (waql::empty-compenv) nil nil)
+                                  (waql::empty-compenv) nil nil nil)
     '(iterate:iter
        (for-tuple (a b) in-relation +r1+)
        (iterate:in waql::outermost
          (collect-relation (tuple a b)))))
 
 (is-error (waql::compile-quantification '(<- (a b) +r1+) nil '(a b c)
-                                        (waql::empty-compenv) nil t)
+                                        (waql::empty-compenv) nil nil t)
           simple-error)
+
+(let ((%a (waql::unique-symbol 'a 1)))
+  (let ((compenv (waql::add-qvar-compenv 'x
+                   (waql::add-qvar-compenv 'a
+                     (waql::empty-compenv)))))
+    (let ((lookup-keys (list (waql::make-lookup-key '(x nil) compenv nil))))
+      (is (waql::compile-quantification `(<- (,%a b) +r1+) nil `(b ,%a)
+                                        compenv nil lookup-keys t)
+          `(iterate:iter waql::outermost
+             (for-tuple (%a1 b) in-relation +r1+ using (list (list nil x)
+                                                             (list a nil)))
+             (iterate:in waql::outermost
+               (collect-relation (tuple b %a1))))))))
+
+(let ((waql::*scoping-count* 1)
+      (%x (waql::unique-symbol 'x 1)))
+  (let ((compenv (waql::add-letvar-compenv
+                   'x '(user (count (query (a) (<- (a b) +r1+))))
+                   (waql::empty-compenv))))
+    (is (waql::compile-quantification `(<- (,%x y) +r1+) nil `(,%x y)
+                                      compenv nil nil t)
+        '(iterate:iter waql::outermost
+           (for-tuple (%x1 y) in-relation +r1+
+             using (list (list (user (count (iterate:iter waql::outermost
+                                              (for-tuple (%x1.a %x1.b)
+                                                in-relation +r1+)
+                                              (iterate:in waql::outermost
+                                                (collect-relation
+                                                  (tuple %x1.a))))))
+                               nil)))
+          (iterate:in waql::outermost
+            (collect-relation
+              (tuple %x1 y)))))))
+
+
+;;;
+;;; test Compiler - Query - Quantification - Symbol-Expr pair
+;;;
+
+(diag "test Compiler - Query - Quantification - Symbol-Expr pair")
+
+
+;;; test SYMBOL-EXPR-PAIR function
+
+(let ((compenv (waql::empty-compenv)))
+  (let ((lookup-key (waql::make-lookup-key '(nil a nil)
+                                           compenv nil)))
+    (is (waql::symbol-expr-pair '(nil x nil) lookup-key) '(x . a))))
+
+(let ((compenv (waql::empty-compenv)))
+  (let ((lookup-key (waql::make-lookup-key '(nil a nil)
+                                           compenv nil)))
+    (is (waql::symbol-expr-pair '(nil (let (x 1) x) nil) lookup-key) nil)))
+
+(let ((compenv (waql::empty-compenv)))
+  (let ((lookup-key (waql::make-lookup-key '(nil a nil) compenv nil)))
+    (is-error (waql::symbol-expr-pair 1 lookup-key) simple-error)))
+
+(is-error (waql::symbol-expr-pair '(nil x nil) 1) simple-error)
+
+(let ((compenv (waql::empty-compenv)))
+  (let ((lookup-key (waql::make-lookup-key '(nil a nil) compenv nil)))
+    (is-error (waql::symbol-expr-pair '(nil x) lookup-key) simple-error)))
+
+
+;;; test LOOKUP-KEY-WITH-SYMBOL-EXPR-PAIR function
+
+(let ((compenv (waql::empty-compenv)))
+  (let ((lookup-key (waql::lookup-key-with-symbol-expr-pair
+                      '(x . a) '(x y) compenv 'foo)))
+    (is (waql::lookup-key-elements lookup-key) '(a nil))
+    (is (waql::lookup-key-compenv lookup-key) compenv)
+    (is (waql::lookup-key-scope lookup-key) 'foo)))
+
+(let ((compenv (waql::empty-compenv)))
+  (is (waql::lookup-key-with-symbol-expr-pair nil '(x y) compenv 'foo)
+      nil))
+
+(let ((compenv (waql::empty-compenv)))
+  (is (waql::lookup-key-with-symbol-expr-pair '(z . a) '(x y) compenv 'foo)
+      nil))
+
+(let ((compenv (waql::empty-compenv)))
+  (is-error (waql::lookup-key-with-symbol-expr-pair '(x . a) 1 compenv 'foo)
+            simple-error))
+
+(let ((compenv (waql::empty-compenv)))
+  (is-error (waql::lookup-key-with-symbol-expr-pair 1 '(x y) compenv 'foo)
+            simple-error))
+
+
+;;;
+;;; test Compiler - Query - Quantification - Lookup key
+;;;
+
+(diag "test Compiler - Query - Quantification - Lookup key")
+
+;;; test LOOKUP-KEY-ELEMENTS-P function
+
+(is (waql::lookup-key-elements-p '(x nil nil)) t)
+(is (waql::lookup-key-elements-p 'x) nil)
+(is (waql::lookup-key-elements-p '(nil nil nil)) nil)
+(is (waql::lookup-key-elements-p '(x x nil)) nil)
+(is (waql::lookup-key-elements-p '((let (x 1) x) nil nil)) nil)
+
+
+;;; test MAKE-LOOKUP-KEY function
+
+(let ((compenv (waql::empty-compenv)))
+  (let ((lookup-key (waql::make-lookup-key '(x nil nil) compenv 'foo)))
+    (is (waql::lookup-key-elements lookup-key) '(x nil nil))
+    (is (waql::lookup-key-compenv lookup-key) compenv)
+    (is (waql::lookup-key-scope lookup-key) 'foo)))
+
+(let ((compenv (waql::empty-compenv)))
+  (is-error (waql::make-lookup-key '(nil nil nil) compenv 'foo)
+            simple-error))
+
+(is-error (waql::make-lookup-key '(x nil nil) 'x 'foo) simple-type-error)
+
+(let ((compenv (waql::empty-compenv)))
+  (is-error (waql::make-lookup-key '(x nil nil) compenv 1) simple-error))
+
+
+;;; test LOOKUP-KEY-P function
+
+(let ((compenv (waql::empty-compenv)))
+  (let ((lookup-key (waql::make-lookup-key '(x nil nil) compenv 'foo)))
+    (waql::lookup-key-p lookup-key)))
+
+(is (waql::lookup-key-p 1) nil)
+
+
+;;; test LOOKUP-KEY-ELEMENTS function
+
+(let ((compenv (waql::empty-compenv)))
+  (let ((lookup-key (waql::make-lookup-key '(x nil nil) compenv 'foo)))
+    (is (waql::lookup-key-elements lookup-key) '(x nil nil))))
+
+(is-error (waql::lookup-key-elements 1) simple-error)
+
+
+;;; test LOOKUP-KEY-DIMENSION function
+
+(let ((compenv (waql::empty-compenv)))
+  (let ((lookup-key (waql::make-lookup-key '(x nil nil) compenv 'foo)))
+    (is (waql::lookup-key-dimension lookup-key) 3)))
+
+(is-error (waql::lookup-key-dimension 1) simple-error)
+
+
+;;; test LOOKUP-KEY-COMPENV function
+
+(let ((compenv (waql::empty-compenv)))
+  (let ((lookup-key (waql::make-lookup-key '(x nil nil) compenv 'foo)))
+    (is (waql::lookup-key-compenv lookup-key) compenv)))
+
+(is-error (waql::lookup-key-compenv 1) simple-error)
+
+
+;;; test LOOKUP-KEY-SCOPE function
+
+(let ((compenv (waql::empty-compenv)))
+  (let ((lookup-key (waql::make-lookup-key '(x nil nil) compenv 'foo)))
+    (is (waql::lookup-key-scope lookup-key) 'foo)))
+
+(is-error (waql::lookup-key-scope 1) simple-error)
+
+
+;;; test COMPILE-LOOKUP-KEY function
+
+(let ((compenv (waql::add-letvar-compenv 'x '(let (y 1) y)
+                 (waql::empty-compenv))))
+  (let ((lookup-key (waql::make-lookup-key '(x nil nil) compenv 'foo)))
+    (is (waql::compile-lookup-key lookup-key)
+        '(list 1 nil nil))))
+
+(is-error (waql::compile-lookup-key 1) simple-error)
+
+
+;;; test COMPILE-LOOKUP-KEYS function
+
+(let ((compenv (waql::add-qvar-compenv 'x
+                 (waql::add-qvar-compenv 'y
+                   (waql::empty-compenv)))))
+  (let ((lookup-keys (list (waql::make-lookup-key '(x nil nil) compenv 'foo)
+                           (waql::make-lookup-key '(nil y nil) compenv 'foo))))
+    (is (waql::compile-lookup-keys lookup-keys)
+        '(list (list foo.x nil nil)
+               (list nil foo.y nil)))))
+
+(is (waql::compile-lookup-keys nil) '(list))
 
 
 ;;;
@@ -1086,7 +1485,7 @@
                        (waql::add-qvar-compenv 'u1
                          (waql::empty-compenv))))))))
   (is (waql::compile-predicate '(waql::user= u u1) nil '(a b c)
-                               compenv nil)
+                               compenv nil nil)
       '(when (waql::user= u u1)
          (iterate:in waql::outermost
            (collect-relation (tuple a b c))))))
@@ -1095,7 +1494,7 @@
                  (waql::add-qvar-compenv 'b
                    (waql::add-qvar-compenv 'a
                      (waql::empty-compenv))))))
-  (is (waql::compile-predicate 'a nil '(a b c) compenv nil)
+  (is (waql::compile-predicate 'a nil '(a b c) compenv nil nil)
       '(when a
          (iterate:in waql::outermost
            (collect-relation (tuple a b c))))))
