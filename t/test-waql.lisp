@@ -41,12 +41,9 @@
 (is (waql::tuple-dim (tuple 1 2 3)) 3)
 (is-error (waql::tuple-dim nil) type-error)
 
-;;; test TUPLE-REF function
-(is (waql::tuple-ref (tuple 1 2 3) 0) 1)
-(is (waql::tuple-ref (tuple 1 2 3) 1) 2)
-(is (waql::tuple-ref (tuple 1 2 3) 2) 3)
-(is-error (waql::tuple-ref (tuple 1 2 3) 3) simple-error)
-(is-error (waql::tuple-ref (tuple 1 2 3) -1) simple-error)
+;;; test TUPLE-TYPES function
+(is (waql::tuple-types (tuple 1 2 (user 3))) '(:int :int :user))
+(is (waql::tuple-types (tuple)) '())
 
 
 ;;;
@@ -67,34 +64,50 @@
 (diag "test Relation")
 
 ;;; test EMPTY-RELATION constructor
-(is (relation->list (empty-relation)) nil)
+
+(let ((relation (empty-relation '(:int :int))))
+  (is (relation->list relation) nil)
+  (is (relation-type relation) '(:relation :int :int)))
+
+(is-error (empty-relation nil) simple-error)
+
+(is-error (empty-relation 1) type-error)
 
 ;;; test RELATION->LIST function
-(let ((relation (empty-relation)))
+(let ((relation (empty-relation '(:int))))
   (relation-adjoin (tuple 1) relation)
   (is (relation->list relation) (list (tuple 1)) :test #'equalp))
 
 ;;; test RELATION-MEMBER function
-(let ((relation (empty-relation)))
+(let ((relation (empty-relation '(:int))))
   (relation-adjoin (tuple 1) relation)
   (is (relation-member (tuple 1) relation ) t))
 
 ;;; test RELATION-COUNT function
-(let ((relation (empty-relation)))
+(let ((relation (empty-relation '(:int))))
   (relation-adjoin (tuple 1) relation)
   (relation-adjoin (tuple 2) relation)
   (relation-adjoin (tuple 2) relation)
   (is (relation-count relation) 2))
 
+;;; test RELATION-TYPE function
+(let ((relation (empty-relation '(:int))))
+  (is (relation-type relation) '(:relation :int)))
+
+;;; test RELATION-DIM function
+(let ((relation (empty-relation '(:int))))
+  (is (relation-dim relation) 1))
+
 ;;; test PRINT-RELATION function
 (is-print (print-object (relation-adjoin (tuple 4 5 6)
                           (relation-adjoin (tuple 1 2 3)
-                            (empty-relation)))
+                            (empty-relation '(:int :int :int))))
                         *standard-output*)
-          "#S(RELATION 2 #S(TUPLE 4 5 6) #S(TUPLE 1 2 3))")
+          "#S(RELATION 2 (:INT :INT :INT) #S(TUPLE 4 5 6) #S(TUPLE 1 2 3))")
 
 ;;; test RELATION-ADJOIN function
-(let ((relation (empty-relation)))
+
+(let ((relation (empty-relation '(:user))))
   ;; adjoin tuple to relation
   (relation-adjoin (tuple (user 1)) relation)
   (ok (relation-member (tuple (user 1)) relation))
@@ -108,9 +121,13 @@
   (ok (relation-member (tuple (user 2)) relation))
   (is (relation-count relation) 2))
 
+(is-error (relation-adjoin (tuple (user 1))
+            (empty-relation '(:int)))
+          simple-error)
+
 ;;; test relation index
 (let ((cl-test-more:*default-test-function* #'equalp)
-      (relation (empty-relation)))
+      (relation (empty-relation '(:int :int :int))))
   ;; adjoin tuples to relation
   (relation-adjoin (tuple 1 1 1) relation)
   (relation-adjoin (tuple 1 1 2) relation)
@@ -144,13 +161,13 @@
       (relation (relation-adjoin-all (list (tuple (user 1))
                                            (tuple (user 2))
                                            (tuple (user 2)))
-                                     (empty-relation))))
+                                     (empty-relation '(:user)))))
   (ok (relation-member (tuple (user 1)) relation))
   (ok (relation-member (tuple (user 2)) relation))
   (is (relation-count relation) 2))
 
 ;;; error if try to adjoin other tuples having different attributes
-(let ((relation (empty-relation)))
+(let ((relation (empty-relation '(:int))))
   (relation-adjoin (tuple 1) relation)
   (is-error (relation-adjoin (tuple (user 1)) relation) simple-error))
 
@@ -161,7 +178,7 @@
 (is-error (waql::i-val '(1 1 nil)) simple-error)
 
 ;;; test I-VAL-CNT function
-(let ((relation (empty-relation)))
+(let ((relation (empty-relation '(:int :int :int))))
   ;; adjoin tuples to relation
   (relation-adjoin (tuple 1 1 1) relation)
   (relation-adjoin (tuple 1 1 2) relation)
@@ -179,7 +196,7 @@
 
 ;;; test RELATION-INDEX-LOOKUP function
 (let ((cl-test-more:*default-test-function* #'equalp)
-      (relation (empty-relation)))
+      (relation (empty-relation '(:int :int :int))))
   ;; adjoin tuples to relation
   (relation-adjoin (tuple 1 1 1) relation)
   (relation-adjoin (tuple 1 1 2) relation)
@@ -209,14 +226,21 @@
       (list (tuple 1 2 3))))
 
 ;; looking-up empty relation returns nil
-(let ((relation (empty-relation)))
+(let ((relation (empty-relation '(:int :int :int))))
   (is (waql::relation-index-lookup relation '((nil 1 nil)))
       nil))
+
+;;; inconsistency of dimensions of lookup-key and relation
+(let ((relation (relation-adjoin (tuple 1)
+                  (empty-relation '(:int)))))
+  (is-error (waql::relation-index-lookup relation '((1 nil)))
+            simple-error))
+
 
 ;;; test extension for :ITERATE library on relation
 (let ((relation (relation-adjoin (tuple 4 5 6)
                   (relation-adjoin (tuple 1 2 3)
-                    (empty-relation)))))
+                    (empty-relation '(:int :int :int))))))
   (let ((relation2 (iterate:iter (for-tuple (x y z) in-relation relation)
                                  (collect-relation (tuple x y z)))))
     (ok (relation-member (tuple 1 2 3) relation2))
@@ -233,7 +257,7 @@
   (relation-adjoin-all (list (tuple (user 1) (event 1))
                              (tuple (user 1) (event 2))
                              (tuple (user 2) (event 3)))
-                       (empty-relation)))
+                       (empty-relation '(:user :event))))
 
 ;;; test projection
 (let ((cl-test-more:*default-test-function* #'equalp)
@@ -1734,6 +1758,11 @@
 
 (diag "test Type")
 
+;;; test WAQL-TYPE function
+(is (waql::waql-type 1) :int)
+(is (waql::waql-type (user 1)) :user)
+(is (waql::waql-type (event 1)) :event)
+
 
 ;;;
 ;;; test Type - Scalar types
@@ -1806,7 +1835,7 @@
 
 ;;; test DEFRELATION macro
 (let ((waql::*predefined-relations* (waql::make-predefined-relations)))
-  (ok (defrelation r (:int) (waql::empty-relation)))
+  (ok (defrelation r (:int) (empty-relation '(:int))))
   (is-error (defrelation r (:int) 1) type-error))
 
 

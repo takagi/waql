@@ -37,6 +37,8 @@
            #:relation
            #:empty-relation
            #:relation->list
+           #:relation-type
+           #:relation-dim
            #:relation-member
            #:relation-count
            #:relation-adjoin

@@ -11,7 +11,6 @@
 ;;;
 
 (defstruct (tuple (:constructor %make-tuple)
-                  (:conc-name %tuple-)
                   (:print-object print-tuple))
   (elements nil :type list :read-only t))
 
@@ -19,23 +18,17 @@
   (%make-tuple :elements args))
 
 (defmacro with-tuple (vars tuple &body body)
-  `(destructuring-bind ,vars (%tuple-elements ,tuple)
+  `(destructuring-bind ,vars (tuple-elements ,tuple)
      ,@body))
 
 (defun print-tuple (tuple stream)
-  (format stream "#S~W" `(tuple ,@(%tuple-elements tuple))))
+  (format stream "#S~W" `(tuple ,@(tuple-elements tuple))))
 
 (defun tuple-dim (tuple)
-  (let ((elements (%tuple-elements tuple)))
-    (length elements)))
+  (length (tuple-elements tuple)))
 
-(defun tuple-ref (tuple index)
-  (let ((elements (%tuple-elements tuple)))
-    (unless (<= 0 index)
-      (error "The value ~A is not zero nor positive integer." index))
-    (unless (< index (length elements))
-      (error "The value ~A is too large." index))
-    (elt elements index)))
+(defun tuple-types (tuple)
+  (mapcar #'waql-type (tuple-elements tuple)))
 
 
 ;;;
@@ -57,14 +50,25 @@
     (gethash key body)))
 
 
-(defstruct (relation (:constructor empty-relation ())
+(defstruct (relation (:constructor %make-relation)
                      (:conc-name %relation-)
                      (:print-object print-relation))
   (body (make-hash-table :test #'equalp) :type hash-table :read-only t)
-  (indices nil))
+  (indices nil :type list :read-only t)
+  (type nil :read-only t))
+
+(defun empty-relation (types)
+  (unless (not (null types))
+    (error "Relation must have more than one attributes."))
+  (let ((indices (loop repeat (length types)
+                    collect (make-relation-index)))
+        (type (make-relation-type types)))
+    (%make-relation :indices indices :type type)))
 
 (defun %relation-index (relation i)
   (symbol-macrolet ((indices (%relation-indices relation)))
+    (unless (< i (length indices))
+      (error 'type-error "The index ~S is too large." i))
     (elt indices i)))
 
 (defun relation->list (relation)
@@ -80,29 +84,33 @@
   (symbol-macrolet ((body (%relation-body relation)))
     (hash-table-count body)))
 
+(defun relation-type (relation)
+  (%relation-type relation))
+
+(defun relation-dim (relation)
+  (relation-type-dim (relation-type relation)))
+
 (defun print-relation (relation stream)
   (format stream "#S~W" `(relation ,(relation-count relation)
+                                   ,(relation-type-attrs
+                                      (relation-type relation))
                                    ,@(relation->list relation))))
 
 (defun relation-adjoin (tuple relation)
   (unless (tuple-p tuple)
     (error "The value ~A is not of type TUPLE." tuple))
+  (unless (equal (tuple-types tuple)
+                 (relation-type-attrs (relation-type relation)))
+    (error "The types of tuple ~S is not consist." tuple))
   (symbol-macrolet ((body (%relation-body relation))
                     (indices (%relation-indices relation)))
     (unless (gethash tuple body)
       ;; add item to body hash table
       (setf (gethash tuple body) t)
-      ;; operations on per-attribute indices
-      (let ((dim (tuple-dim tuple)))
-        ;; if not, prepare indices
-        (unless indices
-          (setf indices (loop for i from 0 below dim
-                           collect (make-relation-index))))
-        ;; add tuple to each index
-        (loop for i from 0 below dim
-           do (let ((val (tuple-ref tuple i))
-                    (index (elt indices i)))
-                (add-relation-index index val tuple))))))
+      ;; add tuple to each index
+      (loop for value in (tuple-elements tuple)
+            for index in indices
+         do (add-relation-index index value tuple))))
   relation)
 
 (defun relation-adjoin-all (tuples relation)
@@ -135,6 +143,10 @@
     nil))
 
 (defun relation-index-lookup (relation keys)
+  (unless (every #'(lambda (key)
+                     (= (relation-dim relation) (length key)))
+                 keys)
+    (error "Dimensions of the lookup-keys ~S are inconsistent." keys))
   (labels ((%i-val-cnt (i-val)
              (i-val-cnt i-val relation)))
     (cond
@@ -190,8 +202,9 @@
 (defmacro collect-relation (expr)
   `(iterate:reducing ,expr
                   by #'(lambda (r i)
-                         (relation-adjoin i r))
-       initial-value (empty-relation)))
+                         (relation-adjoin i
+                           (or r (empty-relation (tuple-types i)))))
+       initial-value nil))
 
 
 ;;;
@@ -1433,6 +1446,12 @@
 ;;;
 ;;; Type
 ;;;
+
+(defun waql-type (value)
+  (typecase value
+    (fixnum :int)
+    (user :user)
+    (event :event)))
 
 (defun type-p (type)
   (or (scalar-type-p type)
