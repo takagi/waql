@@ -1786,8 +1786,7 @@
     (funcall function y x)))
 
 (defun single (list)
-  (and (listp list)
-       (car list)
+  (and (consp list)
        (null (cdr list))))
 
 (defun left-trim (string)
