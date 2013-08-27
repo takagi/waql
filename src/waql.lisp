@@ -47,10 +47,9 @@
   (body (make-hash-table :test #'equalp) :type hash-table :read-only t))
 
 (defun add-relation-index (index key value)
-  (symbol-macrolet ((body (%relation-index-body index)))
-    (if (gethash key body)
-      (appendf (gethash key body) (list value))
-      (setf (gethash key body) (list value))))
+  (symbol-macrolet ((body (%relation-index-body index))
+                    (place (gethash key body)))
+    (setf place (cons value place)))
   index)
 
 (defun lookup-relation-index (index key)
