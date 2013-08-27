@@ -636,8 +636,9 @@
   (let ((vars (quantification-vars qual))
         (rel  (quantification-relation qual)))
     ;; error if any variables already exist in environment
-    (let ((%lookup-typenv (rcurry #'lookup-typenv typenv)))
-      (unless (notany %lookup-typenv vars)
+    (labels ((%lookup-typenv (var)
+               (lookup-typenv var typenv)))
+      (unless (notany #'%lookup-typenv vars)
         (error "variables ~A already exist in environment" vars)))
     (destructuring-bind (rel1 rel-type) (specialize-function rel typenv)
       ;; error if quantification binder is not of relation type
@@ -699,8 +700,9 @@
       (t (error "The function ~A is undefined." operator)))))
 
 (defun specialize-function-function-in-typenv (operator operands typenv)
-  (let ((%specialize-function (rcurry #'specialize-function typenv)))
-    (let* ((pairs         (mapcar %specialize-function operands))
+  (labels ((%specialize-function (operand)
+             (specialize-function operand typenv)))
+    (let* ((pairs         (mapcar #'%specialize-function operands))
            (operands1     (mapcar #'car pairs))
            (operand-types (mapcar #'cadr pairs)))
       (let* ((type        (lookup-typenv operator typenv))
@@ -716,8 +718,9 @@
               return-type)))))
 
 (defun specialize-function-generic-function (operator operands typenv)
-  (let ((%specialize-function (rcurry #'specialize-function typenv)))
-      (let* ((pairs         (mapcar %specialize-function operands))
+  (labels ((%specialize-function (operand)
+             (specialize-function operand typenv)))
+      (let* ((pairs         (mapcar #'%specialize-function operands))
              (operands1     (mapcar #'car pairs))
              (operand-types (mapcar #'cadr pairs)))
         (destructuring-bind (return-type operator1)
@@ -896,8 +899,9 @@
     (t (compile-predicate qual rest exprs compenv scope lookup-keys))))
 
 (defun compile-query-exprs (exprs compenv scope)
-  (let ((%compile-expression (rcurry #'compile-expression compenv scope nil)))
-    (let ((compiled-exprs (mapcar %compile-expression exprs)))
+  (labels ((%compile-expression (expr)
+             (compile-expression expr compenv scope nil)))
+    (let ((compiled-exprs (mapcar #'%compile-expression exprs)))
       `(iterate:in outermost
          (collect-relation (tuple ,@compiled-exprs))))))
 
@@ -1089,12 +1093,13 @@
        (compile-function-built-in operator operands compenv scope)))))
 
 (defun compile-function-letfun (operator operands compenv scope)
-  (let ((%compile-expression (rcurry #'compile-expression compenv scope nil)))
+  (labels ((%compile-expression (operand)
+             (compile-expression operand compenv scope nil)))
     (cl-pattern:match (lookup-compenv operator compenv)
       ((:letfun args expr compenv1)
        ;; add args and operands compiled with compenv to compenv1 as
        ;; :argvar, then compile expr1 with new compenv1 and new scope
-       (let ((compiled-operands (mapcar %compile-expression operands)))
+       (let ((compiled-operands (mapcar #'%compile-expression operands)))
          (unless (length= args compiled-operands)
            (error "invalid number of arguments: ~A"
                   (length compiled-operands)))
@@ -1110,8 +1115,9 @@
       (_ (error "symbol ~A is bound to variable" operator)))))
 
 (defun compile-function-built-in (operator operands compenv scope)
-  (let ((%compile-expression (rcurry #'compile-expression compenv scope nil)))
-    `(,operator ,@(mapcar %compile-expression operands))))
+  (labels ((%compile-expression (operand)
+             (compile-expression operand compenv scope nil)))
+    `(,operator ,@(mapcar #'%compile-expression operands))))
 
 
 ;;;

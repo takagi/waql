@@ -19,8 +19,7 @@
                 :length=
                 :hash-table-keys
                 :appendf
-                :curry
-                :rcurry)
+                :curry)
   (:export ;; User
            #:user
            ;; Event
