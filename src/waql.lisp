@@ -209,20 +209,10 @@
 ;;; Compiling WAQL in S-expression
 ;;;
 
-(define-condition waql-compile-error (error)
-  ((message :reader waql-compile-error-message
-            :initarg :message
-            :type string))
-  (:report waql-compile-error-printer))
-
-(defun waql-compile-error-printer (condition stream)
-  (princ (waql-compile-error-message condition) stream))
-
 (defun compile-waql (expr)
-  (handler-case (compile-expression-top
-                 (specialize-function-top
-                  (solve-pattern-match-top expr)))
-    (error (e) (error 'waql-compile-error :message (princ-to-string e)))))
+  (compile-expression-top
+    (specialize-function-top
+       (solve-pattern-match-top expr))))
 
 
 ;;;

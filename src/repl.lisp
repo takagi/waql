@@ -88,9 +88,7 @@
        (let ((response (handler-case-without-call/cc
                          (make-response :output
                            (eval (compile-waql (parse-waql trimed-line))))
-                       (waql-parse-error (e) (make-response :error e))
-                       (waql-compile-error (e) (make-response :error e))
-                       (error (e) (make-response :error e)))))
+                         (error (e) (make-response :error e)))))
          (yield response)
          (continue-loop)))
      ;; if not semicolon-terminated but valid expression,
@@ -103,7 +101,6 @@
          (let ((response (handler-case-without-call/cc
                            (make-response :output
                              (eval (compile-waql result)))
-                           (waql-compile-error (e) (make-response :error e))
                            (error (e) (make-response :error e)))))
            (yield response)
            (continue-loop))))
@@ -119,9 +116,7 @@
                    (handler-case-without-call/cc
                      (make-response :output
                        (eval (compile-waql (parse-waql trimed-line))))
-                     (waql-parse-error (e) (make-response :error e))
-                     (waql-compile-error (e) (make-response :error e)))
-                     (error (e) (make-response :error e))))
+                     (error (e) (make-response :error e)))))
              (yield response)
              (break-loop)))
          ;; if not semicolon-terminated but valid expression,
@@ -135,7 +130,6 @@
                      (handler-case-without-call/cc
                        (make-response :output
                          (eval (compile-waql result)))
-                       (waql-compile-error (e) (make-response :error e))
                        (error (e) (make-response :error e)))))
                (yield response)
                (break-loop)))))))))
@@ -156,14 +150,6 @@
               (let ((value
                      (handler-case
                          (eval (compile-waql (parse-waql code)))
-                       (waql-parse-error (_)
-                         (declare (ignorable _))
-                         (let ((output1 (format nil "~A~A~%~%"
-                                                output "Parse error.")))
-                           (return-from load-in-repl (values output1 nil))))
-                       (waql-compile-error (e)
-                         (let ((output1 (format nil "~A~A~%~%" output e)))
-                           (return-from load-in-repl (values output1 nil))))
                        (error (e)
                          (let ((output1 (format nil "~A~A~%~%" output e)))
                            (return-from load-in-repl
