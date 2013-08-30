@@ -1454,8 +1454,9 @@
 ;;;
 
 (defun make-relation-type (types)
-  (unless (every #'scalar-type-p types)
-    (error "currently, relation type can have attributes of scalar type only"))
+  (dolist (type types)
+    (unless (scalar-type-p type)
+      (error "The value ~S is invalid type." type)))
   `(:relation ,@types))
 
 (defun relation-type-p (type)
