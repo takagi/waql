@@ -830,19 +830,19 @@
 (diag "test Compiler")
 
 (is (waql::compile-expression-top
-      '(query (a1 c) (<- (a b) +r1+)
-                     (<- (a1 c) (query (a c) (<- (b1 c) +r1+)
-                                             (waql::user= b b1)))))
+      '(query (a2 c) (<- (a b) +r1+)
+                     (<- (a2 c) (query (a1 c) (<- (a1 c) +r1+)
+                                              (waql::user= a a1)))))
     '(iterate:iter waql::outermost
        (for-tuple (a b) in-relation +r1+)
-         (iterate:iter (for-tuple (a1 c) in-relation
+         (iterate:iter (for-tuple (a2 c) in-relation
                          (iterate:iter waql::outermost
-                           (for-tuple (b1 c) in-relation +r1+)
-                           (when (waql::user= b b1)
+                           (for-tuple (a1 c) in-relation +r1+)
+                           (when (waql::user= a a1)
                              (iterate:in waql::outermost
-                               (collect-relation (tuple a c))))))
+                               (collect-relation (tuple a1 c))))))
                        (iterate:in waql::outermost
-                         (collect-relation (tuple a1 c))))))
+                         (collect-relation (tuple a2 c))))))
 
 ;;; query in binder relation of quantification
 ;;;   deriving lookup-keys
@@ -895,7 +895,7 @@
 (let ((waql::*scoping-count* 1)
       (%u (waql::unique-symbol 'u 1)))
   (is (waql::compile-expression-top
-        `(let (f ((i int)) (query (u2 e) (<- (u2 e) +r1+)))
+        `(let (f ((i :int)) (query (u2 e) (<- (u2 e) +r1+)))
            (let (u (user 1))
              (query (u e) (<- (,%u e) (f 1))))))
       '(iterate:iter waql::outermost
@@ -915,13 +915,13 @@
   (is (waql::compile-expression-top
         `(let (u (user 1))
            (query (u e) (<- (,%u e) (let (x 1)
-                                      (query (u e) (<- (u e) +r1+)))))))
+                                      (query (u1 e) (<- (u1 e) +r1+)))))))
       '(iterate:iter waql::outermost
          (for-tuple (%u1 e)
            in-relation (iterate:iter waql::outermost
-                         (for-tuple (u e) in-relation +r1+)
+                         (for-tuple (u1 e) in-relation +r1+)
                          (iterate:in waql::outermost
-                           (collect-relation (tuple u e))))
+                           (collect-relation (tuple u1 e))))
            using (list (list (user 1) nil)))
          (iterate:in waql::outermost
            (collect-relation (tuple (user 1) e))))))
@@ -935,11 +935,11 @@
            (query (u e) (<- (,%u e) (query ((let (x 1)
                                           (user 1))
                                         e)
-                                       (<- (u e) +r1+))))))
+                                       (<- (u1 e) +r1+))))))
       '(iterate:iter waql::outermost
         (for-tuple (%u1 e)
           in-relation (iterate:iter waql::outermost
-                        (for-tuple (u e) in-relation +r1+)
+                        (for-tuple (u1 e) in-relation +r1+)
                         (iterate:in waql::outermost
                           (collect-relation (tuple (user 1) e))))
           using (list (list (user 1) nil)))
@@ -949,11 +949,12 @@
 ;;; case that sub query has several quantifications
 ;;;   deriving lookup-keys to each quantification
 (let ((waql::*scoping-count* 1)
-      (%u (waql::unique-symbol 'u 1)))
+      (%u (waql::unique-symbol 'u 1))
+      (%u1 (waql::unique-symbol 'u1 2)))
   (is (waql::compile-expression-top
         `(let (u (user 1))
            (query (u e) (<- (,%u e) (query (u1 e1) (<- (u1 e1) +r1+)
-                                                   (<- (u1 e2) +r1+))))))
+                                                   (<- (,%u1 e2) +r1+))))))
       '(iterate:iter waql::outermost
          (for-tuple (%u1 e)
            in-relation (iterate:iter waql::outermost
@@ -961,9 +962,9 @@
                            in-relation +r1+
                            using (list (list (user 1) nil)))
                          (iterate:iter
-                           (for-tuple (u1 e2)
+                           (for-tuple (%u12 e2)
                              in-relation +r1+
-                             using (list (list (user 1) nil)))
+                             using (list (list u1 nil)))
                            (iterate:in waql::outermost
                              (collect-relation (tuple u1 e1)))))
            using (list (list (user 1) nil)))
@@ -1003,7 +1004,7 @@
            (iterate:in waql::outermost
              (collect-relation (tuple %a1.a %a1.b))))))
 
-(let ((compenv (waql::add-letfun-compenv 'f '(i) '(query (a) (<- (a i) +r1+))
+(let ((compenv (waql::add-letfun-compenv 'f '(e) '(query (a) (<- (a e) +r1+))
                  (waql::empty-compenv))))
   (is-error (waql::compile-symbol 'f compenv nil nil) simple-error))
 
