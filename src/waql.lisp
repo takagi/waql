@@ -1232,7 +1232,7 @@
   (optima:match expr
     ((list 'let (list var _) _) var)
     ((list 'let (list var _ _) _) var)
-    (_ (error "invalid expression~A" expr))))
+    (_ (error "invalid expression: ~A" expr))))
 
 (defun let-args (expr)
   (cl-pattern:match expr
