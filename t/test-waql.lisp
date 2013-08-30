@@ -1295,18 +1295,19 @@
 (let ((waql::*scoping-count* 1)
       (%x (waql::unique-symbol 'x 1)))
   (let ((compenv (waql::add-letvar-compenv
-                   'x '(user (count (query (a) (<- (a b) +r1+))))
+                   'x '(user (relation-count (query (a) (<- (a b) +r1+))))
                    (waql::empty-compenv))))
     (is (waql::compile-quantification `(<- (,%x y) +r1+) nil `(,%x y)
                                       compenv nil nil t)
         '(iterate:iter waql::outermost
            (for-tuple (%x1 y) in-relation +r1+
-             using (list (list (user (count (iterate:iter waql::outermost
-                                              (for-tuple (%x1.a %x1.b)
-                                                in-relation +r1+)
-                                              (iterate:in waql::outermost
-                                                (collect-relation
-                                                  (tuple %x1.a))))))
+             using (list (list (user (relation-count
+                                       (iterate:iter waql::outermost
+                                         (for-tuple (%x1.a %x1.b)
+                                           in-relation +r1+)
+                                         (iterate:in waql::outermost
+                                           (collect-relation
+                                             (tuple %x1.a))))))
                                nil)))
           (iterate:in waql::outermost
             (collect-relation
