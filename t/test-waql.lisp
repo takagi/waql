@@ -661,6 +661,7 @@
 
 ;;; test SPECIALIZE-FUNCTION-LITERAL function
 (is (waql::specialize-function-literal 1) '(1 :int))
+(is (waql::specialize-function-literal "foo") '("foo" :string))
 (is-error (waql::specialize-function-literal 'a) simple-error)
 
 
@@ -795,6 +796,9 @@
 
 (is (waql::lookup-generic-function '= '(:user :user))
     '(:bool waql::user=))
+
+(is (waql::lookup-generic-function '= '(:string :string))
+    '(:bool waql::string=))
 
 (is (waql::lookup-generic-function 'foo nil) nil)
 
@@ -1608,6 +1612,7 @@
 
 ;;; test LITERAL-P function
 (ok (waql::literal-p 1))
+(ok (waql::literal-p "foo"))
 (ok (null (waql::literal-p 'a)))
 
 
@@ -1745,6 +1750,7 @@
 
 (ok (waql::scalar-type-p :bool))
 (ok (waql::scalar-type-p :int))
+(ok (waql::scalar-type-p :string))
 (ok (waql::scalar-type-p :user))
 (ok (waql::scalar-type-p :event))
 (ok (waql::scalar-type-p :action))

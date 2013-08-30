@@ -515,9 +515,11 @@
 ;;;
 
 (defun specialize-function-literal (expr)
-  (unless (literal-p expr)
-    (error "invalid expression: ~A" expr))
-  (list expr :int))
+  (cond
+    ((int-literal-p expr) (list expr :int))
+    ((string-literal-p expr) (list expr :string))
+    (t (error "invalid expression: ~A" expr))))
+
 
 ;;;
 ;;; Function specialization - Symbol
@@ -723,14 +725,15 @@
 ;;;
 
 (defparameter +function-table+
-  '(=       (((:user :user)   :bool user=)
-             ((:event :event) :bool event=)
-             ((:int :int)     :bool =))
-    <       (((:event :event) :bool event<)
-             ((:int :int)     :bool <))
-    count   (((:relation)     :int  relation-count))
-    user    (((:int)          :user user))
-    user-id (((:user)         :int  user-id))))
+  '(=       (((:user :user)     :bool user=)
+             ((:event :event)   :bool event=)
+             ((:int :int)       :bool =)
+             ((:string :string) :bool string=))
+    <       (((:event :event)   :bool event<)
+             ((:int :int)       :bool <))
+    count   (((:relation)       :int  relation-count))
+    user    (((:int)            :user user))
+    user-id (((:user)           :int  user-id))))
 
 (defparameter +generic-functions+
   (let ((alist (plist-alist +function-table+)))
@@ -1191,7 +1194,14 @@
 ;;;
 
 (defun literal-p (expr)
+  (or (int-literal-p expr)
+      (string-literal-p expr)))
+
+(defun int-literal-p (expr)
   (typep expr 'fixnum))
+
+(defun string-literal-p (expr)
+  (typep expr 'string))
 
 
 ;;;
@@ -1445,7 +1455,7 @@
 ;;;
 
 (defun scalar-type-p (type)
-  (and (member type '(:bool :int :user :event :action :conversion))
+  (and (member type '(:bool :int :string :user :event :action :conversion))
        t))
 
 
@@ -1631,16 +1641,18 @@
             (~ws* #\))))
 
 (defun literal? ()
-  (~ws? (int?)))
+  (~ws? (choices (int?)
+                 (quoted?))))
 
 (defun literal* ()
-  (~ws* (int*)))
+  (~ws* (choices1 (int*)
+                  (quoted?))))
 
 (defun reserved? ()
-  (choices "let" "in" "bool" "int"))
+  (choices "let" "in" "bool" "int" "string"))
 
 (defun reserved* ()
-  (choices1 "let" "in" "bool" "int"))
+  (choices1 "let" "in" "bool" "int" "string"))
 
 (defun symbol? ()
   (~ws? (except?
@@ -1857,11 +1869,13 @@
 (defun type? ()
   (choices (ty-bool?)
            (ty-int?)
+           (ty-string?)
            (ty-relation?)))
 
 (defun type* ()
   (choices1 (ty-bool*)
             (ty-int*)
+            (ty-string*)
             (ty-relation*)))
 
 (defun ty-bool? ()
@@ -1875,6 +1889,12 @@
 
 (defun ty-int* ()
   (named-seq* (~ws* "int") :int))
+
+(defun ty-string? ()
+  (named-seq? (~ws? "string") :string))
+
+(defun ty-string* ()
+  (named-seq* (~ws* "string") :string))
 
 (defun ty-relation? ()
   (bracket? (~ws? #\{) (type-tuple?) (~ws? #\})))
