@@ -15,7 +15,7 @@
 (defrelation +u+ (:int)
   (relation-adjoin-all (list (tuple 1)
                              (tuple 2))
-                       (empty-relation '(:int))))
+                       (empty-relation)))
 
 ;;; Event: < Event, User >
 (export '+ev+)
@@ -25,14 +25,14 @@
                              (tuple 3 1)
                              (tuple 4 2)
                              (tuple 5 2))
-                       (empty-relation '(:int :int))))
+                       (empty-relation)))
 
 ;;; Event Conversion: < Event, Conversion >
 (export '+cv+)
 (defrelation +cv+ (:int :int)
   (relation-adjoin-all (list (tuple 3 1)
                              (tuple 5 1))
-                       (empty-relation '(:int :int))))
+                       (empty-relation)))
 
 ;;; Event Advertise: < Event, Advertise >
 (export '+ad+)
@@ -40,12 +40,12 @@
   (relation-adjoin-all (list (tuple 1 1)
                              (tuple 2 2)
                              (tuple 4 2))
-                       (empty-relation '(:int :int))))
+                       (empty-relation)))
 
 ;;; Event Search: < Event, Search >
 (export '+sr+)
 (defrelation +sr+ (:int :int)
-  (empty-relation '(:int :int)))
+  (empty-relation))
 
 ;;; < Event, User, Advertise >
 (export '+eua+)
