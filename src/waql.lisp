@@ -518,6 +518,7 @@
   (cond
     ((int-literal-p expr) (list expr :int))
     ((string-literal-p expr) (list expr :string))
+    ((time-literal-p expr) (list expr :time))
     (t (error "invalid expression: ~A" expr))))
 
 
@@ -728,9 +729,11 @@
   '(=       (((:user :user)     :bool user=)
              ((:event :event)   :bool event=)
              ((:int :int)       :bool =)
-             ((:string :string) :bool string=))
+             ((:string :string) :bool string=)
+             ((:time :time)     :bool local-time:timestamp=))
     <       (((:event :event)   :bool event<)
-             ((:int :int)       :bool <))
+             ((:int :int)       :bool <)
+             ((:time :time)     :bool local-time:timestamp<))
     count   (((:relation)       :int  relation-count))
     user    (((:int)            :user user))
     user-id (((:user)           :int  user-id))))
@@ -797,9 +800,17 @@
 ;;;
 
 (defun compile-literal (expr)
-  (unless (literal-p expr)
-    (error "invalid expression: ~A" expr))
-  expr)
+  (cond
+    ((int-literal-p expr) expr)
+    ((string-literal-p expr) expr)
+    ((time-literal-p expr) (compile-literal-time expr))
+    (t (error "invalid expression: ~A" expr))))
+
+(defun compile-literal-time (expr)
+  (let ((date (time-literal-date expr))
+        (time (time-literal-time expr)))
+    (let ((timestring (format nil "~AT~A" date time)))
+      `(local-time:parse-timestring ,timestring))))
 
 
 ;;;
@@ -1195,13 +1206,33 @@
 
 (defun literal-p (expr)
   (or (int-literal-p expr)
-      (string-literal-p expr)))
+      (string-literal-p expr)
+      (time-literal-p expr)))
 
 (defun int-literal-p (expr)
   (typep expr 'fixnum))
 
 (defun string-literal-p (expr)
   (typep expr 'string))
+
+(defun time-literal-p (expr)
+  (cl-pattern:match expr
+    (('time . _) t)
+    (_ nil)))
+
+(defun time-literal-date (expr)
+  (cl-pattern:match expr
+    (('time date _) (unless (stringp date)
+                      (error "invalid expression: ~A" expr))
+                    date)
+    (_ (error "invalid expression: ~A" expr))))
+
+(defun time-literal-time (expr)
+  (cl-pattern:match expr
+    (('time _ time) (unless (stringp time)
+                      (error "invalid expression: ~A" expr))
+                    time)
+    (_ (error "invalid expression: ~A" expr))))
 
 
 ;;;
@@ -1455,7 +1486,8 @@
 ;;;
 
 (defun scalar-type-p (type)
-  (and (member type '(:bool :int :string :user :event :action :conversion))
+  (and (member type '(:bool :int :string :time
+                      :user :event :action :conversion))
        t))
 
 
@@ -1642,17 +1674,43 @@
 
 (defun literal? ()
   (~ws? (choices (int?)
-                 (quoted?))))
+                 (quoted?)
+                 (time?))))
 
 (defun literal* ()
   (~ws* (choices1 (int*)
-                  (quoted?))))
+                  (quoted?)
+                  (time*))))
+
+(defun time-date? ()
+  (~ws? (between? (any?) 1 nil 'string)))
+
+(defun time-time? ()
+  (~ws? (between? (any?) 1 nil 'string)))
+
+(defun time? ()
+  (named-seq? (~ws? "time")
+              (parser-combinators:<- date (time-date?))
+              (parser-combinators:<- time (time-time?))
+              (list 'time date time)))
+
+(defun time-date* ()
+  (~ws* (between? (any?) 1 nil 'string)))
+
+(defun time-time* ()
+  (~ws* (between? (any?) 1 nil 'string)))
+
+(defun time* ()
+  (named-seq* (~ws* "time")
+              (parser-combinators:<- date (time-date*))
+              (parser-combinators:<- time (time-time*))
+              (list 'time date time)))
 
 (defun reserved? ()
-  (choices "let" "in" "bool" "int" "string"))
+  (choices "let" "in" "time" "bool" "int" "string"))
 
 (defun reserved* ()
-  (choices1 "let" "in" "bool" "int" "string"))
+  (choices1 "let" "in" "time" "bool" "int" "string"))
 
 (defun symbol? ()
   (~ws? (except?
@@ -1870,12 +1928,14 @@
   (choices (ty-bool?)
            (ty-int?)
            (ty-string?)
+           (ty-time?)
            (ty-relation?)))
 
 (defun type* ()
   (choices1 (ty-bool*)
             (ty-int*)
             (ty-string*)
+            (ty-time*)
             (ty-relation*)))
 
 (defun ty-bool? ()
@@ -1895,6 +1955,12 @@
 
 (defun ty-string* ()
   (named-seq* (~ws* "string") :string))
+
+(defun ty-time? ()
+  (named-seq? (~ws? "time") :time))
+
+(defun ty-time* ()
+  (named-seq* (~ws* "time") :time))
 
 (defun ty-relation? ()
   (bracket? (~ws? #\{) (type-tuple?) (~ws? #\})))

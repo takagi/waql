@@ -17,7 +17,8 @@
   :author "Masayuki Takagi"
   :license "LLGPL"
   :depends-on (:alexandria :iterate :cl-pattern :optima :anaphora
-               :parser-combinators :cl-ppcre :cl-cont :hunchentoot)
+               :parser-combinators :cl-ppcre :cl-cont :hunchentoot
+               :local-time)
   :components ((:module "src"
                 :serial t
                 :components

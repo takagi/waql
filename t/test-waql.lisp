@@ -662,6 +662,8 @@
 ;;; test SPECIALIZE-FUNCTION-LITERAL function
 (is (waql::specialize-function-literal 1) '(1 :int))
 (is (waql::specialize-function-literal "foo") '("foo" :string))
+(is (waql::specialize-function-literal '(time "2013/1/1" "10:10:35"))
+    '((time "2013/1/1" "10:10:35") :time))
 (is-error (waql::specialize-function-literal 'a) simple-error)
 
 
@@ -798,7 +800,13 @@
     '(:bool waql::user=))
 
 (is (waql::lookup-generic-function '= '(:string :string))
-    '(:bool waql::string=))
+    '(:bool string=))
+
+(is (waql::lookup-generic-function '= '(:time :time))
+    '(:bool local-time:timestamp=))
+
+(is (waql::lookup-generic-function '< '(:time :time))
+    '(:bool local-time:timestamp<))
 
 (is (waql::lookup-generic-function 'foo nil) nil)
 
@@ -981,6 +989,10 @@
 ;;;
 
 (diag "test Compiler - Literal")
+
+;;; test COMPILE-LITERAL-TIME function
+(is (waql::compile-literal-time '(time "2013/1/1" "10:10:35"))
+    '(local-time:parse-timestring "2013/1/1T10:10:35"))
 
 
 ;;;
@@ -1611,9 +1623,26 @@
 (diag "test Syntax - Literal")
 
 ;;; test LITERAL-P function
-(ok (waql::literal-p 1))
-(ok (waql::literal-p "foo"))
-(ok (null (waql::literal-p 'a)))
+(is (waql::literal-p 1) t)
+(is (waql::literal-p "foo") t)
+(is (waql::literal-p '(time "2013/1/1" "10:10:35")) t)
+(is (null (waql::literal-p 'a)) t)
+
+;;; test TIME-LITERAL-DATE function
+(is (waql::time-literal-date '(time "2013/1/1" "10:10:35")) "2013/1/1")
+(is-error (waql::time-literal-date '(time foo "10:10:35")) simple-error)
+(is (waql::time-literal-date '(time "2013/1/1" foo)) "2013/1/1")
+(is-error (waql::time-literal-date '(time "2013/1/1")) simple-error)
+(is-error (waql::time-literal-date '(time "2013/1/1" "10:10:35" foo))
+          simple-error)
+
+;;; test TIME-LITERAL-TIME function
+(is (waql::time-literal-time '(time "2013/1/1" "10:10:35")) "10:10:35")
+(is (waql::time-literal-time '(time foo "10:10:35")) "10:10:35")
+(is-error (waql::time-literal-time '(time "2013/1/1" foo)) simple-error)
+(is-error (waql::time-literal-time '(time "2013/1/1")) simple-error)
+(is-error (waql::time-literal-time '(time "2013/1/1" "10:10:35" foo))
+          simple-error)
 
 
 ;;;
@@ -1751,6 +1780,7 @@
 (ok (waql::scalar-type-p :bool))
 (ok (waql::scalar-type-p :int))
 (ok (waql::scalar-type-p :string))
+(ok (waql::scalar-type-p :time))
 (ok (waql::scalar-type-p :user))
 (ok (waql::scalar-type-p :event))
 (ok (waql::scalar-type-p :action))
