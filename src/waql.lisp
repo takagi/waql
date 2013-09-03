@@ -1764,25 +1764,55 @@
 (defun reserved* ()
   (choices1 "let" "in" "time" "interval" "bool" "int" "string"))
 
+(defun symbol-string? ()
+  (named-seq? (parser-combinators:<- head (letter?))
+              (parser-combinators:<- tail (many? (alphanum?)))
+              (concatenate 'string
+                (cons head tail))))
+
+(defun plus-enclosed-symbol? ()
+  (~ws? (named-seq? #\+
+                    (parser-combinators:<- symbol (symbol-string?))
+                    #\+
+                    (alexandria:symbolicate
+                      (string-upcase
+                        (concatenate 'string
+                          "+" symbol "+"))))))
+
+(defun ordinal-symbol? ()
+  (~ws? (except? (named-seq? (parser-combinators:<- symbol (symbol-string?))
+                             (alexandria:symbolicate
+                               (string-upcase symbol)))
+                 (reserved?))))
+
 (defun symbol? ()
-  (~ws? (except?
-          (named-seq? (parser-combinators:<- head (symbol-head?))
-                      (parser-combinators:<- tail (many? (symbol-tail?)))
-                      (alexandria:symbolicate
-                        (string-upcase
-                          (concatenate 'string
-                            (cons head tail)))))
-          (reserved?))))
+  (choice (plus-enclosed-symbol?)
+          (ordinal-symbol?)))
+
+(defun symbol-string* ()
+  (named-seq* (parser-combinators:<- head (letter?))
+              (parser-combinators:<- tail (many* (alphanum?)))
+              (concatenate 'string
+                (cons head tail))))
+
+(defun plus-enclosed-symbol* ()
+  (~ws* (named-seq* #\+
+                    (parser-combinators:<- symbol (symbol-string*))
+                    #\+
+                    (alexandria:symbolicate
+                      (string-upcase
+                        (concatenate 'string
+                          "+" symbol "+"))))))
+
+(defun ordinal-symbol* ()
+  (~ws* (except? (named-seq* (parser-combinators:<- symbol (symbol-string*))
+                             (alexandria:symbolicate
+                               (string-upcase symbol)))
+                 (reserved*))))
 
 (defun symbol* ()
-  (~ws* (except?
-          (named-seq* (parser-combinators:<- head (symbol-head*))
-                      (parser-combinators:<- tail (many* (symbol-tail*)))
-                      (alexandria:symbolicate
-                        (string-upcase
-                          (concatenate 'string
-                            (cons head tail)))))
-          (reserved*))))
+  (choice1 (plus-enclosed-symbol*)
+           (ordinal-symbol*)))
 
 (defun symbol-head? ()
   (choices (letter?)
