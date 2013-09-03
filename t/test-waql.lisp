@@ -86,6 +86,14 @@
   (relation-adjoin (tuple 2) relation)
   (is (relation-count relation) 2))
 
+;;; test RELATION-EXISTS function
+
+(let ((relation (relation-adjoin (tuple 1)
+                  (empty-relation))))
+  (is (relation-exists relation) t))
+
+(is (relation-exists (empty-relation)) nil)
+
 ;;; test PRINT-RELATION function
 (is-print (print-object (relation-adjoin (tuple 4 5 6)
                           (relation-adjoin (tuple 1 2 3)

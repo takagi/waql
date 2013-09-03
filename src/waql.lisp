@@ -80,6 +80,10 @@
   (symbol-macrolet ((body (%relation-body relation)))
     (hash-table-count body)))
 
+(defun relation-exists (relation)
+  (symbol-macrolet ((body (%relation-body relation)))
+    (> (hash-table-count body) 0)))
+
 (defun print-relation (relation stream)
   (format stream "#S~W" `(relation ,(relation-count relation)
                                    ,@(relation->list relation))))
@@ -738,6 +742,7 @@
              ((:int :int)       :bool >)
              ((:time :time)     :bool local-time:timestamp>))
     count   (((:relation)       :int  relation-count))
+    exists  (((:relation)       :bool relation-exists))
     user    (((:int)            :user user))
     user-id (((:user)           :int  user-id))))
 

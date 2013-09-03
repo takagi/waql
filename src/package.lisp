@@ -39,6 +39,7 @@
            #:relation->list
            #:relation-member
            #:relation-count
+           #:relation-exists
            #:relation-adjoin
            #:relation-adjoin-all
            ;; Extending :ITERATE library for relation
