@@ -1646,6 +1646,9 @@
 (defun any? ()
   (sat #'graphic-char-p))
 
+(defun any-but-whitespace? ()
+  (except? (any?) (whitespace?)))
+
 (defun expr-top? ()
   (named-seq? (many? (choice (whitespace?) (comment?)))
               (parser-combinators:<- result (expr?))
@@ -1691,10 +1694,10 @@
                   (time*))))
 
 (defun time-date? ()
-  (~ws? (between? (any?) 1 nil 'string)))
+  (~ws? (between? (any-but-whitespace?) 1 nil 'string)))
 
 (defun time-time? ()
-  (~ws? (between? (any?) 1 nil 'string)))
+  (~ws? (between? (any-but-whitespace?) 1 nil 'string)))
 
 (defun time? ()
   (named-seq? (~ws? "time")
@@ -1703,10 +1706,10 @@
               (list 'time date time)))
 
 (defun time-date* ()
-  (~ws* (between? (any?) 1 nil 'string)))
+  (~ws* (between? (any-but-whitespace?) 1 nil 'string)))
 
 (defun time-time* ()
-  (~ws* (between? (any?) 1 nil 'string)))
+  (~ws* (between? (any-but-whitespace?) 1 nil 'string)))
 
 (defun time* ()
   (named-seq* (~ws* "time")
