@@ -774,9 +774,13 @@
     <       (((:event :event)   :bool     event<)
              ((:int :int)       :bool     <)
              ((:time :time)     :bool     local-time:timestamp<))
+    <=      (((:int :int)       :bool     <=)
+             ((:time :time)     :bool     local-time:timestamp<=))
     >       (((:event :event)   :bool     event>)
              ((:int :int)       :bool     >)
              ((:time :time)     :bool     local-time:timestamp>))
+    >=      (((:int :int)       :bool     >=)
+             ((:time :time)     :bool     local-time:timestamp>=))
     count   (((:relation)       :int      relation-count))
     exists  (((:relation)       :bool     relation-exists))
     days    (((:int)            :interval days))
@@ -1933,14 +1937,18 @@
            (mdo (~ws* #\-) (result (curry #'list '-)))))
 
 (def-cached-parser comparison-op?
-  (choices (mdo (~ws? #\>) (result (curry #'list '>)))
-           (mdo (~ws? #\<) (result (curry #'list '<)))
-           (mdo (~ws? #\=) (result (curry #'list '=)))))
+  (choices (mdo (~ws? ">=") (result (curry #'list '>=)))
+           (mdo (~ws? #\>)  (result (curry #'list '>)))
+           (mdo (~ws? "<=") (result (curry #'list '<=)))
+           (mdo (~ws? #\<)  (result (curry #'list '<)))
+           (mdo (~ws? #\=)  (result (curry #'list '=)))))
 
 (def-cached-parser comparison-op*
-  (choices1 (mdo (~ws* #\>) (result (curry #'list '>)))
-            (mdo (~ws* #\<) (result (curry #'list '<)))
-            (mdo (~ws* #\=) (result (curry #'list '=)))))
+  (choices1 (mdo (~ws* ">=") (result (curry #'list '>=)))
+            (mdo (~ws* #\>)  (result (curry #'list '>)))
+            (mdo (~ws* "<=") (result (curry #'list '<=)))
+            (mdo (~ws* #\<)  (result (curry #'list '<)))
+            (mdo (~ws* #\=)  (result (curry #'list '=)))))
 
 (defun infix-aexpr? ()
   (choices (enclosed-expr?)
