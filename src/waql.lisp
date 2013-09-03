@@ -1821,10 +1821,10 @@
   (letter?))
 
 (defun symbol-tail? ()
-  (many? (choices (alphanum?) #\-)))
+  (many? (choice (alphanum?) #\-)))
 
 (defun symbol-tail* ()
-  (many* (choices1 (alphanum?) #\-)))
+  (many* (choice1 (alphanum?) #\-)))
 
 (defun underscore? ()
   (~ws? (named-seq? #\_ '_)))
