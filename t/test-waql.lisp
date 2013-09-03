@@ -808,6 +808,9 @@
 (is (waql::lookup-generic-function '< '(:time :time))
     '(:bool local-time:timestamp<))
 
+(is (waql::lookup-generic-function '> '(:time :time))
+    '(:bool local-time:timestamp>))
+
 (is (waql::lookup-generic-function 'foo nil) nil)
 
 
