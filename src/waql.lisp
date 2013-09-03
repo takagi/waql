@@ -1755,10 +1755,10 @@
               (list 'time date time)))
 
 (defun reserved? ()
-  (choices "let" "in" "time" "interval" "bool" "int" "string"))
+  (choices "let" "in" "time" "interval" "bool" "int" "string" "+" "-"))
 
 (defun reserved* ()
-  (choices1 "let" "in" "time" "interval" "bool" "int" "string"))
+  (choices1 "let" "in" "time" "interval" "bool" "int" "string" "+" "-"))
 
 (defun symbol? ()
   (~ws? (except?
