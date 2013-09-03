@@ -1764,11 +1764,9 @@
 (defun reserved* ()
   (choices1 "let" "in" "time" "interval" "bool" "int" "string"))
 
-(defun symbol-string? ()
-  (named-seq? (parser-combinators:<- head (letter?))
-              (parser-combinators:<- tail (many? (alphanum?)))
-              (concatenate 'string
-                (cons head tail))))
+(defun symbol? ()
+  (choice (plus-enclosed-symbol?)
+          (ordinal-symbol?)))
 
 (defun plus-enclosed-symbol? ()
   (~ws? (named-seq? #\+
@@ -1785,15 +1783,9 @@
                                (string-upcase symbol)))
                  (reserved?))))
 
-(defun symbol? ()
-  (choice (plus-enclosed-symbol?)
-          (ordinal-symbol?)))
-
-(defun symbol-string* ()
-  (named-seq* (parser-combinators:<- head (letter?))
-              (parser-combinators:<- tail (many* (alphanum?)))
-              (concatenate 'string
-                (cons head tail))))
+(defun symbol* ()
+  (choice1 (plus-enclosed-symbol*)
+           (ordinal-symbol*)))
 
 (defun plus-enclosed-symbol* ()
   (~ws* (named-seq* #\+
@@ -1810,25 +1802,29 @@
                                (string-upcase symbol)))
                  (reserved*))))
 
-(defun symbol* ()
-  (choice1 (plus-enclosed-symbol*)
-           (ordinal-symbol*)))
+(defun symbol-string? ()
+  (named-seq? (parser-combinators:<- head (symbol-head?))
+              (parser-combinators:<- tail (symbol-tail?))
+              (concatenate 'string
+                (cons head tail))))
+
+(defun symbol-string* ()
+  (named-seq* (parser-combinators:<- head (symbol-head*))
+              (parser-combinators:<- tail (symbol-tail*))
+              (concatenate 'string
+                (cons head tail))))
 
 (defun symbol-head? ()
-  (choices (letter?)
-           #\+ #\-))
+  (letter?))
 
 (defun symbol-head* ()
-  (choices1 (letter?)
-            #\+ #\-))
+  (letter?))
 
 (defun symbol-tail? ()
-  (choices (alphanum?)
-           #\+ #\-))
+  (many? (choices (alphanum?) #\-)))
 
 (defun symbol-tail* ()
-  (choices1 (alphanum?)
-            #\+ #\-))
+  (many* (choices1 (alphanum?) #\-)))
 
 (defun underscore? ()
   (~ws? (named-seq? #\_ '_)))
