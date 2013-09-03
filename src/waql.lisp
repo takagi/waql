@@ -199,6 +199,40 @@
 
 
 ;;;
+;;; Interval
+;;;
+
+(defun days (n)
+  (unless (integerp n)
+    (error "The value ~S is not integer." n))
+  (list :interval n :day))
+
+(defun interval-p (interval)
+  (and (listp interval)
+       (eq (car interval) :interval)))
+
+(defun interval-amount (interval)
+  (unless (interval-p interval)
+    (error "The value ~S is invalid interval." interval))
+  (cadr interval))
+
+(defun interval-unit (interval)
+  (unless (interval-p interval)
+    (error "The value ~S is invalid interval." interval))
+  (caddr interval))
+
+(defun time+ (time interval)
+  (let ((amount (interval-amount interval))
+        (unit   (interval-unit interval)))
+    (local-time:timestamp+ time amount unit)))
+
+(defun time- (time interval)
+  (let ((amount (interval-amount interval))
+        (unit   (interval-unit interval)))
+    (local-time:timestamp- time amount unit)))
+
+
+;;;
 ;;; Evaluating WAQL
 ;;;
 
@@ -730,21 +764,24 @@
 ;;;
 
 (defparameter +function-table+
-  '(=       (((:user :user)     :bool user=)
-             ((:event :event)   :bool event=)
-             ((:int :int)       :bool =)
-             ((:string :string) :bool string=)
-             ((:time :time)     :bool local-time:timestamp=))
-    <       (((:event :event)   :bool event<)
-             ((:int :int)       :bool <)
-             ((:time :time)     :bool local-time:timestamp<))
-    >       (((:event :event)   :bool event>)
-             ((:int :int)       :bool >)
-             ((:time :time)     :bool local-time:timestamp>))
-    count   (((:relation)       :int  relation-count))
-    exists  (((:relation)       :bool relation-exists))
-    user    (((:int)            :user user))
-    user-id (((:user)           :int  user-id))))
+  '(=       (((:user :user)     :bool     user=)
+             ((:event :event)   :bool     event=)
+             ((:int :int)       :bool     =)
+             ((:string :string) :bool     string=)
+             ((:time :time)     :bool     local-time:timestamp=))
+    +       (((:time :interval) :time     time+))
+    -       (((:time :interval) :time     time-))
+    <       (((:event :event)   :bool     event<)
+             ((:int :int)       :bool     <)
+             ((:time :time)     :bool     local-time:timestamp<))
+    >       (((:event :event)   :bool     event>)
+             ((:int :int)       :bool     >)
+             ((:time :time)     :bool     local-time:timestamp>))
+    count   (((:relation)       :int      relation-count))
+    exists  (((:relation)       :bool     relation-exists))
+    days    (((:int)            :interval days))
+    user    (((:int)            :user     user))
+    user-id (((:user)           :int      user-id))))
 
 (defparameter +generic-functions+
   (let ((alist (plist-alist +function-table+)))
@@ -1494,7 +1531,7 @@
 ;;;
 
 (defun scalar-type-p (type)
-  (and (member type '(:bool :int :string :time
+  (and (member type '(:bool :int :string :time :interval
                       :user :event :action :conversion))
        t))
 
@@ -1718,10 +1755,10 @@
               (list 'time date time)))
 
 (defun reserved? ()
-  (choices "let" "in" "time" "bool" "int" "string"))
+  (choices "let" "in" "time" "interval" "bool" "int" "string"))
 
 (defun reserved* ()
-  (choices1 "let" "in" "time" "bool" "int" "string"))
+  (choices1 "let" "in" "time" "interval" "bool" "int" "string"))
 
 (defun symbol? ()
   (~ws? (except?
@@ -1879,11 +1916,21 @@
 
 (defun infix-fexpr? ()
   (expression? (infix-aexpr?)
-               `((,(comparison-op?) :left))))
+               `((,(additive-op?)   :left)
+                 (,(comparison-op?) :left))))
 
 (defun infix-fexpr* ()
   (expression* (infix-aexpr*)
-               `((,(comparison-op*) :left))))
+               `((,(additive-op*)   :left)
+                 (,(comparison-op*) :left))))
+
+(def-cached-parser additive-op?
+  (choice (mdo (~ws? #\+) (result (curry #'list '+)))
+          (mdo (~ws? #\-) (result (curry #'list '-)))))
+
+(def-cached-parser additive-op*
+  (choice1 (mdo (~ws* #\+) (result (curry #'list '+)))
+           (mdo (~ws* #\-) (result (curry #'list '-)))))
 
 (def-cached-parser comparison-op?
   (choices (mdo (~ws? #\>) (result (curry #'list '>)))
@@ -1942,6 +1989,7 @@
            (ty-int?)
            (ty-string?)
            (ty-time?)
+           (ty-interval?)
            (ty-relation?)))
 
 (defun type* ()
@@ -1949,6 +1997,7 @@
             (ty-int*)
             (ty-string*)
             (ty-time*)
+            (ty-interval*)
             (ty-relation*)))
 
 (defun ty-bool? ()
@@ -1974,6 +2023,12 @@
 
 (defun ty-time* ()
   (named-seq* (~ws* "time") :time))
+
+(defun ty-interval? ()
+  (named-seq? (~ws? "interval") :interval))
+
+(defun ty-interval* ()
+  (named-seq* (~ws* "interval") :interval))
 
 (defun ty-relation? ()
   (bracket? (~ws? #\{) (type-tuple?) (~ws? #\})))

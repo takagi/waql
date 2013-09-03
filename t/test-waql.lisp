@@ -232,6 +232,52 @@
 
 
 ;;;
+;;; test Interval
+;;;
+
+(diag "test Interval")
+
+;;; test DAYS constructor
+
+(let ((interval (waql::days 30)))
+  (is (waql::interval-amount interval) 30)
+  (is (waql::interval-unit interval) :day))
+
+(is-error (waql::days 'foo) simple-error)
+
+;;; test INTERVAL-P function
+
+(let ((interval (waql::days 30)))
+  (is (waql::interval-p interval) t))
+
+(is (waql::interval-p 'foo) nil)
+
+;;; test INTERVAL-AMOUNT function
+
+(is-error (waql::interval-amount 'foo) simple-error)
+
+;;; test INTERVAL-UNIT function
+
+(is-error (waql::interval-unit 'foo) simple-error)
+
+;;; test TIME+ function
+
+(let ((timestamp (local-time:parse-timestring "2013-1-1T00:00:00"))
+      (interval (waql::days 10)))
+  (is (waql::time+ timestamp interval)
+      (local-time:parse-timestring "2013-1-11T00:00:00")
+      :test #'local-time:timestamp=))
+
+;;; test TIME- function
+
+(let ((timestamp (local-time:parse-timestring "2013-1-11T00:00:00"))
+      (interval (waql::days 10)))
+  (is (waql::time- timestamp interval)
+      (local-time:parse-timestring "2013-1-1T00:00:00")
+      :test #'local-time:timestamp=))
+
+
+;;;
 ;;; test Evaluating WAQL
 ;;;
 
@@ -810,6 +856,12 @@
 (is (waql::lookup-generic-function '= '(:string :string))
     '(:bool string=))
 
+(is (waql::lookup-generic-function '+ '(:time :interval))
+    '(:time waql::time+))
+
+(is (waql::lookup-generic-function '- '(:time :interval))
+    '(:time waql::time-))
+
 (is (waql::lookup-generic-function '= '(:time :time))
     '(:bool local-time:timestamp=))
 
@@ -818,6 +870,9 @@
 
 (is (waql::lookup-generic-function '> '(:time :time))
     '(:bool local-time:timestamp>))
+
+(is (waql::lookup-generic-function 'waql::days '(:int))
+    '(:interval waql::days))
 
 (is (waql::lookup-generic-function 'foo nil) nil)
 
@@ -1792,6 +1847,7 @@
 (ok (waql::scalar-type-p :int))
 (ok (waql::scalar-type-p :string))
 (ok (waql::scalar-type-p :time))
+(ok (waql::scalar-type-p :interval))
 (ok (waql::scalar-type-p :user))
 (ok (waql::scalar-type-p :event))
 (ok (waql::scalar-type-p :action))
