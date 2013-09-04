@@ -1916,6 +1916,33 @@
 
 
 ;;;
+;;; test Parser
+;;;
+
+;;; test PARSE-WAQL function
+
+(handler-case (waql::parse-waql "let x = 1 in x;")
+  (waql::waql-parse-error (e)
+    (is (princ-to-string e) "Parse error: ...= 1 in x;"))
+  (error (e) (fail e)))
+
+(handler-case (waql::parse-waql "let x := 1;")
+  (waql::waql-parse-error (e)
+    (is (princ-to-string e) "Parse error: ...;"))
+  (error (e) (fail e)))
+
+(handler-case (waql::parse-waql "l")
+  (waql::waql-parse-error (e)
+    (is (princ-to-string e) "Parse error: l"))
+  (error (e) (fail e)))
+
+(handler-case (waql::parse-waql "let x ")
+  (waql::waql-parse-error (e)
+    (is (princ-to-string e) "Parse error: ... "))
+  (error (e) (fail e)))
+
+
+;;;
 ;;; test Parser - backtracking version
 ;;;
 

@@ -1649,8 +1649,18 @@
         (parse-string* parser string :complete t)
       (declare (ignorable suffix front))
       (unless success
-        (error 'waql-parse-error :string string))
+        (let ((front-string (front-string front string)))
+          (error 'waql-parse-error :string front-string)))
       result)))
+
+(defparameter +front-string-margin+ 0)
+
+(defun front-string (front string)
+  (let ((pos (position-of front)))
+    (if (<= pos +front-string-margin+)
+      string
+      (concatenate 'string "..."
+        (subseq string (- pos +front-string-margin+))))))
 
 (defun ~ws? (Q)
   ;; skip whitespaces and comments
