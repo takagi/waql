@@ -2003,6 +2003,12 @@
                                                         x")
     '(let (x 1) x))
 
+(is (parser-combinators:parse-string* (waql::expr?)
+      "let x := time 2013-1-1 10:10:35
+       in x + days 30")
+    '(let (x (time "2013-1-1" "10:10:35"))
+       (+ x (days 30))))
+
 (is (parser-combinators:parse-string* (waql::expr-top?) "     1;")
     1)
 
@@ -2070,6 +2076,12 @@
                                                      in -- x is bound to 1
                                                         x")
     '(let (x 1) x))
+
+(is (parser-combinators:parse-string* (waql::expr*)
+      "let x := time 2013-1-1 10:10:35
+       in x + days 30")
+    '(let (x (time "2013-1-1" "10:10:35"))
+        (+ x (days 30))))
 
 (is (parser-combinators:parse-string* (waql::expr-top*) "     1;")
     1)
