@@ -2103,9 +2103,3 @@
 (defun single (list)
   (and (consp list)
        (null (cdr list))))
-
-(defun left-trim (string)
-  (string-left-trim '(#\Space #\Tab #\Newline) string))
-
-(defun trim (string)
-  (string-trim '(#\Space #\Tab #\Newline) string))

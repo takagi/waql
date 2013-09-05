@@ -10,6 +10,12 @@
 ;;; REPL server
 ;;;
 
+(defun left-trim (string)
+  (string-left-trim '(#\Space #\Tab #\Newline) string))
+
+(defun trim (string)
+  (string-trim '(#\Space #\Tab #\Newline) string))
+
 (defun repl-trim (string)
   (left-trim (trim-after-semicolon string)))
 
