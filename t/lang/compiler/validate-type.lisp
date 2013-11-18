@@ -3,8 +3,10 @@
   Copyright (c) 2013 Masayuki Takagi (kamonama@gmail.com)
 |#
 
-(in-package :cl-user)
-(defpackage waql-test
-  (:use :cl
-        :waql
-        :cl-test-more))
+
+(in-package :waql-test.lang.compiler.validate-type)
+
+(plan nil)
+
+
+(finalize)

@@ -16,6 +16,32 @@
   :components ((:module "t"
                 :serial t
                 :components
-                ((:file "package")
-                 (:file "test-waql"))))
+                ((:file "packages")
+                 (:module "util"
+                  :serial t
+                  :components
+                  ((:file "util")
+                   (:file "coroutine")))
+                 (:module "lang"
+                  :serial t
+                  :components
+                  ((:file "data")
+                   (:file "type")
+                   (:file "syntax")
+                   (:module "compiler"
+                    :serial t
+                    :components
+                    ((:file "patenv")
+                     (:file "typenv")
+                     (:file "compenv")
+                     (:file "predefined-relations")
+                     (:file "generic-functions")
+                     (:file "type-of")
+                     (:file "pattern-match")
+                     (:file "validate-type")
+                     (:file "specialize-function")
+                     (:file "compile-expression")
+                     (:file "compiler")))
+                   (:file "parser")
+                   (:file "lang"))))))
   :perform (load-op :after (op c) (asdf:clear-system c)))

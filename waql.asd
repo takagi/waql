@@ -16,20 +16,52 @@
   :version "0.1-SNAPSHOT"
   :author "Masayuki Takagi"
   :license "LLGPL"
-  :depends-on (:alexandria :iterate :cl-pattern :optima :anaphora
-               :parser-combinators :cl-ppcre :cl-cont :hunchentoot
-               :local-time)
+  :depends-on (:cl-pattern
+               :optima
+               :iterate
+               :local-time
+               :parser-combinators
+               :cl-cont
+               :cl-ppcre
+               :hunchentoot)
   :components ((:module "src"
                 :serial t
                 :components
-                ((:file "hunchentoot")
-                 (:file "package")
-                 (:file "data")
-                 (:file "waql")
-                 (:file "coroutine")
-                 (:file "repl")
-                 (:file "sandbox")
-                 (:file "web-repl"))))
+                ((:file "packages")
+                 (:module "util"
+                  :serial t
+                  :components
+                  ((:file "util")
+                   (:file "coroutine")))
+                 (:module "lang"
+                  :serial t
+                  :components
+                  ((:file "data")
+                   (:file "type")
+                   (:file "syntax")
+                   (:module "compiler"
+                    :serial t
+                    :components
+                    ((:file "patenv")
+                     (:file "typenv")
+                     (:file "compenv")
+                     (:file "predefined-relations")
+                     (:file "generic-functions")
+                     (:file "type-of")
+                     (:file "pattern-match")
+                     (:file "validate-type")
+                     (:file "specialize-function")
+                     (:file "compile-expression")
+                     (:file "compiler")))
+                   (:file "parser")
+                   (:file "lang")))
+                 (:module "repl"
+                  :serial t
+                  :components
+                  ((:file "repl-server")
+                   (:file "cl-repl")
+                   (:file "hunchentoot")
+                   (:file "web-repl"))))))
   :description ""
   :long-description
   #.(with-open-file (stream (merge-pathnames

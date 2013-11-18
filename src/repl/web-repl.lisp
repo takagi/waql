@@ -3,7 +3,8 @@
   Copyright (c) 2013 Masayuki Takagi (kamonama@gmail.com)
 |#
 
-(in-package :waql)
+
+(in-package :waql.repl.web-repl)
 
 
 ;;;
@@ -21,7 +22,7 @@
   (cond
     ((null i)
      (format nil "~A,No input." +response-code-error+))
-    ((cl-ppcre:scan +quit-command-regexp+ (trim i))
+    ((scan +quit-command-regexp+ (trim i))
      (format nil "~A,The :quit command is not allowed in Web REPL."
                  +response-code-error+))
     (t

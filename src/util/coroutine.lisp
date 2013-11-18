@@ -3,7 +3,8 @@
   Copyright (c) 2013 Masayuki Takagi (kamonama@gmail.com)
 |#
 
-(in-package :waql)
+
+(in-package :waql.util.coroutine)
 
 
 ;;;
@@ -76,7 +77,10 @@
 ;;;
 
 (defun make-coroutine (name)
-  (funcall (get name 'make-coroutine)))
+  (let ((func (get name 'make-coroutine)))
+    (unless func
+      (error "The coroutine ~S is undefined." name))
+    (funcall func)))
 
 
 ;;;
