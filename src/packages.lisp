@@ -204,6 +204,8 @@
         :waql.lang.data
         :waql.lang.type)
   (:export #:generic-function-p
+           #:exists
+           #:days
            #:specialized-function
            #:specialized-function-name
            #:specialized-function-generic-name
@@ -348,6 +350,7 @@
   (:use :cl
         :waql.lang.data
         :waql.lang.syntax
+        :waql.lang.compiler.generic-functions
         :waql.lang.compiler.predefined-relations
         :waql.lang
         :waql.repl)
@@ -373,6 +376,9 @@
            ;; SYNTAX
            #:query #:<-
            #:lisp
+           ;; GENERIC FUNCTIONS
+           #:exists
+           #:days
            ;; REPL
            #:repl-waql
            #:start
