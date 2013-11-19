@@ -118,7 +118,7 @@
 ;;
 
 (defun underscore* ()
-  (~ws* (named-seq* #\_ '_)))
+  (~ws* (named-seq* #\_ (symbolicate "_"))))
 
 (defun waql-symbol* ()
   (~ws* (except? (named-seq* (<- string (identifier*))
