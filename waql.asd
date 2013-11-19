@@ -61,7 +61,11 @@
                   ((:file "repl-server")
                    (:file "cl-repl")
                    (:file "hunchentoot")
-                   (:file "web-repl"))))))
+                   (:file "web-repl")))
+                 (:module "sandbox"
+                  :serial t
+                  :components
+                  ((:file "sandbox"))))))
   :description ""
   :long-description
   #.(with-open-file (stream (merge-pathnames
