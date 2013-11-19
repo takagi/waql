@@ -11,7 +11,7 @@
   (:export #:single
            #:minimize
            #:flip
-           #:util))
+           #:trim))
 
 (defpackage waql.util.coroutine
   (:use :cl)
@@ -308,6 +308,7 @@
 
 (defpackage waql.repl.repl-server
   (:use :cl
+        :waql.util
         :waql.util.coroutine
         :waql.lang.compiler
         :waql.lang.parser)
