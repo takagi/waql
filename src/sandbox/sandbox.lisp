@@ -16,14 +16,15 @@
                              (tuple 2))
                        (empty-relation)))
 
-;;; Event: < Event, User >
-(defrelation +ev+ (:int :int)
-  (relation-adjoin-all (list (tuple 1 1)
-                             (tuple 2 1)
-                             (tuple 3 1)
-                             (tuple 4 2)
-                             (tuple 5 2))
-                       (empty-relation)))
+;;; Event: < Event, User, Time >
+(defrelation +ev+ (:int :int :time)
+  (relation-adjoin-all
+     (list (tuple 1 1 (parse-timestring "2013-4-1T00:00:00"))
+           (tuple 2 1 (parse-timestring "2013-4-2T00:00:00"))
+           (tuple 3 1 (parse-timestring "2013-4-3T00:00:00"))
+           (tuple 4 2 (parse-timestring "2013-4-4T00:00:00"))
+           (tuple 5 2 (parse-timestring "2013-4-5T00:00:00")))
+     (empty-relation)))
 
 ;;; Event Conversion: < Event, Conversion >
 (defrelation +cv+ (:int :int)
@@ -42,21 +43,21 @@
 (defrelation +sr+ (:int :int)
   (empty-relation))
 
-;;; < Event, User, Advertise >
-(defrelation +eua+ (:int :int :int)
-  (waql-in-sexp (query (ev u ad) (<- (ev u) +ev+)
-                                 (<- (ev ad) +ad+))))
+;;; < Event, User, Advertise, TIme >
+(defrelation +eua+ (:int :int :int :time)
+  (waql-in-sexp (query (ev u ad tm) (<- (ev u tm) +ev+)
+                                    (<- (ev ad) +ad+))))
 
-;;; < Event, User, Conversion >
-(defrelation +euc+ (:int :int :int)
-  (waql-in-sexp (query (ev u cv) (<- (ev u) +ev+)
-                                 (<- (ev cv) +cv+))))
+;;; < Event, User, Conversion, Time >
+(defrelation +euc+ (:int :int :int :time)
+  (waql-in-sexp (query (ev u cv tm) (<- (ev u tm) +ev+)
+                                    (<- (ev cv) +cv+))))
 
 ;;; < User, Advertise Event, Conversion Event >
 (defrelation +uf1+ (:int :int :int)
-  (waql-in-sexp (query (u ae ce) (<- (ae u ad) +eua+)
-                                 (<- (ce u cv) +euc+)
-                                 (< ae ce))))
+  (waql-in-sexp (query (u ae ce) (<- (ae u _ at) +eua+)
+                                 (<- (ce u _ ct) +euc+)
+                                 (< at ct))))
 
 
 ;;;
@@ -74,7 +75,7 @@
   
   ;;; test for recursive query
   (let ((result (waql-in-sexp
-                  (query (u1 ad) (<- (ev u) +ev+)
+                  (query (u1 ad) (<- (ev u tm) +ev+)
                                  (<- (u1 ad) (query (u ad)
                                                     (<- (ev ad) +ad+)))))))
     (assert (relation-member result (tuple 1 1)))
