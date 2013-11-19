@@ -174,7 +174,6 @@
                 #:let-*
                 ;; Query
                 #:query*
-                #:_
                 ;; Function application
                 #:function*
                 ;; WAQL types
