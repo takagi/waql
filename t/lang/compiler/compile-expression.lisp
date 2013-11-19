@@ -118,7 +118,7 @@
 
 (let ((compenv (add-argvar-compenv 'r '(:relation :int) '+r+
                  (empty-compenv))))
-  (is (compile-function '(relation-count
+  (is (compile-function '(count
                            (query (x) (<- (x) r))) compenv nil)
       '(relation-count
          (iterate:iter outermost

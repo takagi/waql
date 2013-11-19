@@ -38,8 +38,6 @@
                      (:file "generic-functions")
                      (:file "type-of")
                      (:file "pattern-match")
-                     (:file "validate-type")
-                     (:file "specialize-function")
                      (:file "compile-expression")
                      (:file "compiler")))
                    (:file "parser")

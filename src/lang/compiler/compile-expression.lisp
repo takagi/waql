@@ -329,9 +329,17 @@
   (labels ((compile-operands (operands)
              (mapcar #'(lambda (operand)
                          (compile-expression operand compenv scope nil))
-                     operands)))
-    (let ((compiled-operands (compile-operands operands)))
-      `(,operator ,@compiled-operands))))
+                     operands))
+           (type-of-operands (operands compenv)
+             (let ((typenv (compenv->typenv compenv)))
+               (mapcar #'(lambda (operand)
+                           (type-of-expression operand typenv))
+                       operands))))
+    (let* ((operand-types (type-of-operands operands compenv))
+           (func (specialized-function operator operand-types)))
+      (let ((compiled-operator (specialized-function-name func))
+            (compiled-operands (compile-operands operands)))
+        `(,compiled-operator ,@compiled-operands)))))
 
 ;;
 ;;  Syntax:

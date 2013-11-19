@@ -107,25 +107,6 @@
                 #:run-pattern-matcher
                 #:*underscore-count*))
 
-(defpackage waql-test.lang.compiler.validate-type
-  (:use :cl
-        :cl-test-more
-        :waql.lang.compiler.validate-type))
-                
-(defpackage waql-test.lang.compiler.specialize-function
-  (:use :cl
-        :cl-test-more
-        :waql.lang.syntax
-        :waql.lang.compiler.typenv
-        :waql.lang.compiler.specialize-function)
-  (:import-from #:waql.lang.compiler.specialize-function
-                #:specialize-function-literal
-                #:specialize-function-variable-reference
-                #:specialize-function-let
-                #:specialize-function-query
-                #:specialize-function-lisp-form
-                #:specialize-function-function))
-
 (defpackage waql-test.lang.compiler.compile-expression
   (:use :cl
         :cl-test-more

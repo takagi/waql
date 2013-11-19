@@ -244,24 +244,6 @@
   (:import-from #:alexandria
                 #:with-gensyms))
 
-(defpackage waql.lang.compiler.validate-type
-  (:use :cl
-        :waql.lang.compiler.predefined-relations
-        :waql.lang.compiler.typenv
-        :waql.lang.compiler.type-of)
-  (:export #:validate-type-top
-           #:validate-type))
-
-(defpackage waql.lang.compiler.specialize-function
-  (:use :cl
-        :waql.lang.syntax
-        :waql.lang.compiler.predefined-relations
-        :waql.lang.compiler.generic-functions
-        :waql.lang.compiler.typenv
-        :waql.lang.compiler.type-of)
-  (:export #:specialize-function-expression-top
-           #:specialize-function-expression))
-
 (defpackage waql.lang.compiler.compile-expression
   (:use :cl
         :waql.lang.data
@@ -282,8 +264,6 @@
 (defpackage waql.lang.compiler
   (:use :cl
         :waql.lang.compiler.pattern-match
-        :waql.lang.compiler.validate-type
-        :waql.lang.compiler.specialize-function
         :waql.lang.compiler.compile-expression)
   (:export #:compile-waql))
 
