@@ -22,6 +22,7 @@
              ((:time :time)     :bool     timestamp>=))
     count   (((:relation)       :int      relation-count))
     exists  (((:relation)       :bool     relation-exists))
+    not     (((:bool)           :bool     not))
     days    (((:int)            :interval days))))
 
 ;;
