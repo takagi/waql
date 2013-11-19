@@ -84,8 +84,8 @@
   (let ((symbol-package (symbol-package symbol))
         (symbol-name (symbol-name symbol))
         (count-str (princ-to-string count)))
-    (let ((symbol1 (intern (format nil "%~A~A" symbol-name count-str)
-                           symbol-package)))
+    (let ((symbol1 (format-symbol symbol-package
+                                  "%~A~A" symbol-name count-str)))
       (setf (get symbol1 'original-symbol) symbol)
       symbol1)))
 
