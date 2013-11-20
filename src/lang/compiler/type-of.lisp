@@ -279,14 +279,12 @@
 ;;
 (defun type-of-function (expr typenv)
   (let ((operator (function-operator expr)))
-    (if (waql-symbol-p operator)
-        (cond
-          ((lookup-typenv operator typenv)
-           (type-of-function-letfun expr typenv))
-          ((generic-function-p operator)
-           (type-of-function-built-in expr typenv))
-          (t (error "The function ~S is undefined." operator)))
-        (type-of-function-built-in expr typenv))))
+    (cond
+      ((lookup-typenv operator typenv)
+       (type-of-function-letfun expr typenv))
+      ((generic-function-p operator)
+       (type-of-function-built-in expr typenv))
+      (t (error "The function ~S is undefined." operator)))))
 
 (defun type-of-function-letfun (expr typenv)
   (let* ((operator (function-operator expr))
