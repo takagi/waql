@@ -143,7 +143,7 @@
 (defun expr-top* ()
   (named-seq* (many* (whitestuff*))
               (<- result (expr*))
-              (opt? (~ws* #\;))
+              (~ws* #\;)
               result))
 
 (defun expr* ()

@@ -13,6 +13,12 @@
 
 (plan nil)
 
+;;
+;; test WAQL macro
+;;
+
+(diag "WAQL macro")
+
 (let ((result (waql "{ <u> | <u, ev> <- +r1+ };")))
   (is (relation-member result (tuple 1)) t
       "projection 1")
@@ -71,6 +77,31 @@
       "let binding 1")
   (is (relation-count result) 1
       "let binding 2"))
+
+
+;;
+;; test EVAL-WAQL function
+;;
+
+(diag "EVAL-WAQL")
+
+(let ((code "123"))
+  (is (eval-waql code) 123
+      "basic case"))
+
+
+;;
+;; test PRECOMPILE-WAQL function
+;;
+
+(diag "PRECOMPILE-WAQL")
+
+(let ((code "123"))
+  (let ((thunk (precompile-waql code)))
+    (is (type-of thunk) 'function
+        "basic case 1")
+    (is (funcall thunk) 123
+        "basic case 2")))
 
 
 (finalize)

@@ -132,11 +132,14 @@
 (is-parsed (expr*) "let" nil
            "EXPR* 3")
 
-(is-parsed (expr-top*) "    1;" 1
+(is-parsed (expr-top*) "123;" 123
            "EXPR-TOP* 1")
 
-(is-parsed (expr-top*) "    ;" nil
+(is-parsed (expr-top*) "    1;" 1
            "EXPR-TOP* 2")
+
+(is-parsed (expr-top*) "    ;" nil
+           "EXPR-TOP* 3")
 
 
 ;;

@@ -66,7 +66,7 @@
 ;;  Arguments and Values:
 ;;
 ;;    function --- a designator for a function with two arguments.
-;;    result --- a function
+;;    result --- a function.
 ;;
 ;;  Description:
 ;;
@@ -86,10 +86,10 @@
 ;;
 ;;    TRIM string => result
 ;;
-;;  Srguments and Values:
+;;  Arguments and Values:
 ;;
 ;;    string --- a string.
-;;    result --- a string
+;;    result --- a string.
 ;;
 ;;  Description:
 ;;
@@ -102,3 +102,29 @@
 (defun trim (string)
   (string-trim '(#\Space #\Tab #\Newline) string))
 
+
+;;
+;;  Syntax:
+;;
+;;    ENSURE-SEMICOLON-TERMINATED string => result, modified-p
+;;
+;;  Arguments and Values:
+;;
+;;    string --- a string.
+;;    result --- a string.
+;;    modified-p --- a generalized boolean.
+;;
+;;  Description:
+;;
+;;    If STRING ends with a semicolon, STRING is returned with
+;;    MODIFIED-P of nil. Otherwise, STRING is returned being appended a
+;;    semicolon, with MODIFIED-P of t.
+;;
+;;  Exceptional Situations:
+;;
+;;    Signals an error of type type-error if STRING is not a string
+;;
+(defun ensure-semicolon-terminated (string)
+  (if (ends-with #\; string)
+      (values string nil)
+      (values (concatenate 'string string ";") t)))

@@ -11,7 +11,10 @@
   (:export #:single
            #:minimize
            #:flip
-           #:trim))
+           #:trim
+           #:ensure-semicolon-terminated)
+  (:import-from #:alexandria
+                #:ends-with))
 
 (defpackage waql.util.coroutine
   (:use :cl)
@@ -283,10 +286,15 @@
 
 (defpackage waql.lang
   (:use :cl
+        :waql.util
         :waql.lang.compiler
         :waql.lang.parser)
   (:export #:waql
-           #:waql-in-sexp))
+           #:waql-in-sexp
+           #:eval-waql
+           #:eval-waql-in-sexp
+           #:precompile-waql
+           #:precompile-waql-in-sexp))
 
 (defpackage waql.repl.repl-server
   (:use :cl

@@ -53,4 +53,22 @@
     "basic case")
 
 
+;;
+;; test ENSURE-SEMICOLON-TERMINATED
+;;
+
+(diag "ENSURE-SEMICOLON-TERMINATED")
+
+(is (multiple-value-list (ensure-semicolon-terminated "foo;"))
+    '("foo;" nil)
+    "basic case 1")
+
+(is (multiple-value-list (ensure-semicolon-terminated "foo"))
+    '("foo;" t)
+    "basic case 2")
+
+(is-error (ensure-semicolon-terminated 'foo) type-error
+          "STRING which is not a string")
+
+
 (finalize)
