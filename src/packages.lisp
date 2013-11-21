@@ -12,6 +12,8 @@
            #:minimize
            #:flip
            #:trim
+           #:left-trim
+           #:right-trim
            #:semicolon-terminated
            #:semicolon-terminated-p
            #:ensure-semicolon-terminated)

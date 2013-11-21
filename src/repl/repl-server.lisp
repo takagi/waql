@@ -14,16 +14,6 @@
 (defun left-trim (string)
   (string-left-trim '(#\Space #\Tab #\Newline) string))
 
-(defun repl-trim (string)
-  string)
-;  (left-trim (trim-after-semicolon string)))
-
-(defun trim-after-semicolon (string)
-  (let ((pos (position #\; string)))
-    (if pos
-        (subseq string 0 (1+ pos))
-        string)))
-
 (defparameter +quit-command-regexp+
   "^:quit$")
 
@@ -53,7 +43,7 @@
 
 (defcor repl-server (line)
   (repl-loop
-    (let ((trimed-line (repl-trim line)))
+    (let ((trimed-line (trim line)))
       ;; if empty line, continue
       (when (string= "" trimed-line)
         (yield :blank)
@@ -65,12 +55,12 @@
       ;; ":" make command parsing start
       (when (starts-with #\: trimed-line)
         ;; :quit command
-        (when (scan +quit-command-regexp+ (trim line))
+        (when (scan +quit-command-regexp+ trimed-line)
           (coexit :quit))
         ;; :load command
-        (when (scan +load-command-regexp+ (trim line))
+        (when (scan +load-command-regexp+ trimed-line)
           (register-groups-bind (filespec)
-              (+load-command-regexp+ (trim line))
+              (+load-command-regexp+ trimed-line)
             (multiple-value-bind (output success) (load-in-repl filespec)
               (if success
                   (yield (make-response :output output))
@@ -78,7 +68,7 @@
             (continue-loop)))
         ;; invalid command
         (yield (make-response :error
-                 (format nil "The command ~A is invalid." (trim line))))
+                 (format nil "The command ~A is invalid." trimed-line)))
         (continue-loop))
       ;; if semicolon-terminated line, evaluate and continue
       (when (semicolon-terminated-p trimed-line)
@@ -107,7 +97,7 @@
         (repl-loop
           (yield :continue)
           (setf lines (format nil "~A~%~A" lines line)
-                trimed-line (repl-trim lines))
+                trimed-line (trim lines))
           ;; if semicolon-terminated lines, evaluate and continue
           (when (semicolon-terminated-p trimed-line)
             (let ((response
@@ -139,7 +129,7 @@
         (with-open-file (stream filespec :direction :input)
           (iterate:iter
             (iterate:for line in-file filespec using #'read-line)
-            (let ((trimed-line (format nil (trim-after-semicolon line))))
+            (let ((trimed-line (trim line)))
               (setf code   (format nil "~A~A~%" code trimed-line)
                     output (format nil "~A> ~A~%" output line))
               ;; not semicolon-terminated, continue to read next line

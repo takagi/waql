@@ -103,6 +103,50 @@
   (string-trim '(#\Space #\Tab #\Newline) string))
 
 
+;;
+;;  Syntax:
+;;
+;;    LEFT-TRIM string => result
+;;
+;;  Arguments and Values:
+;;
+;;    string --- a string.
+;;    result --- a string.
+;;
+;;  Description:
+;;
+;;    None.
+;;
+;;  Exceptional Situations:
+;;
+;;    None.
+;;
+(defun left-trim (string)
+  (string-left-trim '(#\Space #\Tab #\Newline) string))
+
+
+;;
+;;  Syntax:
+;;
+;;    RIGHT-TRIM string => result
+;;
+;;  Arguments and Values:
+;;
+;;    string --- a string.
+;;    result --- a string.
+;;
+;;  Description:
+;;
+;;    None.
+;;
+;;  Exceptional Situations:
+;;
+;;    None.
+;;
+(defun right-trim (string)
+  (string-right-trim '(#\Space #\Tab #\Newline) string))
+
+
 ;;  Syntax:
 ;;
 ;;    SEMICOLON-TERMINATED string => result
