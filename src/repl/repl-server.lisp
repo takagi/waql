@@ -129,7 +129,7 @@
         (with-open-file (stream filespec :direction :input)
           (iterate:iter
             (iterate:for line in-file filespec using #'read-line)
-            (let ((trimed-line (trim line)))
+            (let ((trimed-line (right-trim line)))
               (setf code   (format nil "~A~A~%" code trimed-line)
                     output (format nil "~A> ~A~%" output line))
               ;; not semicolon-terminated, continue to read next line
