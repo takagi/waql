@@ -12,6 +12,8 @@
            #:minimize
            #:flip
            #:trim
+           #:semicolon-terminated
+           #:semicolon-terminated-p
            #:ensure-semicolon-terminated)
   (:import-from #:alexandria
                 #:ends-with))

@@ -25,5 +25,6 @@
 ;;    None.
 ;;
 (defun compile-waql (expr)
-  (compile-expression-top
-    (pattern-match-expression-top expr)))
+  (when expr
+    (compile-expression-top
+     (pattern-match-expression-top expr))))

@@ -159,6 +159,8 @@
     "case that sub query has several quantifications
   deriving lookup-keys to each quantification")
 
+(is (compile-waql nil) nil
+    "argument is nil")
 
 
 (finalize)

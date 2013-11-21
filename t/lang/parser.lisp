@@ -6,12 +6,20 @@
 
 (in-package :waql-test.lang.parser)
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun %is-parsed (parser string expected complete-p args)
+    (with-gensyms (result suffix success front)
+      `(multiple-value-bind (,result ,suffix ,success ,front)
+           (parse-string* ,parser ,string :complete ,complete-p)
+         (declare (ignore ,suffix ,success ,front))
+         (is ,result ,expected ,@args)))))
+
 (defmacro is-parsed (parser string expected &rest args)
-  (with-gensyms (result suffix success front)
-    `(multiple-value-bind (,result ,suffix ,success ,front)
-         (parse-string* ,parser ,string :complete nil)
-       (declare (ignore ,suffix ,success ,front))
-       (is ,result ,expected ,@args))))
+  (%is-parsed parser string expected t args))
+
+(defmacro is-parsed-partially (parser string expected &rest args)
+  (%is-parsed parser string expected nil args))
+
 
 (plan nil)
 
@@ -45,11 +53,11 @@
 (is-parsed (is-pure-word* "foo") "foo" "foo"
            "IS-PURE-WORD* 1")
 
-(is-parsed (is-pure-word* "foo") "foo123" "foo"
-           "IS-PURE-WORD* 2")
+(is-parsed-partially (is-pure-word* "foo") "foo123" "foo"
+                     "IS-PURE-WORD* 2")
 
-(is-parsed (is-pure-word* "foo") "foobar" nil
-           "TO FAIL: IS-PURE-WORD* 3")
+(is-parsed-partially (is-pure-word* "foo") "foobar" nil
+                     "TO FAIL: IS-PURE-WORD* 3")
 
 
 ;;
@@ -143,6 +151,32 @@
 
 (is-parsed (expr-top*) "    ;" nil
            "EXPR-TOP* 3")
+
+(is-parsed (expr-top*) " -- foo;
+123;" 123
+           "EXPR-TOP* 4")
+
+(is-parsed (expr-top*) "123;123;" nil
+           "EXPR-TOP* 5")
+
+(is-parsed (expr-top*) "" nil
+           "EXPR-TOP* 6")
+
+(is-parsed (expr-top*) " " nil
+           "EXPR-TOP* 7 - a whitestuff")
+
+(is-parsed (expr-top*) " -- foo" nil
+           "EXPR-TOP* 8 - two whitestuffs")
+
+(is-parsed (expr-top*) "  ;" nil
+           "EXPR-TOP* 9 - two whitestuffs and a semicolon")
+
+(is-parsed (expr-top*) ";" nil
+           "EXPR-TOP* 10 - a semicolon")
+
+(is-parsed (expr-top*) " -- foo;
+;" nil
+           "EXPR-TOP* 11 - two whitestuffs and a semicolon")
 
 
 ;;

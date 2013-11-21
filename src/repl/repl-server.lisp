@@ -15,18 +15,14 @@
   (string-left-trim '(#\Space #\Tab #\Newline) string))
 
 (defun repl-trim (string)
-  (left-trim (trim-after-semicolon string)))
+  string)
+;  (left-trim (trim-after-semicolon string)))
 
 (defun trim-after-semicolon (string)
   (let ((pos (position #\; string)))
     (if pos
         (subseq string 0 (1+ pos))
         string)))
-
-(defun semicolon-terminated-p (string)
-  (if (string/= string "")
-      (char= #\; (aref string (1- (length string))))
-      nil))
 
 (defparameter +quit-command-regexp+
   "^:quit$")
@@ -96,7 +92,8 @@
       ;; evaluate and continue
       (destructuring-bind (result success)
           (handler-case-without-call/cc
-            (list (parse-waql trimed-line) t)
+            (let ((trimed-line1 (semicolon-terminated trimed-line)))
+              (list (parse-waql trimed-line1) t))
             (waql-parse-error (e) (list e nil)))
         (when success
           (let ((response (handler-case-without-call/cc
@@ -124,7 +121,8 @@
           ;; evaluate and continue outer loop
           (destructuring-bind (result success)
               (handler-case-without-call/cc
-                (list (parse-waql trimed-line) t)
+                (let ((trimed-line1 (semicolon-terminated trimed-line)))
+                  (list (parse-waql trimed-line1) t))
                 (waql-parse-error (e) (list e nil)))
             (when success
               (let ((response

@@ -103,7 +103,8 @@
               (format nil "--~A" any)))
 
 (defun whitestuffs* ()
-  (many* (whitestuff*)))
+  (mdo (many* (whitestuff*))
+       (result nil)))
 
 (defun whitestuff* ()
   (choice1 (whitespace?)
@@ -145,8 +146,9 @@
 
 (defun expr-top* ()
   (named-seq* (whitestuffs*)
-              (<- result (expr*))
-              (~ws* #\;)
+              (<- result (opt? (named-seq* (<- result (opt? (expr*)))
+                                           (~ws* #\;)
+                                           result)))
               result))
 
 (defun expr* ()

@@ -54,6 +54,38 @@
 
 
 ;;
+;; test SEMICOLON-TERMINATED
+;;
+
+(diag "SEMICOLON-TERMINATED")
+
+(is (semicolon-terminated "foo") "foo;"
+    "basic case 1")
+
+(is (semicolon-terminated "foo;") "foo;;"
+    "basic case 2")
+
+(is-error (semicolon-terminated 'foo) type-error
+          "STRING which is not a string")
+
+
+;;
+;; test SEMICOLON-TERMINATED-P
+;;
+
+(diag "SEMICOLON-TERMINATED-P")
+
+(is (semicolon-terminated-p "foo") nil
+    "basic case 1")
+
+(is (semicolon-terminated-p "foo;") t
+    "basic case 2")
+
+(is-error (semicolon-terminated-p 'foo) type-error
+          "STRING which is not a string")
+
+
+;;
 ;; test ENSURE-SEMICOLON-TERMINATED
 ;;
 

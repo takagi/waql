@@ -103,6 +103,49 @@
   (string-trim '(#\Space #\Tab #\Newline) string))
 
 
+;;  Syntax:
+;;
+;;    SEMICOLON-TERMINATED string => result
+;;
+;;  Arguments and Values:
+;;
+;;    string --- a string.
+;;    result --- a string.
+;;
+;;  Description:
+;;
+;;    None.
+;;
+;;  Exceptional Situations:
+;;
+;;    Signals an error of type type-error if STRING is not a string.
+;;
+(defun semicolon-terminated (string)
+  (concatenate 'string string ";"))  
+
+
+;;
+;;  Syntax:
+;;
+;;    SEMICOLON-TERMINATED-P string => boolean
+;;
+;;  Arguments and Values:
+;;
+;;    string --- a string.
+;;    boolean --- a generalized boolean.
+;;
+;;  Description:
+;;
+;;    None.
+;;
+;;  Exceptional Situations:
+;;
+;;    Signals an error of type type-error if STRING is not a string
+;;
+(defun semicolon-terminated-p (string)
+  (ends-with #\; string))
+
+
 ;;
 ;;  Syntax:
 ;;
@@ -125,6 +168,6 @@
 ;;    Signals an error of type type-error if STRING is not a string
 ;;
 (defun ensure-semicolon-terminated (string)
-  (if (ends-with #\; string)
+  (if (semicolon-terminated-p string)
       (values string nil)
-      (values (concatenate 'string string ";") t)))
+      (values (semicolon-terminated string) t)))
