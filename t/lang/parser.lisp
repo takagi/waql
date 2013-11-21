@@ -58,6 +58,9 @@
 
 (diag "Comment and Whitestuff")
 
+(is-parsed (whitestuffs*) "  " nil
+           "WHITESTUFFS* 1")
+
 (is-parsed (whitestuff*) "-- foo" "-- foo"
            "WHITESTUFF* 1")
 

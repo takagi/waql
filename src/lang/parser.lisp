@@ -102,6 +102,9 @@
               (<- any (between? (graphic-char?) nil nil 'string))
               (format nil "--~A" any)))
 
+(defun whitestuffs* ()
+  (many* (whitestuff*)))
+
 (defun whitestuff* ()
   (choice1 (whitespace?)
            (comment*)))
@@ -109,7 +112,7 @@
 (defun ~ws* (Q)
   ;; skip whitespaces and comments following Q
   (named-seq* (<- result Q)
-              (many* (whitestuff*))
+              (whitestuffs*)
               result))
 
 
@@ -141,7 +144,7 @@
 ;;
 
 (defun expr-top* ()
-  (named-seq* (many* (whitestuff*))
+  (named-seq* (whitestuffs*)
               (<- result (expr*))
               (~ws* #\;)
               result))

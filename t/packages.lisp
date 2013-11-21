@@ -159,6 +159,7 @@
                 #:identifier*
                 #:is-pure-word*
                 ;; Comment and Whitestuff
+                #:whitestuffs*
                 #:whitestuff*
                 #:~ws*
                 ;; Baisc elements
