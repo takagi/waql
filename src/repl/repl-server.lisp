@@ -11,9 +11,6 @@
 ;;; REPL server
 ;;;
 
-(defun left-trim (string)
-  (string-left-trim '(#\Space #\Tab #\Newline) string))
-
 (defparameter +quit-command-regexp+
   "^:quit$")
 
