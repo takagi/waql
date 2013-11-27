@@ -27,8 +27,7 @@
 ;;
 (defun type-of-expression-top (expr)
   (let ((typenv (reduce #'(lambda (typenv item)
-                            (destructuring-bind (var type _) item
-                              (declare (ignore _))
+                            (destructuring-bind (var . type) item
                               (add-letvar-typenv var type typenv)))
                         (predefined-relations)
                         :initial-value (empty-typenv))))

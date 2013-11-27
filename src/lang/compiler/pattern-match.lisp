@@ -26,8 +26,8 @@
 ;;
 (defun pattern-match-expression-top (expr)
   (let ((patenv (reduce #'(lambda (patenv item)
-                            (destructuring-bind (var type value) item
-                              (declare (ignore type value))
+                            (destructuring-bind (var . type) item
+                              (declare (ignore type))
                               (add-patenv var patenv)))
                         (predefined-relations)
                         :initial-value (empty-patenv))))

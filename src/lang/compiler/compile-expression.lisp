@@ -26,8 +26,7 @@
 ;;
 (defun compile-expression-top (expr)
   (let ((compenv (reduce #'(lambda (compenv item)
-                             (destructuring-bind (var type _) item
-                               (declare (ignore _))
+                             (destructuring-bind (var . type) item
                                (add-argvar-compenv var type var
                                                    compenv)))
                          (predefined-relations)

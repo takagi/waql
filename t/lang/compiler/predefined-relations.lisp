@@ -24,38 +24,28 @@
 
 (diag "ADD-PREDEFINED-RELATION")
 
-(let ((relation (empty-relation)))
-  (let ((predefined-relations
-          (add-predefined-relation 'x '(:int) relation
-            (add-predefined-relation 'x '(:string) relation
-              (empty-predefined-relations)))))
-    (is predefined-relations
-        (list (list 'x '(:relation :int) relation))
-        "basic case 1")
-    (is (length predefined-relations) 1
-        "basic case 2")))
+(let ((predefined-relations
+        (add-predefined-relation 'x '(:int)
+          (add-predefined-relation 'x '(:string)
+            (empty-predefined-relations)))))
+  (is predefined-relations
+      (list (cons 'x '(:relation :int)))
+      "basic case 1")
+  (is (length predefined-relations) 1
+      "basic case 2"))
 
-(let ((relation (empty-relation)))
-  (is-error (add-predefined-relation 1 '(:int) relation
-              (empty-relation))
-            type-error
-            "VAR which is not a WAQL symbol"))
+(is-error (add-predefined-relation 1 '(:int)
+            (empty-relation))
+          type-error
+          "VAR which is not a WAQL symbol")
 
-(let ((relation (empty-relation)))
-  (is-error (add-predefined-relation 'x 'foo relation
-              (empty-relation))
-            type-error
-            "ATTRIBUTE-TYPES which is not a list of WAQL types"))
+(is-error (add-predefined-relation 'x 'foo
+            (empty-relation))
+          type-error
+          "ATTRIBUTE-TYPES which is not a list of WAQL types")
 
-(let ((relation (empty-relation)))
-  (is-error (add-predefined-relation 'x '(:int) 'foo
-              (empty-relation))
-            type-error
-            "RELATION which is not a relation"))
-
-(let ((relation (empty-relation)))
-  (is-error (add-predefined-relation 'x '(:int) relation 'foo) type-error
-            "PREDEFINED-RELATIONS which is not predefined relations"))
+(is-error (add-predefined-relation 'x '(:int) 'foo) type-error
+          "PREDEFINED-RELATIONS which is not predefined relations")
 
 
 ;;
@@ -84,14 +74,12 @@
 (defrelation x (:int)
   (empty-relation))
 
-(destructuring-bind (var type relation)
+(destructuring-bind (var . type)
     (car (predefined-relations))
   (is var 'x
       "basic case 1")
   (is type '(:relation :int)
-      "basic case 2")
-  (is (relation-count relation) 0
-      "basic case 3"))
+      "basic case 2"))
 
 
 (finalize)
