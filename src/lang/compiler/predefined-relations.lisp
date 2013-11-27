@@ -127,8 +127,9 @@
 ;;    None.
 ;;
 (defmacro defrelation (var attribute-types &body body)
-  `(eval-when (:compile-toplevel :load-toplevel :execute)
-     (setf *predefined-relations*
-           (add-predefined-relation ',var ',attribute-types
-             *predefined-relations*))
+  `(progn
+     (eval-when (:compile-toplevel :load-toplevel :execute)
+       (setf *predefined-relations*
+             (add-predefined-relation ',var ',attribute-types
+               *predefined-relations*)))
      (defparameter ,var ,@body)))
