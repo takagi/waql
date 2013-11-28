@@ -188,7 +188,7 @@
 (is-parsed (literal*) "123" 123
            "LITERAL* 1")
 
-(is-parsed (literal*) "\"foo\"" "\"foo\""
+(is-parsed (literal*) "\"foo\"" "foo"
            "LITERAL* 2")
 
 (is-parsed (literal*) "time 2013-1-1 00:00:00"

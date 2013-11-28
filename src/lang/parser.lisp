@@ -176,7 +176,9 @@
   (~ws* (int*)))
 
 (defun string-literal* ()
-  (~ws* (quoted?)))
+  (named-seq* (<- string (~ws* (quoted?)))
+              (let ((n (length string)))
+                (subseq string 1 (1- n)))))
 
 (defun time-literal* ()
   (named-seq* (~ws* (is-pure-word* "time"))
