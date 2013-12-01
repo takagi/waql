@@ -346,9 +346,13 @@
         :waql.lang.compiler.predefined-relations
         :waql.lang
         :waql.repl)
-  (:export ;; WAQL macro
+  (:export ;; WAQL INTERFACES
            #:waql
            #:waql-in-sexp
+           #:eval-waql
+           #:eval-waql-in-sexp
+           #:precompile-waql
+           #:precompile-waql-in-sexp
            ;; DEFRELATION
            #:defrelation
            #:clear-defrelation
