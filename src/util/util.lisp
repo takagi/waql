@@ -187,6 +187,8 @@
 ;;    Signals an error of type type-error if STRING is not a string
 ;;
 (defun semicolon-terminated-p (string)
+  (unless (stringp string)
+    (error 'type-error :datum string :expected-type string))
   (ends-with #\; string))
 
 
