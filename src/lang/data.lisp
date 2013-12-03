@@ -510,11 +510,17 @@
 ;;    None.
 ;;
 (defstruct (tuple (:constructor %make-tuple)
-                  (:conc-name %tuple-))
+                  (:conc-name %tuple-)
+                  (:print-function print-tuple))
   (elements :elements :read-only t))
 
 (defun tuple (&rest elements)
   (%make-tuple :elements elements))
+
+(defun print-tuple (tuple stream depth)
+  (declare (ignore depth))
+  (format stream "#S(TUPLE ~{~S~^ ~})" (%tuple-elements tuple)))
+
 
 ;;
 ;;  Syntax:

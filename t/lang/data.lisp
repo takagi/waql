@@ -289,7 +289,9 @@
   (is (tuple-ref tuple 1) "foo"
       "basic case 2")
   (is (tuple-ref tuple 2) 'bar
-      "basic case 3"))
+      "basic case 3")
+  (is-print (write tuple) "#S(TUPLE 1 \"foo\" BAR)"
+            "basic case 4"))
 
 
 ;;

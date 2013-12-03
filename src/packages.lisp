@@ -59,6 +59,7 @@
            #:tuple
            #:tuple-ref
            #:tuple-dim
+           #:print-tuple
            ;; RELATION
            #:empty-relation
            #:relation-p
@@ -360,6 +361,7 @@
            #:tuple
            #:tuple-ref
            #:tuple-dim
+           #:print-tuple
            ;; RELATION
            #:empty-relation
            #:relation-p
