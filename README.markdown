@@ -1,6 +1,6 @@
 # WAQL
 
-The WAQL prject.
+The WAQL project.
 
 ## Usage
 
