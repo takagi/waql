@@ -13,7 +13,7 @@
 (in-package :waql-asd)
 
 (defsystem waql
-  :version "0.1-SNAPSHOT"
+  :version "0.1"
   :author "Masayuki Takagi"
   :license "LLGPL"
   :depends-on (:cl-pattern
