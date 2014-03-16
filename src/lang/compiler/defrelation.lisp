@@ -4,7 +4,7 @@
 |#
 
 
-(in-package :waql.lang.compiler.predefined-relations)
+(in-package :waql.lang.compiler.defrelation)
 
 ;;
 ;;  Syntax:

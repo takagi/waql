@@ -45,7 +45,7 @@
                     ((:file "patenv")
                      (:file "typenv")
                      (:file "compenv")
-                     (:file "predefined-relations")
+                     (:file "defrelation")
                      (:file "generic-functions")
                      (:file "type-of")
                      (:file "pattern-match")

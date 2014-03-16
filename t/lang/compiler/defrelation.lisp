@@ -4,7 +4,7 @@
 |#
 
 
-(in-package :waql-test.lang.compiler.predefined-relations)
+(in-package :waql-test.lang.compiler.defrelation)
 
 (plan nil)
 
