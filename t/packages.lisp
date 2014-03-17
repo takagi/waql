@@ -175,6 +175,8 @@
                 #:let-*
                 ;; Query
                 #:query*
+                ;; Lisp
+                #:lisp*
                 ;; Function application
                 #:function*
                 ;; WAQL types

@@ -177,8 +177,7 @@
 
 (defun string-literal* ()
   (named-seq* (<- string (~ws* (quoted?)))
-              (let ((n (length string)))
-                (subseq string 1 (1- n)))))
+              (%strip-quote string)))
 
 (defun time-literal* ()
   (named-seq* (~ws* (is-pure-word* "time"))
@@ -287,6 +286,18 @@
 
 
 ;;
+;; Parser Combinators - Lisp form
+;;
+
+(defun lisp* ()
+  (named-seq* (~ws* (is-pure-word* "lisp"))
+              (<- form (~ws* (quoted?)))
+              (<- type (~ws* (waql-type*)))
+              (make-lisp-form (read-from-string (%strip-quote form))
+                              type)))
+
+
+;;
 ;; Parser Combinators - Function application
 ;;
 
@@ -382,3 +393,12 @@
 
 (defun ty-function* ()
   (zero))                               ; no function type syntax
+
+
+;;
+;; Helpers
+;;
+
+(defun %strip-quote (string)
+  (let ((n (length string)))
+    (subseq string 1 (1- n))))
