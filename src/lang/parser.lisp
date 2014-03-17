@@ -177,8 +177,7 @@
   (~ws* (int*)))
 
 (defun string-literal* ()
-  (named-seq* (<- string (~ws* (quoted?)))
-              (%strip-quote string)))
+  (~ws* (quoted? :include-quotes nil)))
 
 (defun time-literal* ()
   (named-seq* (~ws* (is-pure-word* "time"))
@@ -292,10 +291,9 @@
 
 (defun lisp* ()
   (named-seq* (~ws* (is-pure-word* "lisp"))
-              (<- form (~ws* (quoted?)))
+              (<- form (~ws* (quoted? :include-quotes nil)))
               (<- type (~ws* (waql-type*)))
-              (make-lisp-form (read-from-string (%strip-quote form))
-                              type)))
+              (make-lisp-form (read-from-string form) type)))
 
 
 ;;
@@ -396,12 +394,3 @@
 
 (defun ty-function* ()
   (zero))                               ; no function type syntax
-
-
-;;
-;; Helpers
-;;
-
-(defun %strip-quote (string)
-  (let ((n (length string)))
-    (subseq string 1 (1- n))))
