@@ -154,6 +154,7 @@
 (defun expr* ()
   (choices1 (let-*)
             (query*)
+            (lisp*)
             (function*)
             (literal*)
             (variable-reference*)))
@@ -326,6 +327,7 @@
             (literal*)
             (let-*)
             (query*)
+            (lisp*)
             (prefix-function*)))
 
 (defun prefix-function* ()
@@ -340,6 +342,7 @@
             (literal*)
             (let-*)
             (query*)
+            (lisp*)
             (variable-reference*)))
 
 (defun enclosed-expr* ()
