@@ -154,6 +154,7 @@
 (defun expr* ()
   (choices1 (let-*)
             (query*)
+            (lisp*)
             (function*)
             (literal*)
             (variable-reference*)))
@@ -176,9 +177,7 @@
   (~ws* (int*)))
 
 (defun string-literal* ()
-  (named-seq* (<- string (~ws* (quoted?)))
-              (let ((n (length string)))
-                (subseq string 1 (1- n)))))
+  (~ws* (quoted? :include-quotes nil)))
 
 (defun time-literal* ()
   (named-seq* (~ws* (is-pure-word* "time"))
@@ -287,6 +286,17 @@
 
 
 ;;
+;; Parser Combinators - Lisp form
+;;
+
+(defun lisp* ()
+  (named-seq* (~ws* (is-pure-word* "lisp"))
+              (<- form (~ws* (quoted? :include-quotes nil)))
+              (<- type (~ws* (waql-type*)))
+              (make-lisp-form (read-from-string form) type)))
+
+
+;;
 ;; Parser Combinators - Function application
 ;;
 
@@ -315,6 +325,7 @@
             (literal*)
             (let-*)
             (query*)
+            (lisp*)
             (prefix-function*)))
 
 (defun prefix-function* ()
@@ -329,6 +340,7 @@
             (literal*)
             (let-*)
             (query*)
+            (lisp*)
             (variable-reference*)))
 
 (defun enclosed-expr* ()

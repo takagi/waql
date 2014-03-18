@@ -199,7 +199,7 @@
                 #:argument-var
                 #:argument-type))
 
-(defpackage waql.lang.compiler.predefined-relations
+(defpackage waql.lang.compiler.defrelation
   (:use :cl
         :waql.lang.data
         :waql.lang.type)
@@ -233,7 +233,7 @@
         :waql.lang.data
         :waql.lang.type
         :waql.lang.syntax
-        :waql.lang.compiler.predefined-relations
+        :waql.lang.compiler.defrelation
         :waql.lang.compiler.generic-functions
         :waql.lang.compiler.typenv)
   (:export #:type-of-expression-top
@@ -245,7 +245,7 @@
   (:use :cl
         :waql.lang.data
         :waql.lang.syntax
-        :waql.lang.compiler.predefined-relations
+        :waql.lang.compiler.defrelation
         :waql.lang.compiler.patenv)
   (:export #:pattern-match-expression-top
            #:pattern-match-expression)
@@ -257,7 +257,7 @@
         :waql.lang.data
         :waql.lang.type
         :waql.lang.syntax
-        :waql.lang.compiler.predefined-relations
+        :waql.lang.compiler.defrelation
         :waql.lang.compiler.generic-functions
         :waql.lang.compiler.typenv
         :waql.lang.compiler.compenv
@@ -344,7 +344,7 @@
         :waql.lang.data
         :waql.lang.syntax
         :waql.lang.compiler.generic-functions
-        :waql.lang.compiler.predefined-relations
+        :waql.lang.compiler.defrelation
         :waql.lang
         :waql.repl)
   (:export ;; WAQL INTERFACES

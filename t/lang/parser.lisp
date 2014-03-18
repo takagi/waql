@@ -237,6 +237,16 @@
 
 
 ;;
+;; test Lisp form
+;;
+
+(diag "Lisp form")
+
+(is-parsed (lisp*) "lisp \"(car '(1))\" int" '(lisp (car '(1)) :int)
+           "LISP* 1")
+
+
+;;
 ;; test Function application
 ;;
 

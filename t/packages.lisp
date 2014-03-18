@@ -60,12 +60,12 @@
         :waql.lang.compiler.typenv
         :waql.lang.compiler.compenv))
 
-(defpackage waql-test.lang.compiler.predefined-relations
+(defpackage waql-test.lang.compiler.defrelation
   (:use :cl
         :cl-test-more
         :waql.lang.data
-        :waql.lang.compiler.predefined-relations)
-  (:import-from #:waql.lang.compiler.predefined-relations
+        :waql.lang.compiler.defrelation)
+  (:import-from #:waql.lang.compiler.defrelation
                 #:empty-predefined-relations
                 #:add-predefined-relation))
 
@@ -112,7 +112,7 @@
         :cl-test-more
         :waql.lang.data
         :waql.lang.syntax
-        :waql.lang.compiler.predefined-relations
+        :waql.lang.compiler.defrelation
         :waql.lang.compiler.compenv
         :waql.lang.compiler.compile-expression)
   (:import-from #:waql.lang.compiler.compile-expression
@@ -142,7 +142,7 @@
         :cl-test-more
         :waql.lang.data
         :waql.lang.syntax
-        :waql.lang.compiler.predefined-relations
+        :waql.lang.compiler.defrelation
         :waql.lang.compiler)
   (:import-from #:waql.lang.data
                 #:*scoping-count*)
@@ -175,6 +175,8 @@
                 #:let-*
                 ;; Query
                 #:query*
+                ;; Lisp
+                #:lisp*
                 ;; Function application
                 #:function*
                 ;; WAQL types
@@ -189,7 +191,7 @@
   (:use :cl
         :cl-test-more
         :waql.lang.data
-        :waql.lang.compiler.predefined-relations
+        :waql.lang.compiler.defrelation
         :waql.lang))
 
 (defpackage waql-test
