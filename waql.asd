@@ -23,7 +23,8 @@
                :parser-combinators
                :cl-cont
                :cl-ppcre
-               :hunchentoot)
+               :hunchentoot
+               :split-sequence)
   :components ((:module "src"
                 :serial t
                 :components

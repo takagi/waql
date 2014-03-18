@@ -6,10 +6,10 @@
 
 -- conversion per advertises by times
 let +eua2+ := -- Event, User, Advertise
-              { <ev, u, ad> | <ev, u>  <- +ev+
+              { <ev, u, ad> | <ev, u, _>  <- +ev+
                             , <ev, ad> <- +ad+ } in
 let +euc2+ := -- Event, User, Conversion
-              { <ev, u, cv> | <ev, u>  <- +ev+
+              { <ev, u, cv> | <ev, u, _>  <- +ev+
                             , <ev, cv> <- +cv+ } in
 let +uf2+ := -- User, Action Event, Conversion Event
              { <u, ae, ce> | <ae, u, ad> <- +eua2+
@@ -24,10 +24,10 @@ in { < ad
 
 -- conversion per advertises by UUs
 let +eua2+ := -- Event, User, Advertise
-              { <ev, u, ad> | <ev, u>  <- +ev+
+              { <ev, u, ad> | <ev, u, _>  <- +ev+
                             , <ev, ad> <- +ad+ } in
 let +euc2+ := -- Event, User, Conversion
-              { <ev, u, cv> | <ev, u>  <- +ev+
+              { <ev, u, cv> | <ev, u, _>  <- +ev+
                             , <ev, cv> <- +cv+ } in
 let +uf2+ := -- User, Action Event, Conversion Event
               { <u, ae, ce> | <ae, u, ad> <- +eua2+
@@ -36,5 +36,170 @@ let +uf2+ := -- User, Action Event, Conversion Event
 in { < ad
      , count { <u> | <u, ae, _> <- +uf2+
                    , <ae, ad> <- +ad+ }
+     >
+   | <_, ad> <- +ad+ };
+
+
+-- 以下を広告ごとに集計
+-- ・ある広告に初回接触したユーザの数
+-- ・初回接触から30日以内に応募したユーザの数
+-- ・初回接触から31日以上90日以内に応募したユーザの数
+let apr_1st := time 2013-4-1 00:00:00 in
+let may_1st := time 2013-5-1 00:00:00 in
+let oubo    := 1 in  -- 応募コンバージョン
+let is_first_contact u:int ae:int
+            := -- ユーザuについて、広告接触aeが初回接触かどうか
+               not (exists { <ae2> | <ae , u, _, at1> <- +eua+
+                                   , <ae2, u, _, at2> <- +eua+
+                                   , at2 < at1 }) in
+let is_last_contact u:int ae:int ce:int
+            := -- ユーザuについて、広告接触aeが、成果接触cvの直前接触かどうか
+               -- 広告流入、サイト内施策、自然流入の違いに注意
+               not (exists { <ae2> | <ae , u, _, at1> <- +eua+
+                                   , <ae2, u, _, at2> <- +eua+
+                                   , <ce , _, ct> <- +ev+
+                                   , at1 < at2, at2 <= ct })
+in { < ad
+     , -- ある広告に初回接触したユーザの数
+       count { <u> | -- 広告ad接触イベント
+                     <ae, u, ad, at> <- +eua+
+                   , -- 初回接触
+                     is_first_contact u ae
+                   , -- 広告接触が4月
+                     apr_1st <= at, at < may_1st }
+     , -- 初回接触から30日以内に応募したユーザの数
+       count { <u> | -- 広告ad接触イベント
+                     <ae, u, ad, at> <- +eua+
+                   , -- 応募コンバージョンイベント
+                     <ce, u, oubo, ct> <- +euc+
+                   , -- 初回接触
+                     is_first_contact u ae
+                   , -- 広告接触が4月
+                     apr_1st <= at, at < may_1st
+                   , -- 広告接触から30日以内に応募
+                     at < ct, ct <= at + days 30 }
+     , -- 初回接触から31日以上90日以内に応募したユーザの数
+       count { <u> | -- 広告ad接触イベント
+                     <ae, u, ad, at> <- +eua+
+                   , -- 応募コンバージョンインベント
+                     <ce, u, oubo, ct> <- +euc+
+                   , -- 初回接触
+                     is_first_contact u ae
+                   , -- 広告接触が4月
+                     apr_1st <= at, at < may_1st
+                   , -- 広告接触から31日以上90日以内に応募
+                     at + days 30 < ct, ct <= at + days 90 }
+     >
+   | <_, ad> <- +ea+ };
+
+
+-- 人材紹介 ビジネスゴール１：短期獲得
+-- 初回接触広告ごとに以下を集計
+-- ・５月に新規登録したユーザの数
+-- ・新規登録から30日以内に応募したユーザの数
+-- ・新規登録から31日以上90日以内に応募したユーザの数
+let may_1st := time 2013-5-1 00:00:00 in
+let jun_1st := time 2013-6-1 00:00:00 in
+let oubo    := 1 in  -- 応募コンバージョン
+let touroku := 2 in  -- 登録コンバージョン
+let is_first_contact u:int ae:int
+            := -- ユーザuについて、広告接触aeが初回接触かどうか
+               not (exists { <ae1> | <ae , u, _, at1> <- +eua+
+                                   , <ae1, u, _, at2> <- +eua+
+                                   , at2 < at1 })
+in { < ad
+     , -- ５月に新規登録したユーザの数
+       count { <u> | -- 広告ad接触イベント
+                     <ae, u, ad, _> <- +eua+
+                   , -- 初回接触が広告adである
+                     is_first_contact u ae
+                   , -- 新規登録コンバージョンイベント
+                     <_, u, touroku, ct> <- +euc+
+                   , -- 新規登録コンバージョンが５月
+                     may_1st <= ct, ct < jun_1st }
+     , -- 新規登録から30日以内に応募したユーザの数
+       count { <u> | -- 広告ad接触イベント
+                     <ae, u, ad, _> <- +eua+
+                   , -- 初回接触が広告adである
+                     is_first_contact u ae
+                   , -- 新規登録コンバージョンイベント
+                     <_, u, touroku, ct1> <- +euc+
+                   , -- 新規登録コンバージョンが5月
+                     may_1st <= ct1, ct1 < jun_1st
+                   , -- 応募コンバージョンイベント
+                     <_, u, oubo, ct2> <- +euc+
+                   , -- 新規登録から30日以内に応募
+                     ct1 < ct2, ct2 <= ct1 + days 30 }
+     , -- 新規登録から31日以上90日以内に応募したユーザの数
+       count { <u> | -- 広告ad接触イベント
+                     <ae, u, ad, _> <- +eua+
+                   , -- 初回接触が広告adである
+                     is_first_contact u ae
+                   , -- 新規登録コンバージョンイベント
+                     <_, u, touroku, ct1> <- +euc+
+                   , -- 新規登録コンバージョンが5月
+                     may_1st <= ct1, ct1 < jun_1st
+                   , -- 応募コンバージョンイベント
+                     <_, u, oubo, ct2> <- +euc+
+                   , -- 新規登録から30日以内に応募
+                     ct1 + days 30 < ct2, ct2 <= ct1 + days 90 }
+     >
+   | <_, ad> <- +ea+ };
+
+
+-- 架空のEC ビジネスゴール３：休眠顧客掘り起こし
+-- 広告ごとに以下を集計
+-- ・施策に接触した休眠ユーザの数
+-- ・施策接触後の購入ユーザ数
+-- ・さらに３ヶ月以内の再購入ユーザ数
+let apr_1st := time 2013-4-1 00:00:00 in
+let may_1st := time 2013-5-1 00:00:00 in
+let kounyu := 4 in  -- 購入コンバージョン
+let is_user_dormant u:int tm:time
+  := -- 述語：休眠顧客かどうか（時間tmより前180日以内に流入したことがないか？）
+     -- ※いったん、「流入」を「広告接触」に置き換えて定義する
+     -- 　流入 := 広告接触 | 自然流入
+     not (exists { <ae> | <ae, u, _, at> <- +eua+
+                        , tm - days 180 <= at, at < tm }) in
+let is_ad_for_dormant ad:int
+  := -- 述語：休眠顧客施策かどうか（未使用）
+     -- ※いったん、休眠顧客が接触した広告かどうかに置き換える
+     -- ※実際は、CRMツールでフィルタしてメルマガ配信するなど
+     exists { <ae> | <ae, u, ad, at> <- +eua+
+                   , is_user_dormant u at }
+in { < ad
+     , -- 施策に接触した休眠ユーザの数
+       count { <u> | -- 広告ad接触イベント
+                     <_, u, ad, at> <- +eua+
+                   , -- 広告接触が4月
+                     apr_1st <= at, at < may_1st
+                   , -- ユーザuは、休眠顧客だった
+                     is_user_dormant u at }
+     , -- 施策接触後の購入ユーザ数
+       count { <u> | -- 広告ad接触イベント
+                     <_, u, ad, at> <- +eua+
+                   , -- 広告接触が4月
+                     apr_1st <= at, at < may_1st
+                   , -- ユーザuは、休眠顧客だった
+                     is_user_dormant u at
+                   , -- 購入コンバージョンイベント
+                     <_, u, kounyu, ct> <- +euc+
+                   , -- 広告接触から30日以内に購入
+                     at < ct, ct <= at + days 30 }
+     , -- さらに３ヶ月以内の再購入ユーザ数
+       count { <u> | -- 広告ad接触イベント
+                     <_, u, ad, at> <- +eua+
+                   , -- 広告接触が4月
+                     apr_1st <= at, at < may_1st
+                   , -- ユーザuは、休眠顧客だった
+                     is_user_dormant u at
+                   , -- 購入コンバージョンイベント
+                     <_, u, kounyu, ct1> <- +euc+
+                   , -- 広告接触から30日以内に購入
+                     at < ct1, ct1 <= at + days 30
+                   , -- 再購入コンバージョンイベント
+                     <_, u, kounyu, ct2> <- +euc+
+                   , -- 休眠後初購入から90日以内に再購入
+                     ct1 < ct2, ct2 >= ct1 + days 90 }
      >
    | <_, ad> <- +ad+ };
