@@ -285,6 +285,7 @@
            #:waql-parse-error)
   (:import-from #:alexandria
                 #:symbolicate
+                #:compose
                 #:curry)
   (:shadowing-import-from #:parser-combinators
                           #:<-))

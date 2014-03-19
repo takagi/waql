@@ -70,6 +70,12 @@
 (defun printable-char? ()
   (except? (graphic-char?) #\Space))
 
+(defparameter +reserved+
+  '("let" "in" "time" "bool" "int" "string" "interval"))
+
+(defun reserved-p (string)
+  (member string +reserved+ :test #'string=))
+
 (defun identifier* ()
   (choice1 (plus-enclosed-identifier*)
            (ordinal-identifier*)))
@@ -85,9 +91,10 @@
              (letter?))
            (identifier-tail* ()
              (between* (choice1 (alphanum?) #\_) nil nil 'string)))
-    (named-seq* (<- head (identifier-head*))
-                (<- tail (identifier-tail*))
-                (format nil "~A~A" head tail))))
+    (validate? (named-seq* (<- head (identifier-head*))
+                           (<- tail (identifier-tail*))
+                           (format nil "~A~A" head tail))
+               (compose #'not #'reserved-p))))
 
 (defun is-pure-word* (expected)
   expected)
@@ -125,14 +132,10 @@
   (~ws* (named-seq* #\_ (symbolicate "_"))))
 
 (defun waql-symbol* ()
-  (~ws* (except? (named-seq* (<- string (identifier*))
-                             (symbolicate
-                               (substitute #\- #\_ 
-                                 (string-upcase string))))
-                 (reserved*))))
-
-(defun reserved* ()
-  (choices1 "let" "in" "time" "bool" "int" "string" "interval"))
+  (~ws* (named-seq* (<- string (identifier*))
+                    (symbolicate
+                      (substitute #\- #\_ 
+                        (string-upcase string))))))
 
 (defun tuple* (Q)
   (bracket? (~ws* #\<)

@@ -178,6 +178,9 @@
 ;" nil
            "EXPR-TOP* 11 - two whitestuffs and a semicolon")
 
+(is-parsed (expr-top*) "infoo;" 'infoo
+           "EXPR-TOP* 12 - begins with string same as reserved")
+
 
 ;;
 ;; test Literal
