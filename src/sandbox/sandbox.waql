@@ -40,166 +40,166 @@ in { < ad
    | <_, ad> <- +ad+ };
 
 
--- ˆÈ‰º‚ðL‚²‚Æ‚ÉWŒv
--- E‚ ‚éL‚É‰‰ñÚG‚µ‚½ƒ†[ƒU‚Ì”
--- E‰‰ñÚG‚©‚ç30“úˆÈ“à‚É‰ž•å‚µ‚½ƒ†[ƒU‚Ì”
--- E‰‰ñÚG‚©‚ç31“úˆÈã90“úˆÈ“à‚É‰ž•å‚µ‚½ƒ†[ƒU‚Ì”
+-- ä»¥ä¸‹ã‚’åºƒå‘Šã”ã¨ã«é›†è¨ˆ
+-- ãƒ»ã‚ã‚‹åºƒå‘Šã«åˆå›žæŽ¥è§¦ã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+-- ãƒ»åˆå›žæŽ¥è§¦ã‹ã‚‰30æ—¥ä»¥å†…ã«å¿œå‹Ÿã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+-- ãƒ»åˆå›žæŽ¥è§¦ã‹ã‚‰31æ—¥ä»¥ä¸Š90æ—¥ä»¥å†…ã«å¿œå‹Ÿã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
 let apr_1st := time 2013-4-1 00:00:00 in
 let may_1st := time 2013-5-1 00:00:00 in
-let oubo    := 1 in  -- ‰ž•åƒRƒ“ƒo[ƒWƒ‡ƒ“
+let oubo    := 1 in  -- å¿œå‹Ÿã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³
 let is_first_contact u:int ae:int
-            := -- ƒ†[ƒUu‚É‚Â‚¢‚ÄALÚGae‚ª‰‰ñÚG‚©‚Ç‚¤‚©
+            := -- ãƒ¦ãƒ¼ã‚¶uã«ã¤ã„ã¦ã€åºƒå‘ŠæŽ¥è§¦aeãŒåˆå›žæŽ¥è§¦ã‹ã©ã†ã‹
                not (exists { <ae2> | <ae , u, _, at1> <- +eua+
                                    , <ae2, u, _, at2> <- +eua+
                                    , at2 < at1 }) in
 let is_last_contact u:int ae:int ce:int
-            := -- ƒ†[ƒUu‚É‚Â‚¢‚ÄALÚGae‚ªA¬‰ÊÚGcv‚Ì’¼‘OÚG‚©‚Ç‚¤‚©
-               -- L—¬“üAƒTƒCƒg“àŽ{ôAŽ©‘R—¬“ü‚Ìˆá‚¢‚É’ˆÓ
+            := -- ãƒ¦ãƒ¼ã‚¶uã«ã¤ã„ã¦ã€åºƒå‘ŠæŽ¥è§¦aeãŒã€æˆæžœæŽ¥è§¦cvã®ç›´å‰æŽ¥è§¦ã‹ã©ã†ã‹
+               -- åºƒå‘Šæµå…¥ã€ã‚µã‚¤ãƒˆå†…æ–½ç­–ã€è‡ªç„¶æµå…¥ã®é•ã„ã«æ³¨æ„
                not (exists { <ae2> | <ae , u, _, at1> <- +eua+
                                    , <ae2, u, _, at2> <- +eua+
                                    , <ce , _, ct> <- +ev+
                                    , at1 < at2, at2 <= ct })
 in { < ad
-     , -- ‚ ‚éL‚É‰‰ñÚG‚µ‚½ƒ†[ƒU‚Ì”
-       count { <u> | -- LadÚGƒCƒxƒ“ƒg
+     , -- ã‚ã‚‹åºƒå‘Šã«åˆå›žæŽ¥è§¦ã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+       count { <u> | -- åºƒå‘ŠadæŽ¥è§¦ã‚¤ãƒ™ãƒ³ãƒˆ
                      <ae, u, ad, at> <- +eua+
-                   , -- ‰‰ñÚG
+                   , -- åˆå›žæŽ¥è§¦
                      is_first_contact u ae
-                   , -- LÚG‚ª4ŒŽ
+                   , -- åºƒå‘ŠæŽ¥è§¦ãŒ4æœˆ
                      apr_1st <= at, at < may_1st }
-     , -- ‰‰ñÚG‚©‚ç30“úˆÈ“à‚É‰ž•å‚µ‚½ƒ†[ƒU‚Ì”
-       count { <u> | -- LadÚGƒCƒxƒ“ƒg
+     , -- åˆå›žæŽ¥è§¦ã‹ã‚‰30æ—¥ä»¥å†…ã«å¿œå‹Ÿã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+       count { <u> | -- åºƒå‘ŠadæŽ¥è§¦ã‚¤ãƒ™ãƒ³ãƒˆ
                      <ae, u, ad, at> <- +eua+
-                   , -- ‰ž•åƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                   , -- å¿œå‹Ÿã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                      <ce, u, oubo, ct> <- +euc+
-                   , -- ‰‰ñÚG
+                   , -- åˆå›žæŽ¥è§¦
                      is_first_contact u ae
-                   , -- LÚG‚ª4ŒŽ
+                   , -- åºƒå‘ŠæŽ¥è§¦ãŒ4æœˆ
                      apr_1st <= at, at < may_1st
-                   , -- LÚG‚©‚ç30“úˆÈ“à‚É‰ž•å
+                   , -- åºƒå‘ŠæŽ¥è§¦ã‹ã‚‰30æ—¥ä»¥å†…ã«å¿œå‹Ÿ
                      at < ct, ct <= at + days 30 }
-     , -- ‰‰ñÚG‚©‚ç31“úˆÈã90“úˆÈ“à‚É‰ž•å‚µ‚½ƒ†[ƒU‚Ì”
-       count { <u> | -- LadÚGƒCƒxƒ“ƒg
+     , -- åˆå›žæŽ¥è§¦ã‹ã‚‰31æ—¥ä»¥ä¸Š90æ—¥ä»¥å†…ã«å¿œå‹Ÿã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+       count { <u> | -- åºƒå‘ŠadæŽ¥è§¦ã‚¤ãƒ™ãƒ³ãƒˆ
                      <ae, u, ad, at> <- +eua+
-                   , -- ‰ž•åƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒ“ƒxƒ“ƒg
+                   , -- å¿œå‹Ÿã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ³ãƒ™ãƒ³ãƒˆ
                      <ce, u, oubo, ct> <- +euc+
-                   , -- ‰‰ñÚG
+                   , -- åˆå›žæŽ¥è§¦
                      is_first_contact u ae
-                   , -- LÚG‚ª4ŒŽ
+                   , -- åºƒå‘ŠæŽ¥è§¦ãŒ4æœˆ
                      apr_1st <= at, at < may_1st
-                   , -- LÚG‚©‚ç31“úˆÈã90“úˆÈ“à‚É‰ž•å
+                   , -- åºƒå‘ŠæŽ¥è§¦ã‹ã‚‰31æ—¥ä»¥ä¸Š90æ—¥ä»¥å†…ã«å¿œå‹Ÿ
                      at + days 30 < ct, ct <= at + days 90 }
      >
    | <_, ad> <- +ea+ };
 
 
--- lÞÐ‰î ƒrƒWƒlƒXƒS[ƒ‹‚PF’ZŠúŠl“¾
--- ‰‰ñÚGL‚²‚Æ‚ÉˆÈ‰º‚ðWŒv
--- E‚TŒŽ‚ÉV‹K“o˜^‚µ‚½ƒ†[ƒU‚Ì”
--- EV‹K“o˜^‚©‚ç30“úˆÈ“à‚É‰ž•å‚µ‚½ƒ†[ƒU‚Ì”
--- EV‹K“o˜^‚©‚ç31“úˆÈã90“úˆÈ“à‚É‰ž•å‚µ‚½ƒ†[ƒU‚Ì”
+-- äººæç´¹ä»‹ ãƒ“ã‚¸ãƒã‚¹ã‚´ãƒ¼ãƒ«ï¼‘ï¼šçŸ­æœŸç²å¾—
+-- åˆå›žæŽ¥è§¦åºƒå‘Šã”ã¨ã«ä»¥ä¸‹ã‚’é›†è¨ˆ
+-- ãƒ»ï¼•æœˆã«æ–°è¦ç™»éŒ²ã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+-- ãƒ»æ–°è¦ç™»éŒ²ã‹ã‚‰30æ—¥ä»¥å†…ã«å¿œå‹Ÿã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+-- ãƒ»æ–°è¦ç™»éŒ²ã‹ã‚‰31æ—¥ä»¥ä¸Š90æ—¥ä»¥å†…ã«å¿œå‹Ÿã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
 let may_1st := time 2013-5-1 00:00:00 in
 let jun_1st := time 2013-6-1 00:00:00 in
-let oubo    := 1 in  -- ‰ž•åƒRƒ“ƒo[ƒWƒ‡ƒ“
-let touroku := 2 in  -- “o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“
+let oubo    := 1 in  -- å¿œå‹Ÿã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³
+let touroku := 2 in  -- ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³
 let is_first_contact u:int ae:int
-            := -- ƒ†[ƒUu‚É‚Â‚¢‚ÄALÚGae‚ª‰‰ñÚG‚©‚Ç‚¤‚©
+            := -- ãƒ¦ãƒ¼ã‚¶uã«ã¤ã„ã¦ã€åºƒå‘ŠæŽ¥è§¦aeãŒåˆå›žæŽ¥è§¦ã‹ã©ã†ã‹
                not (exists { <ae1> | <ae , u, _, at1> <- +eua+
                                    , <ae1, u, _, at2> <- +eua+
                                    , at2 < at1 })
 in { < ad
-     , -- ‚TŒŽ‚ÉV‹K“o˜^‚µ‚½ƒ†[ƒU‚Ì”
-       count { <u> | -- LadÚGƒCƒxƒ“ƒg
+     , -- ï¼•æœˆã«æ–°è¦ç™»éŒ²ã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+       count { <u> | -- åºƒå‘ŠadæŽ¥è§¦ã‚¤ãƒ™ãƒ³ãƒˆ
                      <ae, u, ad, _> <- +eua+
-                   , -- ‰‰ñÚG‚ªLad‚Å‚ ‚é
+                   , -- åˆå›žæŽ¥è§¦ãŒåºƒå‘Šadã§ã‚ã‚‹
                      is_first_contact u ae
-                   , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                   , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                      <_, u, touroku, ct> <- +euc+
-                   , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“‚ª‚TŒŽ
+                   , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ãŒï¼•æœˆ
                      may_1st <= ct, ct < jun_1st }
-     , -- V‹K“o˜^‚©‚ç30“úˆÈ“à‚É‰ž•å‚µ‚½ƒ†[ƒU‚Ì”
-       count { <u> | -- LadÚGƒCƒxƒ“ƒg
+     , -- æ–°è¦ç™»éŒ²ã‹ã‚‰30æ—¥ä»¥å†…ã«å¿œå‹Ÿã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+       count { <u> | -- åºƒå‘ŠadæŽ¥è§¦ã‚¤ãƒ™ãƒ³ãƒˆ
                      <ae, u, ad, _> <- +eua+
-                   , -- ‰‰ñÚG‚ªLad‚Å‚ ‚é
+                   , -- åˆå›žæŽ¥è§¦ãŒåºƒå‘Šadã§ã‚ã‚‹
                      is_first_contact u ae
-                   , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                   , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                      <_, u, touroku, ct1> <- +euc+
-                   , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“‚ª5ŒŽ
+                   , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ãŒ5æœˆ
                      may_1st <= ct1, ct1 < jun_1st
-                   , -- ‰ž•åƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                   , -- å¿œå‹Ÿã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                      <_, u, oubo, ct2> <- +euc+
-                   , -- V‹K“o˜^‚©‚ç30“úˆÈ“à‚É‰ž•å
+                   , -- æ–°è¦ç™»éŒ²ã‹ã‚‰30æ—¥ä»¥å†…ã«å¿œå‹Ÿ
                      ct1 < ct2, ct2 <= ct1 + days 30 }
-     , -- V‹K“o˜^‚©‚ç31“úˆÈã90“úˆÈ“à‚É‰ž•å‚µ‚½ƒ†[ƒU‚Ì”
-       count { <u> | -- LadÚGƒCƒxƒ“ƒg
+     , -- æ–°è¦ç™»éŒ²ã‹ã‚‰31æ—¥ä»¥ä¸Š90æ—¥ä»¥å†…ã«å¿œå‹Ÿã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+       count { <u> | -- åºƒå‘ŠadæŽ¥è§¦ã‚¤ãƒ™ãƒ³ãƒˆ
                      <ae, u, ad, _> <- +eua+
-                   , -- ‰‰ñÚG‚ªLad‚Å‚ ‚é
+                   , -- åˆå›žæŽ¥è§¦ãŒåºƒå‘Šadã§ã‚ã‚‹
                      is_first_contact u ae
-                   , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                   , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                      <_, u, touroku, ct1> <- +euc+
-                   , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“‚ª5ŒŽ
+                   , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ãŒ5æœˆ
                      may_1st <= ct1, ct1 < jun_1st
-                   , -- ‰ž•åƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                   , -- å¿œå‹Ÿã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                      <_, u, oubo, ct2> <- +euc+
-                   , -- V‹K“o˜^‚©‚ç30“úˆÈ“à‚É‰ž•å
+                   , -- æ–°è¦ç™»éŒ²ã‹ã‚‰30æ—¥ä»¥å†…ã«å¿œå‹Ÿ
                      ct1 + days 30 < ct2, ct2 <= ct1 + days 90 }
      >
    | <_, ad> <- +ea+ };
 
 
--- ‰Ë‹ó‚ÌEC ƒrƒWƒlƒXƒS[ƒ‹‚RF‹x–°ŒÚ‹qŒ@‚è‹N‚±‚µ
--- L‚²‚Æ‚ÉˆÈ‰º‚ðWŒv
--- EŽ{ô‚ÉÚG‚µ‚½‹x–°ƒ†[ƒU‚Ì”
--- EŽ{ôÚGŒã‚Ìw“üƒ†[ƒU”
--- E‚³‚ç‚É‚Rƒ–ŒŽˆÈ“à‚ÌÄw“üƒ†[ƒU”
+-- æž¶ç©ºã®EC ãƒ“ã‚¸ãƒã‚¹ã‚´ãƒ¼ãƒ«ï¼“ï¼šä¼‘çœ é¡§å®¢æŽ˜ã‚Šèµ·ã“ã—
+-- åºƒå‘Šã”ã¨ã«ä»¥ä¸‹ã‚’é›†è¨ˆ
+-- ãƒ»æ–½ç­–ã«æŽ¥è§¦ã—ãŸä¼‘çœ ãƒ¦ãƒ¼ã‚¶ã®æ•°
+-- ãƒ»æ–½ç­–æŽ¥è§¦å¾Œã®è³¼å…¥ãƒ¦ãƒ¼ã‚¶æ•°
+-- ãƒ»ã•ã‚‰ã«ï¼“ãƒ¶æœˆä»¥å†…ã®å†è³¼å…¥ãƒ¦ãƒ¼ã‚¶æ•°
 let apr_1st := time 2013-4-1 00:00:00 in
 let may_1st := time 2013-5-1 00:00:00 in
-let kounyu := 4 in  -- w“üƒRƒ“ƒo[ƒWƒ‡ƒ“
+let kounyu := 4 in  -- è³¼å…¥ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³
 let is_user_dormant u:int tm:time
-  := -- qŒêF‹x–°ŒÚ‹q‚©‚Ç‚¤‚©iŽžŠÔtm‚æ‚è‘O180“úˆÈ“à‚É—¬“ü‚µ‚½‚±‚Æ‚ª‚È‚¢‚©Hj
-     -- ¦‚¢‚Á‚½‚ñAu—¬“üv‚ðuLÚGv‚É’u‚«Š·‚¦‚Ä’è‹`‚·‚é
-     -- @—¬“ü := LÚG | Ž©‘R—¬“ü
+  := -- è¿°èªžï¼šä¼‘çœ é¡§å®¢ã‹ã©ã†ã‹ï¼ˆæ™‚é–“tmã‚ˆã‚Šå‰180æ—¥ä»¥å†…ã«æµå…¥ã—ãŸã“ã¨ãŒãªã„ã‹ï¼Ÿï¼‰
+     -- â€»ã„ã£ãŸã‚“ã€ã€Œæµå…¥ã€ã‚’ã€Œåºƒå‘ŠæŽ¥è§¦ã€ã«ç½®ãæ›ãˆã¦å®šç¾©ã™ã‚‹
+     -- ã€€æµå…¥ := åºƒå‘ŠæŽ¥è§¦ | è‡ªç„¶æµå…¥
      not (exists { <ae> | <ae, u, _, at> <- +eua+
                         , tm - days 180 <= at, at < tm }) in
 let is_ad_for_dormant ad:int
-  := -- qŒêF‹x–°ŒÚ‹qŽ{ô‚©‚Ç‚¤‚©i–¢Žg—pj
-     -- ¦‚¢‚Á‚½‚ñA‹x–°ŒÚ‹q‚ªÚG‚µ‚½L‚©‚Ç‚¤‚©‚É’u‚«Š·‚¦‚é
-     -- ¦ŽÀÛ‚ÍACRMƒc[ƒ‹‚ÅƒtƒBƒ‹ƒ^‚µ‚Äƒƒ‹ƒ}ƒK”zM‚·‚é‚È‚Ç
+  := -- è¿°èªžï¼šä¼‘çœ é¡§å®¢æ–½ç­–ã‹ã©ã†ã‹ï¼ˆæœªä½¿ç”¨ï¼‰
+     -- â€»ã„ã£ãŸã‚“ã€ä¼‘çœ é¡§å®¢ãŒæŽ¥è§¦ã—ãŸåºƒå‘Šã‹ã©ã†ã‹ã«ç½®ãæ›ãˆã‚‹
+     -- â€»å®Ÿéš›ã¯ã€CRMãƒ„ãƒ¼ãƒ«ã§ãƒ•ã‚£ãƒ«ã‚¿ã—ã¦ãƒ¡ãƒ«ãƒžã‚¬é…ä¿¡ã™ã‚‹ãªã©
      exists { <ae> | <ae, u, ad, at> <- +eua+
                    , is_user_dormant u at }
 in { < ad
-     , -- Ž{ô‚ÉÚG‚µ‚½‹x–°ƒ†[ƒU‚Ì”
-       count { <u> | -- LadÚGƒCƒxƒ“ƒg
+     , -- æ–½ç­–ã«æŽ¥è§¦ã—ãŸä¼‘çœ ãƒ¦ãƒ¼ã‚¶ã®æ•°
+       count { <u> | -- åºƒå‘ŠadæŽ¥è§¦ã‚¤ãƒ™ãƒ³ãƒˆ
                      <_, u, ad, at> <- +eua+
-                   , -- LÚG‚ª4ŒŽ
+                   , -- åºƒå‘ŠæŽ¥è§¦ãŒ4æœˆ
                      apr_1st <= at, at < may_1st
-                   , -- ƒ†[ƒUu‚ÍA‹x–°ŒÚ‹q‚¾‚Á‚½
+                   , -- ãƒ¦ãƒ¼ã‚¶uã¯ã€ä¼‘çœ é¡§å®¢ã ã£ãŸ
                      is_user_dormant u at }
-     , -- Ž{ôÚGŒã‚Ìw“üƒ†[ƒU”
-       count { <u> | -- LadÚGƒCƒxƒ“ƒg
+     , -- æ–½ç­–æŽ¥è§¦å¾Œã®è³¼å…¥ãƒ¦ãƒ¼ã‚¶æ•°
+       count { <u> | -- åºƒå‘ŠadæŽ¥è§¦ã‚¤ãƒ™ãƒ³ãƒˆ
                      <_, u, ad, at> <- +eua+
-                   , -- LÚG‚ª4ŒŽ
+                   , -- åºƒå‘ŠæŽ¥è§¦ãŒ4æœˆ
                      apr_1st <= at, at < may_1st
-                   , -- ƒ†[ƒUu‚ÍA‹x–°ŒÚ‹q‚¾‚Á‚½
+                   , -- ãƒ¦ãƒ¼ã‚¶uã¯ã€ä¼‘çœ é¡§å®¢ã ã£ãŸ
                      is_user_dormant u at
-                   , -- w“üƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                   , -- è³¼å…¥ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                      <_, u, kounyu, ct> <- +euc+
-                   , -- LÚG‚©‚ç30“úˆÈ“à‚Éw“ü
+                   , -- åºƒå‘ŠæŽ¥è§¦ã‹ã‚‰30æ—¥ä»¥å†…ã«è³¼å…¥
                      at < ct, ct <= at + days 30 }
-     , -- ‚³‚ç‚É‚Rƒ–ŒŽˆÈ“à‚ÌÄw“üƒ†[ƒU”
-       count { <u> | -- LadÚGƒCƒxƒ“ƒg
+     , -- ã•ã‚‰ã«ï¼“ãƒ¶æœˆä»¥å†…ã®å†è³¼å…¥ãƒ¦ãƒ¼ã‚¶æ•°
+       count { <u> | -- åºƒå‘ŠadæŽ¥è§¦ã‚¤ãƒ™ãƒ³ãƒˆ
                      <_, u, ad, at> <- +eua+
-                   , -- LÚG‚ª4ŒŽ
+                   , -- åºƒå‘ŠæŽ¥è§¦ãŒ4æœˆ
                      apr_1st <= at, at < may_1st
-                   , -- ƒ†[ƒUu‚ÍA‹x–°ŒÚ‹q‚¾‚Á‚½
+                   , -- ãƒ¦ãƒ¼ã‚¶uã¯ã€ä¼‘çœ é¡§å®¢ã ã£ãŸ
                      is_user_dormant u at
-                   , -- w“üƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                   , -- è³¼å…¥ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                      <_, u, kounyu, ct1> <- +euc+
-                   , -- LÚG‚©‚ç30“úˆÈ“à‚Éw“ü
+                   , -- åºƒå‘ŠæŽ¥è§¦ã‹ã‚‰30æ—¥ä»¥å†…ã«è³¼å…¥
                      at < ct1, ct1 <= at + days 30
-                   , -- Äw“üƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                   , -- å†è³¼å…¥ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                      <_, u, kounyu, ct2> <- +euc+
-                   , -- ‹x–°Œã‰w“ü‚©‚ç90“úˆÈ“à‚ÉÄw“ü
+                   , -- ä¼‘çœ å¾Œåˆè³¼å…¥ã‹ã‚‰90æ—¥ä»¥å†…ã«å†è³¼å…¥
                      ct1 < ct2, ct2 >= ct1 + days 90 }
      >
    | <_, ad> <- +ad+ };

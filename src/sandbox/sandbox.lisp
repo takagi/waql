@@ -13,61 +13,61 @@
 (defparameter +business-goal-1-id+ 0)
 
 (defparameter +business-goal-1-query+
-  "-- “]EƒTƒCƒg ƒrƒWƒlƒXƒS[ƒ‹‚PF’ZŠú‰ž•åŠl“¾
-   -- ‰‰ñÚGL‚²‚Æ‚ÉˆÈ‰º‚ðWŒv
-   -- EŽw’èŠúŠÔ“à‚ÉV‹K“o˜^‚µ‚½ƒ†[ƒU‚Ì”
-   -- EV‹K“o˜^‚©‚ç30“úˆÈ“à‚É‰ž•å‚µ‚½ƒ†[ƒU‚Ì”
-   -- EV‹K“o˜^‚©‚ç31“úˆÈã90“úˆÈ“à‚É‰ž•å‚µ‚½ƒ†[ƒU‚Ì”i•â•Žw•Wj
-   let bg := 0 in  -- ’ZŠú‰ž•åŠl“¾ƒrƒWƒlƒXƒS[ƒ‹
+  "-- è»¢è·ã‚µã‚¤ãƒˆ ãƒ“ã‚¸ãƒã‚¹ã‚´ãƒ¼ãƒ«ï¼‘ï¼šçŸ­æœŸå¿œå‹Ÿç²å¾—
+   -- åˆå›žæŽ¥è§¦åºƒå‘Šã”ã¨ã«ä»¥ä¸‹ã‚’é›†è¨ˆ
+   -- ãƒ»æŒ‡å®šæœŸé–“å†…ã«æ–°è¦ç™»éŒ²ã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+   -- ãƒ»æ–°è¦ç™»éŒ²ã‹ã‚‰30æ—¥ä»¥å†…ã«å¿œå‹Ÿã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+   -- ãƒ»æ–°è¦ç™»éŒ²ã‹ã‚‰31æ—¥ä»¥ä¸Š90æ—¥ä»¥å†…ã«å¿œå‹Ÿã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°ï¼ˆè£œåŠ©æŒ‡æ¨™ï¼‰
+   let bg := 0 in  -- çŸ­æœŸå¿œå‹Ÿç²å¾—ãƒ“ã‚¸ãƒã‚¹ã‚´ãƒ¼ãƒ«
    let from := time ~A 00:00:00 in
    let to   := time ~A 00:00:00 in
-   let oubo    := 0 in  -- ‰ž•åƒRƒ“ƒo[ƒWƒ‡ƒ“
-   let touroku := 1 in  -- “o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“
+   let oubo    := 0 in  -- å¿œå‹Ÿã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³
+   let touroku := 1 in  -- ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³
    let is_first_contact u:int ae:int
-               := -- ƒ†[ƒUu‚É‚Â‚¢‚ÄALÚGae‚ª‰‰ñÚG‚©‚Ç‚¤‚©
+               := -- ãƒ¦ãƒ¼ã‚¶uã«ã¤ã„ã¦ã€åºƒå‘ŠæŽ¥è§¦aeãŒåˆå›žæŽ¥è§¦ã‹ã©ã†ã‹
                   not (exists { <ae1> | <ae , u, _, at1> <- +eua+
                                       , <ae1, u, _, at2> <- +eua+
                                       , at2 < at1 })
    in { < cp_name, md_name
-        , -- Žw’èŠúŠÔ“à‚ÉV‹K“o˜^‚µ‚½ƒ†[ƒU‚Ì”
-          count { <u> | -- LadÚGƒCƒxƒ“ƒg
+        , -- æŒ‡å®šæœŸé–“å†…ã«æ–°è¦ç™»éŒ²ã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+          count { <u> | -- åºƒå‘ŠadæŽ¥è§¦ã‚¤ãƒ™ãƒ³ãƒˆ
                         <ae, u, ad, _> <- +eua+
-                      , -- ‰‰ñÚG‚ªLad‚Å‚ ‚é
+                      , -- åˆå›žæŽ¥è§¦ãŒåºƒå‘Šadã§ã‚ã‚‹
                         is_first_contact u ae
-                      , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                      , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                         <_, u, touroku, ct> <- +euc+
-                      , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“‚ªŽw’èŠúŠÔ“à
+                      , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ãŒæŒ‡å®šæœŸé–“å†…
                         from <= ct, ct < to }
-        , -- V‹K“o˜^‚©‚ç30“úˆÈ“à‚É‰ž•å‚µ‚½ƒ†[ƒU‚Ì”
-          count { <u> | -- LadÚGƒCƒxƒ“ƒg
+        , -- æ–°è¦ç™»éŒ²ã‹ã‚‰30æ—¥ä»¥å†…ã«å¿œå‹Ÿã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+          count { <u> | -- åºƒå‘ŠadæŽ¥è§¦ã‚¤ãƒ™ãƒ³ãƒˆ
                         <ae, u, ad, _> <- +eua+
-                      , -- ‰‰ñÚG‚ªLad‚Å‚ ‚é
+                      , -- åˆå›žæŽ¥è§¦ãŒåºƒå‘Šadã§ã‚ã‚‹
                         is_first_contact u ae
-                      , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                      , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                         <_, u, touroku, ct1> <- +euc+
-                      , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“‚ªŽw’èŠúŠÔ“à
+                      , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ãŒæŒ‡å®šæœŸé–“å†…
                         from <= ct1, ct1 < to
-                      , -- ‰ž•åƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                      , -- å¿œå‹Ÿã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                         <_, u, oubo, ct2> <- +euc+
-                      , -- V‹K“o˜^‚©‚ç30“úˆÈ“à‚É‰ž•å
+                      , -- æ–°è¦ç™»éŒ²ã‹ã‚‰30æ—¥ä»¥å†…ã«å¿œå‹Ÿ
                         ct1 < ct2, ct2 <= ct1 + days 30 }
-        , -- V‹K“o˜^‚©‚ç31“úˆÈã90“úˆÈ“à‚É‰ž•å‚µ‚½ƒ†[ƒU‚Ì”
-          count { <u> | -- LadÚGƒCƒxƒ“ƒg
+        , -- æ–°è¦ç™»éŒ²ã‹ã‚‰31æ—¥ä»¥ä¸Š90æ—¥ä»¥å†…ã«å¿œå‹Ÿã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+          count { <u> | -- åºƒå‘ŠadæŽ¥è§¦ã‚¤ãƒ™ãƒ³ãƒˆ
                         <ae, u, ad, _> <- +eua+
-                      , -- ‰‰ñÚG‚ªLad‚Å‚ ‚é
+                      , -- åˆå›žæŽ¥è§¦ãŒåºƒå‘Šadã§ã‚ã‚‹
                         is_first_contact u ae
-                      , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                      , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                         <_, u, touroku, ct1> <- +euc+
-                      , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“‚ªŽw’èŠúŠÔ“à
+                      , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ãŒæŒ‡å®šæœŸé–“å†…
                         from <= ct1, ct1 < to
-                      , -- ‰ž•åƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                      , -- å¿œå‹Ÿã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                         <_, u, oubo, ct2> <- +euc+
-                      , -- V‹K“o˜^‚©‚ç31“úˆÈã90“úˆÈ“à‚É‰ž•å
+                      , -- æ–°è¦ç™»éŒ²ã‹ã‚‰31æ—¥ä»¥ä¸Š90æ—¥ä»¥å†…ã«å¿œå‹Ÿ
                         ct1 + days 30 < ct2, ct2 <= ct1 + days 90
-                      , -- V‹K“o˜^‚©‚ç30“úˆÈ“à‚É‚Í‰ž•å‚µ‚Ä‚¢‚È‚¢
-                        not (exists { <u> | -- ‰ž•åƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                      , -- æ–°è¦ç™»éŒ²ã‹ã‚‰30æ—¥ä»¥å†…ã«ã¯å¿œå‹Ÿã—ã¦ã„ãªã„
+                        not (exists { <u> | -- å¿œå‹Ÿã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                                             <_, u, oubo, ct3> <- +euc+
-                                          , -- V‹K“o˜^‚©‚ç30“úˆÈ“à‚É‚Í‰ž•å‚µ‚Ä‚¢‚È‚¢
+                                          , -- æ–°è¦ç™»éŒ²ã‹ã‚‰30æ—¥ä»¥å†…ã«ã¯å¿œå‹Ÿã—ã¦ã„ãªã„
                                             ct1 < ct3, ct3 <= ct1 + days 30
                                           } ) }
         >
@@ -78,62 +78,62 @@
 (defparameter +business-goal-2-id+ 1)
 
 (defparameter +business-goal-2-query+
-  "-- “]EƒTƒCƒg ƒrƒWƒlƒXƒS[ƒ‹‚QF’·Šú‰ž•åŠl“¾
-   -- ‰‰ñÚGL‚²‚Æ‚ÉˆÈ‰º‚ðWŒv
-   -- EŽw’èŠúŠÔ“à‚ÉV‹K“o˜^‚µ‚½ƒ†[ƒU‚Ì”
-   -- EV‹K“o˜^‚©‚ç31“úˆÈã90“úˆÈ“à‚É‰ž•å‚µ‚½ƒ†[ƒU‚Ì”
-   -- EV‹K“o˜^‚©‚ç30“úˆÈ“à‚É‰ž•å‚µ‚½ƒ†[ƒU‚Ì”i•â•Žw•Wj
-   let bg := 1 in  -- ’·Šú‰ž•åŠl“¾ƒrƒWƒlƒXƒS[ƒ‹
+  "-- è»¢è·ã‚µã‚¤ãƒˆ ãƒ“ã‚¸ãƒã‚¹ã‚´ãƒ¼ãƒ«ï¼’ï¼šé•·æœŸå¿œå‹Ÿç²å¾—
+   -- åˆå›žæŽ¥è§¦åºƒå‘Šã”ã¨ã«ä»¥ä¸‹ã‚’é›†è¨ˆ
+   -- ãƒ»æŒ‡å®šæœŸé–“å†…ã«æ–°è¦ç™»éŒ²ã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+   -- ãƒ»æ–°è¦ç™»éŒ²ã‹ã‚‰31æ—¥ä»¥ä¸Š90æ—¥ä»¥å†…ã«å¿œå‹Ÿã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+   -- ãƒ»æ–°è¦ç™»éŒ²ã‹ã‚‰30æ—¥ä»¥å†…ã«å¿œå‹Ÿã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°ï¼ˆè£œåŠ©æŒ‡æ¨™ï¼‰
+   let bg := 1 in  -- é•·æœŸå¿œå‹Ÿç²å¾—ãƒ“ã‚¸ãƒã‚¹ã‚´ãƒ¼ãƒ«
    let from := time ~A 00:00:00 in
    let to   := time ~A 00:00:00 in
-   let oubo    := 0 in  -- ‰ž•åƒRƒ“ƒo[ƒWƒ‡ƒ“
-   let touroku := 1 in  -- “o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“
+   let oubo    := 0 in  -- å¿œå‹Ÿã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³
+   let touroku := 1 in  -- ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³
    let is_first_contact u:int ae:int
-               := -- ƒ†[ƒUu‚É‚Â‚¢‚ÄALÚGae‚ª‰‰ñÚG‚©‚Ç‚¤‚©
+               := -- ãƒ¦ãƒ¼ã‚¶uã«ã¤ã„ã¦ã€åºƒå‘ŠæŽ¥è§¦aeãŒåˆå›žæŽ¥è§¦ã‹ã©ã†ã‹
                   not (exists { <ae1> | <ae , u, _, at1> <- +eua+
                                       , <ae1, u, _, at2> <- +eua+
                                       , at2 < at1 })
    in { < cp_name, md_name
-        , -- Žw’èŠúŠÔ“à‚ÉV‹K“o˜^‚µ‚½ƒ†[ƒU‚Ì”
-          count { <u> | -- LadÚGƒCƒxƒ“ƒg
+        , -- æŒ‡å®šæœŸé–“å†…ã«æ–°è¦ç™»éŒ²ã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+          count { <u> | -- åºƒå‘ŠadæŽ¥è§¦ã‚¤ãƒ™ãƒ³ãƒˆ
                         <ae, u, ad, _> <- +eua+
-                      , -- ‰‰ñÚG‚ªLad‚Å‚ ‚é
+                      , -- åˆå›žæŽ¥è§¦ãŒåºƒå‘Šadã§ã‚ã‚‹
                         is_first_contact u ae
-                      , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                      , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                         <_, u, touroku, ct> <- +euc+
-                      , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“‚ªŽw’èŠúŠÔ“à
+                      , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ãŒæŒ‡å®šæœŸé–“å†…
                         from <= ct, ct < to }
-        , -- V‹K“o˜^‚©‚ç31“úˆÈã90“úˆÈ“à‚É‰ž•å‚µ‚½ƒ†[ƒU‚Ì”
-          count { <u> | -- LadÚGƒCƒxƒ“ƒg
+        , -- æ–°è¦ç™»éŒ²ã‹ã‚‰31æ—¥ä»¥ä¸Š90æ—¥ä»¥å†…ã«å¿œå‹Ÿã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+          count { <u> | -- åºƒå‘ŠadæŽ¥è§¦ã‚¤ãƒ™ãƒ³ãƒˆ
                         <ae, u, ad, _> <- +eua+
-                      , -- ‰‰ñÚG‚ªLad‚Å‚ ‚é
+                      , -- åˆå›žæŽ¥è§¦ãŒåºƒå‘Šadã§ã‚ã‚‹
                         is_first_contact u ae
-                      , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                      , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                         <_, u, touroku, ct1> <- +euc+
-                      , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“‚ªŽw’èŠúŠÔ“à
+                      , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ãŒæŒ‡å®šæœŸé–“å†…
                         from <= ct1, ct1 < to
-                      , -- ‰ž•åƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                      , -- å¿œå‹Ÿã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                         <_, u, oubo, ct2> <- +euc+
-                      , -- V‹K“o˜^‚©‚ç31“úˆÈã90“úˆÈ“à‚É‰ž•å
+                      , -- æ–°è¦ç™»éŒ²ã‹ã‚‰31æ—¥ä»¥ä¸Š90æ—¥ä»¥å†…ã«å¿œå‹Ÿ
                         ct1 + days 30 < ct2, ct2 <= ct1 + days 90
-                      , -- V‹K“o˜^‚©‚ç30“úˆÈ“à‚É‚Í‰ž•å‚µ‚Ä‚¢‚È‚¢
-                        not (exists { <u> | -- ‰ž•åƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                      , -- æ–°è¦ç™»éŒ²ã‹ã‚‰30æ—¥ä»¥å†…ã«ã¯å¿œå‹Ÿã—ã¦ã„ãªã„
+                        not (exists { <u> | -- å¿œå‹Ÿã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                                             <_, u, oubo, ct3> <- +euc+
-                                          , -- V‹K“o˜^‚©‚ç30“úˆÈ“à‚É‚Í‰ž•å‚µ‚Ä‚¢‚È‚¢
+                                          , -- æ–°è¦ç™»éŒ²ã‹ã‚‰30æ—¥ä»¥å†…ã«ã¯å¿œå‹Ÿã—ã¦ã„ãªã„
                                             ct1 < ct3, ct3 <= ct1 + days 30
                                           } ) }
-        , -- V‹K“o˜^‚©‚ç30“úˆÈ“à‚É‰ž•å‚µ‚½ƒ†[ƒU‚Ì”
-          count { <u> | -- LadÚGƒCƒxƒ“ƒg
+        , -- æ–°è¦ç™»éŒ²ã‹ã‚‰30æ—¥ä»¥å†…ã«å¿œå‹Ÿã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+          count { <u> | -- åºƒå‘ŠadæŽ¥è§¦ã‚¤ãƒ™ãƒ³ãƒˆ
                         <ae, u, ad, _> <- +eua+
-                      , -- ‰‰ñÚG‚ªLad‚Å‚ ‚é
+                      , -- åˆå›žæŽ¥è§¦ãŒåºƒå‘Šadã§ã‚ã‚‹
                         is_first_contact u ae
-                      , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                      , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                         <_, u, touroku, ct1> <- +euc+
-                      , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“‚ªŽw’èŠúŠÔ“à
+                      , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ãŒæŒ‡å®šæœŸé–“å†…
                         from <= ct1, ct1 < to
-                      , -- ‰ž•åƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                      , -- å¿œå‹Ÿã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                         <_, u, oubo, ct2> <- +euc+
-                      , -- V‹K“o˜^‚©‚ç30“úˆÈ“à‚É‰ž•å
+                      , -- æ–°è¦ç™»éŒ²ã‹ã‚‰30æ—¥ä»¥å†…ã«å¿œå‹Ÿ
                         ct1 < ct2, ct2 <= ct1 + days 30 }
         >
       | <ad,bg,cp,md,_,_,_> <- +ad+
@@ -143,42 +143,42 @@
 (defparameter +business-goal-3-id+ 2)
 
 (defparameter +business-goal-3-query+
-  "-- “]EƒTƒCƒg ƒrƒWƒlƒXƒS[ƒ‹‚RF‰ïˆõŠl“¾
-   -- ‰‰ñÚG‚²‚Æ‚ÉˆÈ‰º‚ðWŒv
-   -- EŽw’èŠúŠÔ“à‚ÉV‹K“o˜^‚µ‚½ƒ†[ƒU‚Ì”
-   -- EV‹K“o˜^‚©‚ç30“úˆÈ“à‚É‰ž•å‚µ‚½ƒ†[ƒU‚Ì”i•â•Žw•Wj
-   let bg := 2 in  -- ‰ïˆõŠl“¾ƒrƒWƒlƒXƒS[ƒ‹
+  "-- è»¢è·ã‚µã‚¤ãƒˆ ãƒ“ã‚¸ãƒã‚¹ã‚´ãƒ¼ãƒ«ï¼“ï¼šä¼šå“¡ç²å¾—
+   -- åˆå›žæŽ¥è§¦ã”ã¨ã«ä»¥ä¸‹ã‚’é›†è¨ˆ
+   -- ãƒ»æŒ‡å®šæœŸé–“å†…ã«æ–°è¦ç™»éŒ²ã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+   -- ãƒ»æ–°è¦ç™»éŒ²ã‹ã‚‰30æ—¥ä»¥å†…ã«å¿œå‹Ÿã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°ï¼ˆè£œåŠ©æŒ‡æ¨™ï¼‰
+   let bg := 2 in  -- ä¼šå“¡ç²å¾—ãƒ“ã‚¸ãƒã‚¹ã‚´ãƒ¼ãƒ«
    let from := time ~A 00:00:00 in
    let to   := time ~A 00:00:00 in
-   let oubo    := 0 in  -- ‰ž•åƒRƒ“ƒo[ƒWƒ‡ƒ“
-   let touroku := 1 in  -- “o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“
+   let oubo    := 0 in  -- å¿œå‹Ÿã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³
+   let touroku := 1 in  -- ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³
    let is_first_contact u:int ae:int
-               := -- ƒ†[ƒUu‚É‚Â‚¢‚ÄALÚGae‚ª‰‰ñÚG‚©‚Ç‚¤‚©
+               := -- ãƒ¦ãƒ¼ã‚¶uã«ã¤ã„ã¦ã€åºƒå‘ŠæŽ¥è§¦aeãŒåˆå›žæŽ¥è§¦ã‹ã©ã†ã‹
                   not (exists { <ae1> | <ae , u, _, at1> <- +eua+
                                       , <ae1, u, _, at2> <- +eua+
                                       , at2 < at1 })
    in { < cp_name, md_name
-        , -- Žw’èŠúŠÔ“à‚ÉV‹K“o˜^‚µ‚½ƒ†[ƒU‚Ì”
-          count { <u> | -- LadÚGƒCƒxƒ“ƒg
+        , -- æŒ‡å®šæœŸé–“å†…ã«æ–°è¦ç™»éŒ²ã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+          count { <u> | -- åºƒå‘ŠadæŽ¥è§¦ã‚¤ãƒ™ãƒ³ãƒˆ
                         <ae, u, ad, _> <- +eua+
-                      , -- ‰‰ñÚG‚ªLad‚Å‚ ‚é
+                      , -- åˆå›žæŽ¥è§¦ãŒåºƒå‘Šadã§ã‚ã‚‹
                         is_first_contact u ae
-                      , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                      , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                         <_, u, touroku, ct> <- +euc+
-                      , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“‚ªŽw’èŠúŠÔ“à
+                      , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ãŒæŒ‡å®šæœŸé–“å†…
                         from <= ct, ct < to }
-        , -- V‹K“o˜^‚©‚ç30“úˆÈ“à‚É‰ž•å‚µ‚½ƒ†[ƒU‚Ì”
-          count { <u> | -- LadÚGƒCƒxƒ“ƒg
+        , -- æ–°è¦ç™»éŒ²ã‹ã‚‰30æ—¥ä»¥å†…ã«å¿œå‹Ÿã—ãŸãƒ¦ãƒ¼ã‚¶ã®æ•°
+          count { <u> | -- åºƒå‘ŠadæŽ¥è§¦ã‚¤ãƒ™ãƒ³ãƒˆ
                         <ae, u, ad, _> <- +eua+
-                      , -- ‰‰ñÚG‚ªLad‚Å‚ ‚é
+                      , -- åˆå›žæŽ¥è§¦ãŒåºƒå‘Šadã§ã‚ã‚‹
                         is_first_contact u ae
-                      , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                      , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                         <_, u, touroku, ct1> <- +euc+
-                      , -- V‹K“o˜^ƒRƒ“ƒo[ƒWƒ‡ƒ“‚ªŽw’èŠúŠÔ“à
+                      , -- æ–°è¦ç™»éŒ²ã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ãŒæŒ‡å®šæœŸé–“å†…
                         from <= ct1, ct1 < to
-                      , -- ‰ž•åƒRƒ“ƒo[ƒWƒ‡ƒ“ƒCƒxƒ“ƒg
+                      , -- å¿œå‹Ÿã‚³ãƒ³ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã‚¤ãƒ™ãƒ³ãƒˆ
                         <_, u, oubo, ct2> <- +euc+
-                      , -- V‹K“o˜^‚©‚ç30“úˆÈ“à‚É‰ž•å
+                      , -- æ–°è¦ç™»éŒ²ã‹ã‚‰30æ—¥ä»¥å†…ã«å¿œå‹Ÿ
                         ct1 < ct2, ct2 <= ct1 + days 30 }
         >
       | <ad,bg,cp,md,_,_,_> <- +ad+
@@ -199,14 +199,14 @@
 ;;; Business Goal: < Business Goal, Name, Header, Query >
 (defrelation +bg+ (:int :string :string :string)
   (relation-adjoin-all
-    (list (tuple +business-goal-1-id+ "’ZŠú‰ž•åŠl“¾"
-                 "ƒLƒƒƒ“ƒy[ƒ“,”}‘Ì,‰ïˆõ“o˜^,“–ŒŽ‰ž•å,i‚Rƒ–ŒŽ‰ž•åj"
+    (list (tuple +business-goal-1-id+ "çŸ­æœŸå¿œå‹Ÿç²å¾—"
+                 "ã‚­ãƒ£ãƒ³ãƒšãƒ¼ãƒ³,åª’ä½“,ä¼šå“¡ç™»éŒ²,å½“æœˆå¿œå‹Ÿ,ï¼ˆï¼“ãƒ¶æœˆå¿œå‹Ÿï¼‰"
                  +business-goal-1-query+)
-          (tuple +business-goal-2-id+ "’·Šú‰ž•åŠl“¾"
-                 "ƒLƒƒƒ“ƒy[ƒ“,”}‘Ì,‰ïˆõ“o˜^,‚Rƒ–ŒŽ‰ž•å,i“–ŒŽ‰ž•åj"
+          (tuple +business-goal-2-id+ "é•·æœŸå¿œå‹Ÿç²å¾—"
+                 "ã‚­ãƒ£ãƒ³ãƒšãƒ¼ãƒ³,åª’ä½“,ä¼šå“¡ç™»éŒ²,ï¼“ãƒ¶æœˆå¿œå‹Ÿ,ï¼ˆå½“æœˆå¿œå‹Ÿï¼‰"
                  +business-goal-2-query+)
-          (tuple +business-goal-3-id+ "‰ïˆõŠl“¾"
-                 "ƒLƒƒƒ“ƒy[ƒ“,”}‘Ì,‰ïˆõ“o˜^,i“–ŒŽ‰ž•åj"
+          (tuple +business-goal-3-id+ "ä¼šå“¡ç²å¾—"
+                 "ã‚­ãƒ£ãƒ³ãƒšãƒ¼ãƒ³,åª’ä½“,ä¼šå“¡ç™»éŒ²,ï¼ˆå½“æœˆå¿œå‹Ÿï¼‰"
                  +business-goal-3-query+))
     (empty-relation)))
 
@@ -328,7 +328,7 @@
       (when show-query-p
         (format t "~A~%" query))
       ; show business goal
-      (format t "¥~A~%" name)
+      (format t "â–¼~A~%" name)
       ; show header of the business goal
       (format t "~A~%" header)
       ; show results of the query
