@@ -28,6 +28,42 @@
   (and (consp list)
        (null (cdr list))))
 
+
+;;
+;;  Syntax:
+;;
+;;    GROUP source n => result-list
+;;
+;;  Arguments and Values:
+;;
+;;    source --- a list.
+;;    n --- a positive integer.
+;;
+;;  Description:
+;;
+;;    Groups the elements of SOURCE list by N elements and return
+;;    the result.
+;;
+;;  Exceptional Situations:
+;;
+;;    Signals an error of type type-error if SOURCE is not a list.
+;;    
+;;    Signals an error of type type-error if N is not an integer.
+;;
+;;    Signals an error of type type-error if N is negative.
+;;
+;;    Signals an error of type simple-error if N is zero.
+;;
+(defun group (source n)
+  (if (zerop n) (error "zero length"))
+  (labels ((rec (source acc)
+             (let ((rest (nthcdr n source)))
+               (if (consp rest)
+                   (rec rest (cons (subseq source 0 n) acc))
+                   (nreverse (cons source acc))))))
+    (if source (rec source nil) nil)))
+
+
 ;;
 ;;  Syntax:
 ;;

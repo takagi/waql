@@ -85,9 +85,20 @@
 
 (diag "EVAL-WAQL")
 
-(let ((code "123"))
-  (is (eval-waql code) 123
-      "basic case"))
+(is (eval-waql "123") 123
+    "basic case 1")
+
+(is (eval-waql "lisp \"x\" int" 'x 1) 1
+    "basic case 2")
+
+(is (eval-waql "lisp \"(+ x y)\" int" 'x 1 'y 2) 3
+    "basic case 3")
+
+(is-error (eval-waql "lisp \"(+ x y)\" int" 'x 1) simple-warning
+          "not provided enough lexical variables")
+
+(is-error (eval-waql "lisp \"(+ x y)\" int" 'x 1 'y) simple-warning
+          "odd number of arguments")
 
 
 ;;
@@ -96,12 +107,19 @@
 
 (diag "PRECOMPILE-WAQL")
 
-(let ((code "123"))
-  (let ((thunk (precompile-waql code)))
-    (is (type-of thunk) 'function
-        "basic case 1")
-    (is (funcall thunk) 123
-        "basic case 2")))
+(let ((thunk (precompile-waql "123")))
+  (is (type-of thunk) 'function
+      "basic case 1")
+  (is (funcall thunk) 123
+      "basic case 2"))
+
+(let ((thunk (precompile-waql "lisp \"x\" int" 'x)))
+  (is (funcall thunk 1) 1
+      "basic case 3"))
+
+(let ((thunk (precompile-waql "lisp \"(+ x y)\" int" 'x 'y)))
+  (is (funcall thunk 1 2) 3
+      "basic case 4"))
 
 
 (finalize)

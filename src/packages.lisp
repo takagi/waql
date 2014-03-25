@@ -9,6 +9,7 @@
 (defpackage waql.util
   (:use :cl)
   (:export #:single
+           #:group
            #:minimize
            #:flip
            #:trim

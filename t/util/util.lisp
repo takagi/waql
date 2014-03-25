@@ -25,6 +25,34 @@
 
 
 ;;
+;; test GROUP function
+;;
+
+(diag "GROUP")
+
+(is (group '(a b c d) 2) '((a b) (c d))
+    "basic case 1")
+
+(is (group '(a b c d e f) 3) '((a b c) (d e f))
+    "basic case 2")
+
+(is (group '(a b c) 2) '((a b) (c))
+    "basic case 3")
+
+(is-error (group 'foo 2) type-error
+          "SOURCE which is not a list")
+
+(is-error (group '(a b c d) 'foo) type-error
+          "N which is not an integer")
+
+(is-error (group '(a b c d) -1) type-error
+          "N which is negative")
+
+(is-error (group '(a b c d) 0) simple-error
+          "N which is zero")
+
+
+;;
 ;; test MINIMIZE function
 ;;
 
