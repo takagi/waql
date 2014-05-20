@@ -293,6 +293,9 @@
   (is-print (write tuple) "#S(TUPLE 1 \"foo\" BAR)"
             "basic case 4"))
 
+(is (tuple-ref nil 0 :accept-nil-p t) nil
+    "basic case 5")
+
 
 ;;
 ;; test TUPLE-REF function

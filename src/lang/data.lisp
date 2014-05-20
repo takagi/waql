@@ -525,12 +525,13 @@
 ;;
 ;;  Syntax:
 ;;
-;;    TUPLE-REF tuple i => object
+;;    TUPLE-REF tuple i &key accept-nil-p => object
 ;;
 ;;  Arguments and Values:
 ;;
-;;    tuple --- a tuple.
+;;    tuple --- a tuple or nil.
 ;;    i --- a non-negative integer.
+;;    accept-nil-p --- a generalized boolean. The default is false.
 ;;    object --- an object.
 ;;
 ;;  Description:
@@ -539,18 +540,24 @@
 ;;
 ;;  Exceptional Situations:
 ;;
-;;    Signals an error of type-error if TUPLE is not a tuple.
+;;    When ACCEPT-NIL-P is true, signals an error of type-error if TUPLE
+;;    is not a tuple nor nil. Otherwise, siglans an error of type-error
+;;    if TUPLE is not a tuple.
 ;;
 ;;    Signals an error of type-error if I is not a non-negative integer.
 ;;
 ;;    Signals an error of simple-error if I is equal or larger than
 ;;    dimension of TUPLE.
 ;;
-(defun tuple-ref (tuple i)
-  (unless (< i (tuple-dim tuple))
-    (error "The value ~S is equal or larger than dimension of ~S"
-           i tuple))
-  (nth i (%tuple-elements tuple)))
+(defun tuple-ref (tuple i &key accept-nil-p)
+  (when tuple
+    (unless (< i (tuple-dim tuple))
+      (error "The value ~S is equal or larger than dimension of ~S"
+             i tuple)))
+  (if accept-nil-p
+      (when tuple
+        (nth i (%tuple-elements tuple)))
+      (nth i (%tuple-elements tuple))))
 
 ;;
 ;;  Syntax:
