@@ -222,12 +222,14 @@
       (pattern-match-predicate qual rest exprs patenv)))
 
 (defun duplicated-vars-p (vars)
-  (let ((vars1 (remove-if #'underscore-notation-p vars)))
+  (let ((vars1 (remove-if #'underscore-notation-p
+                 (remove-if #'literal-p vars))))
     (not (equal vars1 (remove-duplicates vars1)))))
 
 (defun pattern-match-quantification (qual rest exprs patenv)
   (dolist (var (quantification-vars qual))
-    (unless (or (underscore-notation-p var)
+    (unless (or (literal-p var)
+                (underscore-notation-p var)
                 (not (percent-symbol-p var)))
         (error "The value ~S, beginning with a percent character, is reserved." var)))
   (let ((vars (quantification-vars qual)))
@@ -351,12 +353,17 @@
                                 :predicates ,preds1)))))
 
 (defun pattern-matcher-match (matcher var)
-  (unless (or (waql-symbol-p var)
+  (unless (or (literal-p var)
+              (waql-symbol-p var)
               (underscore-notation-p var))
     (error 'type-error :datum var :expected-type 'waql-symbol))
-  (if (underscore-notation-p var)
-      (pattern-matcher-match-underscore matcher var)
-      (pattern-matcher-match-otherwise matcher var)))
+  (cond
+    ((literal-p var)
+     (pattern-matcher-match-literal matcher var))
+    ((underscore-notation-p var)
+     (pattern-matcher-match-underscore matcher var))
+    (t
+     (pattern-matcher-match-otherwise matcher var))))
 
 (defvar *underscore-count* 1)
 
@@ -365,6 +372,13 @@
     (let ((vars1 (cons (percent-symbol var *underscore-count*) vars)))
       (incf *underscore-count*)
       (values vars1 patenv preds))))
+
+(defun pattern-matcher-match-literal (matcher literal)
+  (with-pattern-matcher ((vars patenv preds) matcher)
+    (let ((var1 (gensym "TMP")))
+      (let ((vars1 (cons var1 vars))
+            (preds1 (cons `(= ,literal ,var1) preds)))
+        (values vars1 patenv preds1)))))
 
 (defun pattern-matcher-match-otherwise (matcher var)
   (with-pattern-matcher ((vars patenv preds) matcher)

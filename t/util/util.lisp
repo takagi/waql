@@ -131,4 +131,15 @@
           "STRING which is not a string")
 
 
+;;
+;; test MAPTREE
+;;
+
+(diag "MAPTREE")
+
+(is (maptree #'- '(1 (2 3)))
+    '(-1 (-2 -3))
+    "basic case 1")
+
+
 (finalize)

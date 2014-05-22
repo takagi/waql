@@ -107,6 +107,21 @@
                   (= x %x1))
       "basic case 2"))
 
+(defun gensym->keyword (object)
+  (if (and (symbolp object)
+           (null (symbol-package object)))
+      (make-keyword (symbol-name object))
+      object))
+
+(let ((*gensym-counter* 1)
+      (patenv (add-patenv 'r
+                (empty-patenv))))
+  (is (maptree #'gensym->keyword
+        (pattern-match-query '(query (x) (<- (x 1) r)) patenv))
+      '(query (x) (<- (x :TMP1) r)
+                  (= 1 :TMP1))
+      "basic case 3"))
+
 (let ((patenv (empty-patenv)))
   (is-error (pattern-match-query '(query (%x) (<- (%x) r)) patenv)
             simple-error
@@ -161,6 +176,18 @@
         "basic case 2")
     (is preds '((= x %x1))
         "basic case 3")))
+
+(let ((*gensym-counter* 1)
+      (patenv (empty-patenv)))
+  (multiple-value-bind (vars patenv1 preds)
+      (run-pattern-matcher '(x 1) patenv)
+    (declare (ignorable patenv1))
+    (is (mapcar #'gensym->keyword vars)
+        '(x :TMP1)
+        "basic case 4")
+    (is (mapcar #'gensym->keyword (car preds))
+        '(= 1 :TMP1)
+        "basic case 5")))
 
 (let ((patenv (empty-patenv)))
   (is-error (run-pattern-matcher 'foo patenv) type-error

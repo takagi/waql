@@ -238,6 +238,10 @@
            '(query (a) (<- (a _) +r+))
            "QUERY 2")
 
+(is-parsed (query*) "{ <a> | <a, 1> <- +r+ }"
+           '(query (a) (<- (a 1) +r+))
+           "QUERY 3")
+
 
 ;;
 ;; test Lisp form

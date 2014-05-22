@@ -94,6 +94,7 @@
 (defpackage waql-test.lang.compiler.pattern-match
   (:use :cl
         :cl-test-more
+        :waql.util
         :waql.lang.syntax
         :waql.lang.compiler.patenv
         :waql.lang.compiler.pattern-match)
@@ -105,7 +106,9 @@
                 #:pattern-match-lisp-form
                 #:pattern-match-function
                 #:run-pattern-matcher
-                #:*underscore-count*))
+                #:*underscore-count*)
+  (:import-from :alexandria
+                :make-keyword))
 
 (defpackage waql-test.lang.compiler.compile-expression
   (:use :cl

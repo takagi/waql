@@ -17,7 +17,8 @@
            #:right-trim
            #:semicolon-terminated
            #:semicolon-terminated-p
-           #:ensure-semicolon-terminated)
+           #:ensure-semicolon-terminated
+           #:maptree)
   (:import-from #:alexandria
                 #:ends-with))
 

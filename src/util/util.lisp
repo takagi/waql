@@ -253,3 +253,20 @@
   (if (semicolon-terminated-p string)
       (values string nil)
       (values (semicolon-terminated string) t)))
+
+;;
+;;  Syntax:
+;;
+;;    MAPTREE fn list => result
+;;
+;;  Arguments and Values:
+;;
+;;    fn --- a designator for a function that must take one argument
+;;    list --- a proper list
+;;    result --- a list
+;;
+(defun maptree (fn list)
+  (cond ((null list) nil)
+        ((atom list) (funcall fn list))
+        (t (cons (maptree fn (car list))
+                 (maptree fn (cdr list))))))

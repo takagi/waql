@@ -275,8 +275,9 @@
               (make-quantification vars relation)))
 
 (defun quantification-vars* ()
-  (tuple* (choice1 (waql-symbol*)
-                   (underscore*))))
+  (tuple* (choices1 (literal*)
+                    (waql-symbol*)
+                    (underscore*))))
 
 (defun quantification-relation* ()
   (delayed? (expr*)))

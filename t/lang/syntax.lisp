@@ -467,17 +467,14 @@
 
 (diag "MAKE-QUANTIFICATION")
 
-(let ((quant (make-quantification '(x y _) 'r)))
-  (is (quantification-vars quant) '(x y _)
+(let ((quant (make-quantification '(x y _ 1) 'r)))
+  (is (quantification-vars quant) '(x y _ 1)
       "basic case 1")
   (is (quantification-relation quant) 'r
       "basic case 2"))
 
 (is-error (make-quantification 'foo 'r) type-error
           "VAR-LIST which is not a list of WAQL symbols 1")
-
-(is-error (make-quantification '(1) 'r) type-error
-          "VAR-LIST which is not a list of WAQL symbols 2")
 
 
 ;;

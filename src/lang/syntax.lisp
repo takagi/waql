@@ -724,7 +724,8 @@
 ;;
 (defun make-quantification (var-list relation-expr)
   (dolist (var var-list)
-    (unless (or (waql-symbol-p var)
+    (unless (or (literal-p var)
+                (waql-symbol-p var)
                 (underscore-notation-p var))
       (error 'type-error :datum var :expected-type 'waql-symbol)))
   `(<- ,var-list ,relation-expr))
