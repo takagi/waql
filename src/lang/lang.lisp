@@ -14,25 +14,18 @@
 (defmacro waql-in-sexp (sexp)
   (compile-waql sexp))
 
-(defun eval-waql (code &rest args)
-  (eval `(let ,(args->bindings args)
-           ,(compile-waql
-              (parse-waql
-                 (ensure-semicolon-terminated code))))))
+(defun eval-waql (code)
+  (eval (compile-waql (parse-waql (ensure-semicolon-terminated code)))))
 
-(defun eval-waql-in-sexp (sexp &rest args)
-  (eval `(let ,(args->bindings args)
-           ,(compile-waql sexp))))
+(defun eval-waql-in-sexp (sexp)
+  (eval (compile-waql sexp)))
 
-(defun args->bindings (args)
-  (remove-if #'single (group args 2)))
-
-(defun precompile-waql (code &rest args)
-  (eval `#'(lambda ,args
+(defun precompile-waql (code)
+  (eval `#'(lambda ()
              ,(compile-waql
                 (parse-waql
                   (ensure-semicolon-terminated code))))))
 
-(defun precompile-waql-in-sexp (sexp &rest args)
-  (eval `#'(lambda ,args
+(defun precompile-waql-in-sexp (sexp)
+  (eval `#'(lambda ()
              ,(compile-waql sexp))))
