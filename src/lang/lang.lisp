@@ -20,12 +20,12 @@
 (defun eval-waql-in-sexp (sexp)
   (eval (compile-waql sexp)))
 
-(defun precompile-waql (code)
-  (eval `#'(lambda ()
+(defun precompile-waql (code &rest args)
+  (eval `#'(lambda ,args
              ,(compile-waql
                 (parse-waql
                   (ensure-semicolon-terminated code))))))
 
-(defun precompile-waql-in-sexp (sexp)
-  (eval `#'(lambda ()
+(defun precompile-waql-in-sexp (sexp &rest args)
+  (eval `#'(lambda ,args
              ,(compile-waql sexp))))

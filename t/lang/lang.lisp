@@ -96,12 +96,19 @@
 
 (diag "PRECOMPILE-WAQL")
 
-(let ((code "123"))
-  (let ((thunk (precompile-waql code)))
-    (is (type-of thunk) 'function
-        "basic case 1")
-    (is (funcall thunk) 123
-        "basic case 2")))
+(let ((thunk (precompile-waql "123")))
+  (is (type-of thunk) 'function
+      "basic case 1")
+  (is (funcall thunk) 123
+      "basic case 2"))
+
+(let ((thunk (precompile-waql "lisp \"x\" int" 'x)))
+  (is (funcall thunk 1) 1
+      "basic case 3"))
+
+(let ((thunk (precompile-waql "lisp \"(+ x y)\" int" 'x 'y)))
+  (is (funcall thunk 1 2) 3
+      "basic case 4"))
 
 
 (finalize)
