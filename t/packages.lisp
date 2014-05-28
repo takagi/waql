@@ -11,11 +11,6 @@
         :cl-test-more
         :waql.util))
 
-(defpackage waql-test.util.coroutine
-  (:use :cl
-        :cl-test-more
-        :waql.util.coroutine))
-
 (defpackage waql-test.lang.data
   (:use :cl
         :cl-test-more

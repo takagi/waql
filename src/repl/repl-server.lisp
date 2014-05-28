@@ -38,7 +38,7 @@
     (:output (list :output (princ-to-string expr)))
     (:error (list :error (princ-to-string expr)))))
 
-(defcor repl-server (line)
+(defcoroutine repl-server (line)
   (repl-loop
     (let ((trimed-line (trim line)))
       ;; if empty line, continue

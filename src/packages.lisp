@@ -21,14 +21,6 @@
   (:import-from #:alexandria
                 #:ends-with))
 
-(defpackage waql.util.coroutine
-  (:use :cl)
-  (:export #:defcor
-           #:yield
-           #:coexit
-           #:make-coroutine
-           #:with-coroutine))
-
 (defpackage waql.lang.data
   (:use :cl
         :waql.util)
@@ -306,30 +298,35 @@
 (defpackage waql.repl.repl-server
   (:use :cl
         :waql.util
-        :waql.util.coroutine
         :waql.lang.compiler
         :waql.lang.parser)
   (:export #:repl-server
            #:+quit-command-regexp+)
   (:import-from #:alexandria
                 #:starts-with)
+  (:import-from #:cl-coroutine
+                #:defcoroutine
+                #:yield
+                #:coexit)
   (:import-from #:cl-ppcre
                 #:scan
                 #:register-groups-bind))
 
 (defpackage waql.repl.cl-repl
   (:use :cl
-        :waql.util.coroutine
         :waql.repl.repl-server)
-  (:export repl-waql))
+  (:export repl-waql)
+  (:import-from #:cl-coroutine
+                #:with-coroutine))
 
 (defpackage waql.repl.web-repl
   (:use :cl
         :waql.util
-        :waql.util.coroutine
         :waql.repl.repl-server)
   (:export #:start
            #:stop)
+  (:import-from #:cl-coroutine
+                #:make-coroutine)
   (:import-from #:cl-ppcre
                 #:scan))
 

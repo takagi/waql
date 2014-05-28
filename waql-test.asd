@@ -20,8 +20,7 @@
                  (:module "util"
                   :serial t
                   :components
-                  ((:file "util")
-                   (:file "coroutine")))
+                  ((:file "util")))
                  (:module "lang"
                   :serial t
                   :components

@@ -3,10 +3,6 @@
   Copyright (c) 2013 Masayuki Takagi (kamonama@gmail.com)
 |#
 
-#|
-  Author: Masayuki Takagi (kamonama@gmail.com)
-|#
-
 (in-package :cl-user)
 (defpackage waql-asd
   (:use :cl :asdf))
@@ -24,7 +20,8 @@
                :cl-cont
                :cl-ppcre
                :hunchentoot
-               :split-sequence)
+               :split-sequence
+               :cl-coroutine)
   :components ((:module "src"
                 :serial t
                 :components
@@ -32,8 +29,7 @@
                  (:module "util"
                   :serial t
                   :components
-                  ((:file "util")
-                   (:file "coroutine")))
+                  ((:file "util")))
                  (:module "lang"
                   :serial t
                   :components
