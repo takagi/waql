@@ -12,13 +12,15 @@
   :version "0.1"
   :author "Masayuki Takagi"
   :license "LLGPL"
-  :depends-on (:hunchentoot
+  :depends-on (:waql
+               :hunchentoot
                :cl-ppcre
                :cl-coroutine)
   :components ((:module "repl"
                 :serial t
                 :components
-                ((:file "repl-server")
+                ((:file "packages")
+                 (:file "repl-server")
                  (:file "cl-repl")
                  (:file "hunchentoot")
                  (:file "web-repl"))))

@@ -7,7 +7,11 @@
 (in-package :cl-user)
 
 (defpackage waql-repl.repl-server
-  (:use :cl :waql)
+  (:use :cl
+        :waql
+        :waql.lang.parser
+        :waql.lang.compiler
+        :waql.util)
   (:export #:repl-server
            #:+quit-command-regexp+)
   (:import-from #:alexandria
@@ -29,7 +33,8 @@
 
 (defpackage waql-repl.web-repl
   (:use :cl
-        :waql-repl.repl-server)
+        :waql-repl.repl-server
+        :waql.util)
   (:export #:start
            #:stop)
   (:import-from #:cl-coroutine

@@ -4,7 +4,7 @@
 |#
 
 
-(in-package :waql.repl.web-repl)
+(in-package :waql-repl.web-repl)
 
 
 ;;;

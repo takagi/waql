@@ -4,7 +4,7 @@
 |#
 
 
-(in-package :waql.repl.repl-server)
+(in-package :waql-repl.repl-server)
 
 
 ;;;
