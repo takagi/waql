@@ -295,57 +295,13 @@
            #:precompile-waql
            #:precompile-waql-in-sexp))
 
-(defpackage waql.repl.repl-server
-  (:use :cl
-        :waql.util
-        :waql.lang.compiler
-        :waql.lang.parser)
-  (:export #:repl-server
-           #:+quit-command-regexp+)
-  (:import-from #:alexandria
-                #:starts-with)
-  (:import-from #:cl-coroutine
-                #:defcoroutine
-                #:yield
-                #:coexit)
-  (:import-from #:cl-ppcre
-                #:scan
-                #:register-groups-bind))
-
-(defpackage waql.repl.cl-repl
-  (:use :cl
-        :waql.repl.repl-server)
-  (:export repl-waql)
-  (:import-from #:cl-coroutine
-                #:with-coroutine))
-
-(defpackage waql.repl.web-repl
-  (:use :cl
-        :waql.util
-        :waql.repl.repl-server)
-  (:export #:start
-           #:stop)
-  (:import-from #:cl-coroutine
-                #:make-coroutine)
-  (:import-from #:cl-ppcre
-                #:scan))
-
-(defpackage waql.repl
-  (:use :cl
-        :waql.repl.cl-repl
-        :waql.repl.web-repl)
-  (:export #:repl-waql
-           #:start
-           #:stop))
-
 (defpackage waql
   (:use :cl
         :waql.lang.data
         :waql.lang.syntax
         :waql.lang.compiler.generic-functions
         :waql.lang.compiler.defrelation
-        :waql.lang
-        :waql.repl)
+        :waql.lang)
   (:export ;; WAQL INTERFACES
            #:waql
            #:waql-in-sexp
@@ -375,11 +331,7 @@
            #:lisp
            ;; GENERIC FUNCTIONS
            #:exists
-           #:days
-           ;; REPL
-           #:repl-waql
-           #:start
-           #:stop))
+           #:days))
 
 (defpackage waql.sandbox
   (:use :cl

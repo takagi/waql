@@ -17,11 +17,7 @@
                :iterate
                :local-time
                :parser-combinators
-               :cl-cont
-               :cl-ppcre
-               :hunchentoot
-               :split-sequence
-               :cl-coroutine)
+               :split-sequence)
   :components ((:module "src"
                 :serial t
                 :components
@@ -50,13 +46,6 @@
                      (:file "compiler")))
                    (:file "parser")
                    (:file "lang")))
-                 (:module "repl"
-                  :serial t
-                  :components
-                  ((:file "repl-server")
-                   (:file "cl-repl")
-                   (:file "hunchentoot")
-                   (:file "web-repl")))
                  (:module "sandbox"
                   :serial t
                   :components
